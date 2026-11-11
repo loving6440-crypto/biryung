@@ -1,0 +1,13 @@
+{
+  "id": "game/sell",
+  "source": "modules/game/sell.js",
+  "exports": {
+    "CRAFTED_SELL_MULT": 1.1,
+    "LOST_PRICES": {
+      "lost-hairband": 1,
+      "lost-slippers": 5,
+      "lost-love-letter": 8,
+      "lost-phone": 20
+    }
+  }
+}

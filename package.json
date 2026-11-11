@@ -1,15 +1,19 @@
 {
   "name": "biryeong",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server/index.mjs",
-    "check": "node --test tests/*.test.mjs",
-    "rebuild:data": "node systems/data/build-catalogs.mjs"
+    "check": "node --test tests/*.test.mjs systems/vault/tests/c01/*.test.mjs",
+    "rebuild:data": "node systems/data/build-catalogs.mjs",
+    "vault": "node systems/vault/cli.mjs",
+    "vault:build": "node systems/vault/build.mjs",
+    "vault:verify": "node systems/vault/cli.mjs verify",
+    "check:vault-c01": "node --test systems/vault/tests/c01/*.test.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"

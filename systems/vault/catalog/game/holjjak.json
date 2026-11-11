@@ -1,0 +1,30 @@
+{
+  "id": "game/holjjak",
+  "source": "modules/game/holjjak.js",
+  "exports": {
+    "HOLJJAK_MAX_BET": 500,
+    "HOLJJAK_MAX_PER_DAY": 3,
+    "HOLJJAK_SLOTS": [
+      {
+        "month": 1,
+        "mult": 2
+      },
+      {
+        "month": 3,
+        "mult": 1.5
+      },
+      {
+        "month": 8,
+        "mult": 1
+      },
+      {
+        "month": 11,
+        "mult": 0.5
+      },
+      {
+        "month": 12,
+        "mult": 0
+      }
+    ]
+  }
+}

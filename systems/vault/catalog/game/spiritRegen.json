@@ -1,0 +1,9 @@
+{
+  "id": "game/spiritRegen",
+  "source": "modules/game/spiritRegen.js",
+  "exports": {
+    "SPIRIT_REGEN_BASE_SEC": 120,
+    "SPIRIT_REGEN_MIN_SEC": 60,
+    "SPIRIT_REGEN_STEP_SEC": 2.5
+  }
+}

@@ -1,0 +1,899 @@
+{
+  "id": "game/cooking",
+  "source": "modules/game/cooking.js",
+  "exports": {
+    "COOK_RECIPES": [
+      {
+        "id": "cook-soybean-oil",
+        "result": "soybean-oil",
+        "inputs": [
+          [
+            "soybean",
+            5
+          ]
+        ]
+      },
+      {
+        "id": "cook-rice-cake",
+        "result": "rice-cake",
+        "inputs": [
+          [
+            "mugwort",
+            3
+          ],
+          [
+            "rice",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook-carp-soup",
+        "result": "carp-soup",
+        "inputs": [
+          [
+            "carp",
+            3
+          ],
+          [
+            "lake-water",
+            3
+          ]
+        ]
+      },
+      {
+        "id": "cook-snakeberry-jam",
+        "result": "snakeberry-jam",
+        "inputs": [
+          [
+            "snake-berry",
+            4
+          ],
+          [
+            "sugar",
+            3
+          ]
+        ]
+      },
+      {
+        "id": "cook-mushroom-stew",
+        "result": "mushroom-stew",
+        "inputs": [
+          [
+            "mushroom",
+            5
+          ]
+        ]
+      },
+      {
+        "id": "cook-king-mushroom-stew",
+        "result": "king-mushroom-stew",
+        "inputs": [
+          [
+            "mushroom",
+            3
+          ],
+          [
+            "king-mushroom",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook-poison-mushroom-stew",
+        "result": "poison-mushroom-stew",
+        "inputs": [
+          [
+            "poison-mushroom",
+            5
+          ]
+        ]
+      },
+      {
+        "id": "cook-bibimbap",
+        "result": "bibimbap",
+        "inputs": [
+          [
+            "chwinamul",
+            2
+          ],
+          [
+            "lettuce",
+            2
+          ],
+          [
+            "fern",
+            2
+          ],
+          [
+            "rice",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook-flower-pancake",
+        "result": "flower-pancake",
+        "inputs": [
+          [
+            "azalea",
+            1
+          ],
+          [
+            "dandelion",
+            1
+          ],
+          [
+            "rice",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook-herb-salad",
+        "result": "herb-salad",
+        "inputs": [
+          [
+            "chwinamul",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook-mystery-tonic",
+        "result": "mystery-tonic",
+        "inputs": [
+          [
+            "licorice",
+            2
+          ],
+          [
+            "waning-flower",
+            1
+          ],
+          [
+            "crescent-flower",
+            1
+          ],
+          [
+            "lake-water",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-lake-broth",
+        "result": "lake-broth",
+        "inputs": [
+          [
+            "lake-water",
+            3
+          ],
+          [
+            "mushroom",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-acorn-flour",
+        "result": "acorn-flour",
+        "inputs": [
+          [
+            "acorn",
+            5
+          ]
+        ]
+      },
+      {
+        "id": "cook8-chestnut-syrup",
+        "result": "chestnut-syrup",
+        "inputs": [
+          [
+            "chestnut",
+            3
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-herb-decoction",
+        "result": "herb-decoction",
+        "inputs": [
+          [
+            "dangwi",
+            2
+          ],
+          [
+            "licorice",
+            2
+          ],
+          [
+            "doraji",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-wild-grape-juice",
+        "result": "wild-grape-juice",
+        "inputs": [
+          [
+            "wild-grape",
+            4
+          ]
+        ]
+      },
+      {
+        "id": "cook8-barley-flour",
+        "result": "barley-flour",
+        "inputs": [
+          [
+            "barley-seed",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-blanched-greens",
+        "result": "blanched-greens",
+        "inputs": [
+          [
+            "chwinamul",
+            2
+          ],
+          [
+            "fern",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-wheat-flour",
+        "result": "wheat-flour",
+        "inputs": [
+          [
+            "wheat-seed",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-pickled-raspberry",
+        "result": "pickled-raspberry",
+        "inputs": [
+          [
+            "wild-raspberry",
+            6
+          ]
+        ]
+      },
+      {
+        "id": "cook8-barley-gaetteok",
+        "result": "barley-gaetteok",
+        "inputs": [
+          [
+            "barley-flour",
+            1
+          ],
+          [
+            "wild-raspberry",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-grilled-mushroom",
+        "result": "grilled-mushroom",
+        "inputs": [
+          [
+            "mushroom",
+            3
+          ]
+        ]
+      },
+      {
+        "id": "cook8-carrot-mushroom-stirfry",
+        "result": "carrot-mushroom-stirfry",
+        "inputs": [
+          [
+            "carrot",
+            2
+          ],
+          [
+            "mushroom",
+            2
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-snakeberry-punch",
+        "result": "snakeberry-punch",
+        "inputs": [
+          [
+            "snake-berry",
+            3
+          ],
+          [
+            "wild-raspberry",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-dandelion-tea",
+        "result": "dandelion-tea",
+        "inputs": [
+          [
+            "dandelion",
+            3
+          ],
+          [
+            "lake-water",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-lake-mushroom-soup",
+        "result": "lake-mushroom-soup",
+        "inputs": [
+          [
+            "lake-broth",
+            1
+          ],
+          [
+            "mushroom",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-cabbage-soup",
+        "result": "cabbage-soup",
+        "inputs": [
+          [
+            "cabbage",
+            2
+          ],
+          [
+            "lake-broth",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-clover-salad",
+        "result": "clover-salad",
+        "inputs": [
+          [
+            "clover-leaf",
+            3
+          ],
+          [
+            "lettuce",
+            2
+          ],
+          [
+            "cherry-tomato",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-ssukbeomuri",
+        "result": "ssukbeomuri",
+        "inputs": [
+          [
+            "mugwort",
+            3
+          ],
+          [
+            "barley-flour",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-mugwort-potato-pancake",
+        "result": "mugwort-potato-pancake",
+        "inputs": [
+          [
+            "potato",
+            3
+          ],
+          [
+            "mugwort",
+            1
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-stirfried-fern",
+        "result": "stirfried-fern",
+        "inputs": [
+          [
+            "fern",
+            3
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-greens-sujebi",
+        "result": "greens-sujebi",
+        "inputs": [
+          [
+            "wheat-flour",
+            1
+          ],
+          [
+            "blanched-greens",
+            1
+          ],
+          [
+            "lake-broth",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-grilled-carp",
+        "result": "grilled-carp",
+        "inputs": [
+          [
+            "carp",
+            2
+          ],
+          [
+            "mugwort",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-loofah-namul",
+        "result": "loofah-namul",
+        "inputs": [
+          [
+            "loofah-fruit",
+            2
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-acorn-jelly",
+        "result": "acorn-jelly",
+        "inputs": [
+          [
+            "acorn-flour",
+            1
+          ],
+          [
+            "lake-water",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-grilled-king-mushroom",
+        "result": "grilled-king-mushroom",
+        "inputs": [
+          [
+            "king-mushroom",
+            1
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-dangwi-tea",
+        "result": "dangwi-tea",
+        "inputs": [
+          [
+            "dangwi",
+            2
+          ],
+          [
+            "lake-water",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-chestnut-porridge",
+        "result": "chestnut-porridge",
+        "inputs": [
+          [
+            "chestnut",
+            4
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-doraji-jeonggwa",
+        "result": "doraji-jeonggwa",
+        "inputs": [
+          [
+            "doraji",
+            3
+          ],
+          [
+            "chestnut-syrup",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-licorice-taffy",
+        "result": "licorice-taffy",
+        "inputs": [
+          [
+            "licorice",
+            2
+          ],
+          [
+            "chestnut-syrup",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-wild-grape-punch",
+        "result": "wild-grape-punch",
+        "inputs": [
+          [
+            "wild-grape-juice",
+            1
+          ],
+          [
+            "lake-water",
+            1
+          ],
+          [
+            "wild-raspberry",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-pearl-dumpling",
+        "result": "pearl-dumpling",
+        "inputs": [
+          [
+            "pearl",
+            1
+          ],
+          [
+            "chestnut-syrup",
+            1
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-arrowroot-tea",
+        "result": "arrowroot-tea",
+        "inputs": [
+          [
+            "arrowroot",
+            2
+          ],
+          [
+            "lake-water",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-sipjeon-tang",
+        "result": "sipjeon-tang",
+        "inputs": [
+          [
+            "herb-decoction",
+            1
+          ],
+          [
+            "ginseng",
+            1
+          ],
+          [
+            "licorice",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-grilled-deodeok",
+        "result": "grilled-deodeok",
+        "inputs": [
+          [
+            "deodeok",
+            3
+          ],
+          [
+            "soybean-oil",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-oyster-mushroom-hotpot",
+        "result": "oyster-mushroom-hotpot",
+        "inputs": [
+          [
+            "oyster-mushroom",
+            3
+          ],
+          [
+            "lake-broth",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-clover-hwajeon",
+        "result": "clover-hwajeon",
+        "inputs": [
+          [
+            "clover",
+            1
+          ],
+          [
+            "azalea",
+            1
+          ],
+          [
+            "wheat-flour",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-flower-rice-cake",
+        "result": "flower-rice-cake",
+        "inputs": [
+          [
+            "crescent-flower",
+            1
+          ],
+          [
+            "waning-flower",
+            1
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-omija-punch",
+        "result": "omija-punch",
+        "inputs": [
+          [
+            "omija",
+            3
+          ],
+          [
+            "lake-water",
+            1
+          ],
+          [
+            "azalea",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-songi-rice",
+        "result": "songi-rice",
+        "inputs": [
+          [
+            "songi",
+            2
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-dragon-palace-soup",
+        "result": "dragon-palace-soup",
+        "inputs": [
+          [
+            "imugi-scale",
+            1
+          ],
+          [
+            "carp",
+            2
+          ],
+          [
+            "lake-broth",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-antler-tonic",
+        "result": "antler-tonic",
+        "inputs": [
+          [
+            "antler",
+            1
+          ],
+          [
+            "herb-decoction",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-pine-nut-porridge",
+        "result": "pine-nut-porridge",
+        "inputs": [
+          [
+            "pine-nut",
+            3
+          ],
+          [
+            "rice-grain",
+            10
+          ]
+        ]
+      },
+      {
+        "id": "cook8-pine-nut-gangjeong",
+        "result": "pine-nut-gangjeong",
+        "inputs": [
+          [
+            "pine-nut",
+            3
+          ],
+          [
+            "chestnut-syrup",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-golden-toad-pill",
+        "result": "golden-toad-pill",
+        "inputs": [
+          [
+            "gold-toad-skin",
+            1
+          ],
+          [
+            "licorice",
+            2
+          ]
+        ]
+      },
+      {
+        "id": "cook8-wild-ginseng-jeonggwa",
+        "result": "wild-ginseng-jeonggwa",
+        "inputs": [
+          [
+            "wild-ginseng",
+            1
+          ],
+          [
+            "chestnut-syrup",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-frost-bingsu",
+        "result": "frost-bingsu",
+        "inputs": [
+          [
+            "frost-flower",
+            2
+          ],
+          [
+            "wild-grape-juice",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-somdari-tea",
+        "result": "somdari-tea",
+        "inputs": [
+          [
+            "somdari",
+            2
+          ],
+          [
+            "lake-water",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-fortune-pill",
+        "result": "fortune-pill",
+        "inputs": [
+          [
+            "fortune-bat-wing",
+            1
+          ],
+          [
+            "herb-decoction",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-elixir-of-youth",
+        "result": "elixir-of-youth",
+        "inputs": [
+          [
+            "lingzhi",
+            1
+          ],
+          [
+            "wild-ginseng",
+            1
+          ],
+          [
+            "herb-decoction",
+            1
+          ]
+        ]
+      },
+      {
+        "id": "cook8-turtle-shell-tonic",
+        "result": "turtle-shell-tonic",
+        "inputs": [
+          [
+            "turtle-shell",
+            1
+          ],
+          [
+            "herb-decoction",
+            1
+          ]
+        ]
+      }
+    ],
+    "KITCHEN": {
+      "id": "kitchen",
+      "name": "조리실",
+      "desc": "가스불과 커다란 조리대, 각종 식자재가 갖춰진 공간. 이곳에서 식재료를 조합해서 음식을 만들 수 있다."
+    }
+  }
+}

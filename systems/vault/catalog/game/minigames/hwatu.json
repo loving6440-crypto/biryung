@@ -1,0 +1,242 @@
+{
+  "id": "game/minigames/hwatu",
+  "source": "modules/game/minigames/hwatu.js",
+  "exports": {
+    "KIND_LABEL": {
+      "gwang": "광",
+      "yeol": "열끗",
+      "tti": "띠",
+      "pi": "피",
+      "ssang": "쌍피"
+    },
+    "MONTHS": [
+      {
+        "n": 1,
+        "name": "솔",
+        "cards": [
+          {
+            "kind": "gwang"
+          },
+          {
+            "kind": "tti",
+            "band": "hong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 2,
+        "name": "매화",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "hong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 3,
+        "name": "벚꽃",
+        "cards": [
+          {
+            "kind": "gwang"
+          },
+          {
+            "kind": "tti",
+            "band": "hong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 4,
+        "name": "흑싸리",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cho"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 5,
+        "name": "난초",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cho"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 6,
+        "name": "모란",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cheong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 7,
+        "name": "홍싸리",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cho"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 8,
+        "name": "공산",
+        "cards": [
+          {
+            "kind": "gwang"
+          },
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 9,
+        "name": "국화",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cheong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 10,
+        "name": "단풍",
+        "cards": [
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "cheong"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 11,
+        "name": "오동",
+        "cards": [
+          {
+            "kind": "gwang"
+          },
+          {
+            "kind": "ssang"
+          },
+          {
+            "kind": "pi"
+          },
+          {
+            "kind": "pi"
+          }
+        ]
+      },
+      {
+        "n": 12,
+        "name": "비",
+        "cards": [
+          {
+            "kind": "gwang"
+          },
+          {
+            "kind": "yeol"
+          },
+          {
+            "kind": "tti",
+            "band": "hong"
+          },
+          {
+            "kind": "ssang"
+          }
+        ]
+      }
+    ],
+    "PAIR_SCORE": 100
+  }
+}

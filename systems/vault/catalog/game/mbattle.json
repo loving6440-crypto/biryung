@@ -1,0 +1,43 @@
+{
+  "id": "game/mbattle",
+  "source": "modules/game/mbattle.js",
+  "exports": {
+    "BARRIER_ALLY_SKILLS": [
+      "survival",
+      "echo-form",
+      "falling-light",
+      "karmic-recompense",
+      "warding-scripture",
+      "earth-step",
+      "seven-stars"
+    ],
+    "FX_IDS": [
+      "fan",
+      "spear",
+      "dagger",
+      "sword",
+      "bow",
+      "bell",
+      "instrument",
+      "sickle",
+      "staff",
+      "mace"
+    ],
+    "MB_INPUT_MS": 60000,
+    "MB_LOG_MAX": 80,
+    "MB_SURVIVE_MS": 20000,
+    "MULTI_TAG": "다인 전투",
+    "STAT_KEYS": [
+      "insight",
+      "aggression",
+      "endurance",
+      "control",
+      "agility",
+      "comprehension"
+    ],
+    "TRINKET_FX_IDS": [
+      "headband",
+      "goblin-mask"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "game/verifiedExpeditionRules",
+  "source": "modules/game/verifiedExpeditionRules.js",
+  "exports": {
+    "VERIFIED_EXPEDITION_COST": 10,
+    "VERIFIED_EXPEDITION_MAX_ENERGY": 100,
+    "VERIFIED_EXPEDITION_REGEN_MS": 60000,
+    "VERIFIED_EXPEDITION_STATS": {
+      "insight": 10,
+      "aggression": 10,
+      "endurance": 10,
+      "control": 10,
+      "agility": 10,
+      "comprehension": 10
+    }
+  }
+}

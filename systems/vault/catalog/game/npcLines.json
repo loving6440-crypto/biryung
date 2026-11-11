@@ -1,0 +1,7 @@
+{
+  "id": "game/npcLines",
+  "source": "modules/game/npcLines.js",
+  "exports": {
+    "CONDITIONS": {}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "game/travelEvents",
+  "source": "modules/game/travelEvents.js",
+  "exports": {
+    "CANDY_CHANCE": 0.025,
+    "LOST_CHANCE": 0.05,
+    "LOST_KEY_SHARE": 0.08,
+    "LOST_THINGS": [
+      "lost-hairband",
+      "lost-slippers",
+      "lost-phone",
+      "lost-love-letter",
+      "lost-key"
+    ],
+    "LOST_WEIGHTS": {
+      "lost-key": 0.08,
+      "lost-hairband": 0.23,
+      "lost-slippers": 0.23,
+      "lost-phone": 0.23,
+      "lost-love-letter": 0.23
+    },
+    "TRAVEL_LINES": [
+      "발목을 스치고 지나가는 날카로운 감각. 당신은 내려다보지 않기 위해 노력한다. 무시하고 걷자. 아래를 보거든 그것이 당신을 알아차리고 기어오를 것이다.",
+      "저만치 뒷산의 텃밭을 가꾸는 어른의 뒷모습이 보인다. 당신을 돌아보며 희미한 미소를 보인다.",
+      "건물에 도착하기 전까지 긴장을 늦추지 말자."
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+# Secrets / local configuration: never commit real credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials.json
+
+# Local tooling / dependencies
+node_modules/
+dist/
+.cache/
+*.log
+.DS_Store
+Thumbs.db

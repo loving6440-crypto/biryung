@@ -1,0 +1,23 @@
+{
+  "id": "game/shrine",
+  "source": "modules/game/shrine.js",
+  "exports": {
+    "SHRINE_KEEPER": {
+      "id": "shrineKeeper",
+      "role": "사당 문지기",
+      "where": "사당",
+      "note": "",
+      "vacant": true,
+      "name": "",
+      "src": null,
+      "portrait": null,
+      "faces": {},
+      "lines": [],
+      "giftLines": [],
+      "codex": "",
+      "appear": "",
+      "button": "문지기와 대화한다",
+      "intro": ""
+    }
+  }
+}

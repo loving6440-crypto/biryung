@@ -1,0 +1,8 @@
+{
+  "id": "game/omok",
+  "source": "modules/game/omok.js",
+  "exports": {
+    "OMOK_SIZE": 15,
+    "OMOK_WIN_LEN": 5
+  }
+}

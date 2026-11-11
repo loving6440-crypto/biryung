@@ -1,0 +1,7 @@
+{
+  "id": "game/huntField",
+  "source": "modules/game/huntField.js",
+  "exports": {
+    "SPIRIT_CORNER_SIZE": 2
+  }
+}

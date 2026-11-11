@@ -1,0 +1,23 @@
+{
+  "id": "game/bag",
+  "source": "modules/game/bag.js",
+  "exports": {
+    "BAG_ID": "bag",
+    "BAG_ITEM": {
+      "id": "bag",
+      "kind": "tool",
+      "tags": [
+        "완성품",
+        "가방"
+      ],
+      "name": "가방",
+      "price": 50,
+      "desc": "어깨에 메는 천 가방. 교과서보다 다른 것이 더 많이 들어 있는 게 학생 가방의 숙명이다.",
+      "effectText": "[가방 열기]로 물건을 넣고 꺼낸다. 가방 하나에 40칸(소지품과 같은 칸 규칙: 재료 99개 · 그 밖 9개씩). 누구나 하나씩 갖고 시작한다.",
+      "effect": {},
+      "battle": false
+    },
+    "BAG_PRICE": 50,
+    "BAG_SLOTS": 40
+  }
+}

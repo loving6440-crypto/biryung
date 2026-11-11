@@ -1,0 +1,32 @@
+{
+  "id": "game/progress",
+  "source": "modules/game/progress.js",
+  "exports": {
+    "GYM_DAILY_REWARDS": 3,
+    "GYM_LOSS_PENALTY": 2,
+    "REST_KINDS": {
+      "bed": {
+        "label": "누워서 쉬기",
+        "stat": "hp"
+      },
+      "counsel": {
+        "label": "선생님과 상담하기",
+        "stat": "mp"
+      }
+    },
+    "REST_MAX": 120,
+    "REST_MIN": 1,
+    "REST_UNIT_MIN": 1,
+    "SLEEP_MIN": 360,
+    "SLEEP_SPIRIT": 100,
+    "SLOW_FIGHT_COST_PER_SPIRIT": 2,
+    "SLOW_FIGHT_WAIT_PER_SPIRIT": 5,
+    "SPIRIT_REGEN_BASE_SEC": 120,
+    "SPIRIT_REGEN_MIN_SEC": 60,
+    "SPIRIT_REGEN_STEP_SEC": 2.5,
+    "TRAIN_MAX": 300,
+    "TRAIN_MIN": 5,
+    "TRAIN_UNIT_MIN": 5,
+    "WEAK_MS": 86400000
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "game/yut",
+  "source": "modules/game/yut.js",
+  "exports": {
+    "DONE": "done",
+    "OUTER_LEN": 20,
+    "START": -1
+  }
+}

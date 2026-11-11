@@ -1,0 +1,26 @@
+{
+  "id": "game/armory",
+  "source": "modules/game/armory.js",
+  "exports": {
+    "ARMORY": {
+      "id": "armory",
+      "label": "무구보관소",
+      "desc": "학교가 수시로 철통같이 감시하고 있는 무구들의 창고(어떻게 감시하길래 누가 몰래 들어갈 때마다 귀신같이 알아채는지는 아무도 모른다). 자신이 정식으로 학교에 승인을 받은 무구가 아니면 사용할 수 없는 것이 원칙이지만, 날을 갈고 무기를 꾸미는 정도의 행동은 자유롭게 할 수 있도록 허락되어 있다."
+    },
+    "ARMORY_KEEPER": {
+      "id": "armorySmith",
+      "role": "무구보관소 무구 강화 담당",
+      "where": "뒷산 · 무구보관소",
+      "note": "",
+      "vacant": true,
+      "name": "",
+      "src": null,
+      "portrait": null,
+      "faces": {},
+      "lines": [],
+      "giftLines": [],
+      "codex": "",
+      "appear": ""
+    }
+  }
+}

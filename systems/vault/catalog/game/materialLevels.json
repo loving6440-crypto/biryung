@@ -1,0 +1,4053 @@
+{
+  "id": "game/materialLevels",
+  "source": "modules/game/materialLevels.js",
+  "exports": {
+    "MATERIAL_SOURCES": {
+      "mugwort": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "쑥(식물)",
+          "level": 13,
+          "chance": null
+        }
+      ],
+      "poison-mushroom": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "독버섯(식물)",
+          "level": 10,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "독버섯(식물)",
+          "level": 10,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "독버섯(식물)",
+          "level": 10,
+          "chance": null
+        }
+      ],
+      "snake-berry": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "뱀딸기(식물)",
+          "level": 8,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "뱀딸기(식물)",
+          "level": 8,
+          "chance": null
+        }
+      ],
+      "mushroom": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "버섯(식물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "버섯(식물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "버섯(식물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "버섯(식물)",
+          "level": 12,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "버섯(식물)",
+          "level": 12,
+          "chance": null
+        }
+      ],
+      "stone": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "바위 기둥(장애물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "바위 기둥(장애물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "바위 기둥(장애물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "바위 기둥(장애물)",
+          "level": 5,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "혼유석(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "돌탑(장애물)",
+          "level": 7,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "바위 기둥(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "바위 기둥(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "바위 기둥(장애물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "바위 기둥(장애물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "바위 기둥(장애물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "바위 기둥(장애물)",
+          "level": 78,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "바위 기둥(장애물)",
+          "level": 78,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "바위 기둥(장애물)",
+          "level": 78,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "바위 기둥(장애물)",
+          "level": 78,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        }
+      ],
+      "wild-raspberry": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "덤불(장애물)",
+          "level": 2,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "덤불(장애물)",
+          "level": 2,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "덤불(장애물)",
+          "level": 2,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "덤불(장애물)",
+          "level": 2,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "덤불(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "덤불(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "덤불(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "덤불(장애물)",
+          "level": 16,
+          "chance": null
+        }
+      ],
+      "snake-skin": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "뱀(동물)",
+          "level": 10,
+          "chance": null
+        }
+      ],
+      "raccoon-claw": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "너구리(동물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "너구리(동물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "너구리(동물)",
+          "level": 36,
+          "chance": null
+        }
+      ],
+      "jangseung-piece": [
+        {
+          "type": "개척",
+          "where": "산길-1",
+          "what": "부러진 장승(영물)",
+          "level": 30,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "부러진 장승(영물)",
+          "level": 30,
+          "chance": 0.15
+        }
+      ],
+      "charm-scrap": [
+        {
+          "type": "개척 요괴",
+          "where": "산길-1",
+          "what": "산귀신(요괴 2단계)에게 이기면 50%",
+          "level": 2
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 2",
+          "what": "산귀신(요괴 2단계)에게 이기면 50%",
+          "level": 2
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 3",
+          "what": "목신(요괴 3단계)에게 이기면 50%",
+          "level": 13
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 4",
+          "what": "목신(요괴 3단계)에게 이기면 50%",
+          "level": 2
+        },
+        {
+          "type": "개척 요괴",
+          "where": "호수",
+          "what": "물귀신(요괴 2단계)에게 이기면 50%",
+          "level": 10
+        },
+        {
+          "type": "개척 요괴",
+          "where": "동굴",
+          "what": "어둑시니(요괴 4단계)에게 이기면 50%",
+          "level": 20
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 5",
+          "what": "묵은 원귀(요괴 3단계)에게 이기면 50%",
+          "level": 12
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 6",
+          "what": "허깨비(요괴 3단계)에게 이기면 50%",
+          "level": 14
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "금줄 친 당산나무(장애물)",
+          "level": 30,
+          "chance": null
+        }
+      ],
+      "clover-leaf": [
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "토끼풀(식물)",
+          "level": 12,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "토끼풀(식물)",
+          "level": 12,
+          "chance": null
+        }
+      ],
+      "king-mushroom": [
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "거대 버섯 군락(장애물)",
+          "level": 17,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "거대 버섯 군락(장애물)",
+          "level": 18,
+          "chance": null
+        }
+      ],
+      "deer-tooth": [
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "고라니(동물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "고라니(동물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "고라니(동물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "고라니(동물)",
+          "level": 32,
+          "chance": null
+        }
+      ],
+      "dandelion": [
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "민들레(식물)",
+          "level": 10,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "민들레(식물)",
+          "level": 10,
+          "chance": null
+        }
+      ],
+      "dove-feather": [
+        {
+          "type": "개척",
+          "where": "산길 2",
+          "what": "멧비둘기(동물)",
+          "level": 15,
+          "chance": null
+        }
+      ],
+      "rabbit-fur": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "토끼(동물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "토끼(동물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "토끼(동물)",
+          "level": 28,
+          "chance": null
+        }
+      ],
+      "ginseng": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "산삼(식물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "산삼(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "산삼(식물)",
+          "level": 40,
+          "chance": null
+        }
+      ],
+      "pebble": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "자갈더미(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "자갈더미(장애물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "자갈더미(장애물)",
+          "level": 44,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "너덜바위(장애물)",
+          "level": 100,
+          "chance": null
+        },
+        {
+          "type": "개척 보너스",
+          "where": "모든 개척 터",
+          "what": "장애물 칸을 채집할 때 덤",
+          "level": 2
+        }
+      ],
+      "fern": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "고사리(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "고사리(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "고사리(식물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "고사리(식물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "고사리(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "고사리(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "고사리(식물)",
+          "level": 18,
+          "chance": null
+        }
+      ],
+      "brick": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "폐우물(장애물)",
+          "level": 17,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "폐우물(장애물)",
+          "level": 17,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "무너진 성벽(장애물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 12",
+          "what": "여우누이(요괴 6단계)에게 이기면 50%",
+          "level": 52
+        }
+      ],
+      "azalea": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "진달래(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "진달래(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "진달래(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "진달래(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "진달래(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "진달래(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "진달래(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "진달래(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "진달래(식물)",
+          "level": 42,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "진달래(식물)",
+          "level": 42,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "진달래(식물)",
+          "level": 42,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "진달래(식물)",
+          "level": 80,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "진달래(식물)",
+          "level": 80,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "진달래(식물)",
+          "level": 80,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "진달래(식물)",
+          "level": 80,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "진달래(식물)",
+          "level": 80,
+          "chance": null
+        }
+      ],
+      "lettuce": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "상추(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "상추(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "chwinamul": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "취나물(식물)",
+          "level": 13,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "취나물(식물)",
+          "level": 13,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "취나물(식물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "취나물(식물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "취나물(식물)",
+          "level": 58,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "취나물(식물)",
+          "level": 58,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "취나물(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "취나물(식물)",
+          "level": 76,
+          "chance": null
+        }
+      ],
+      "antler": [
+        {
+          "type": "개척",
+          "where": "산길 3",
+          "what": "청록사슴(영물)",
+          "level": 50,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "청록사슴(영물)",
+          "level": 50,
+          "chance": 0.15
+        }
+      ],
+      "clover": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "토끼풀 덤불(식물)",
+          "level": 25,
+          "chance": null
+        }
+      ],
+      "boar-tusk": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "멧돼지(동물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "멧돼지(동물)",
+          "level": 48,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "멧돼지(동물)",
+          "level": 82,
+          "chance": null
+        }
+      ],
+      "pinecone": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "소나무(식물)",
+          "level": 19,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "소나무(식물)",
+          "level": 19,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "소나무(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "소나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "소나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "소나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "소나무(식물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "소나무(식물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "소나무(식물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "소나무(식물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "소나무(식물)",
+          "level": 68,
+          "chance": null
+        }
+      ],
+      "licorice": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "감초 터(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "감초 터(식물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "감초 터(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "감초 터(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "감초 터(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "감초 터(식물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "감초 터(식물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "감초 터(식물)",
+          "level": 28,
+          "chance": null
+        }
+      ],
+      "oyster-mushroom": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "버드나무(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "버드나무(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "버드나무(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "쓰러진 고목(장애물)",
+          "level": 70,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "쓰러진 고목(장애물)",
+          "level": 70,
+          "chance": null
+        }
+      ],
+      "rice-seeds": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "솟대(장애물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "솟대(장애물)",
+          "level": 18,
+          "chance": null
+        }
+      ],
+      "fox-fur": [
+        {
+          "type": "개척",
+          "where": "산길 4",
+          "what": "여우(동물)",
+          "level": 27,
+          "chance": null
+        }
+      ],
+      "carp": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "잉어(동물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "잉어(동물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "잉어(동물)",
+          "level": 94,
+          "chance": null
+        }
+      ],
+      "pearl": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "용왕제단(장애물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "수달(동물)",
+          "level": 38,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "수달(동물)",
+          "level": 96,
+          "chance": null
+        }
+      ],
+      "creek-orchid": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물가 풀숲(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물가 풀숲(식물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물가 풀숲(식물)",
+          "level": 32,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물가 풀숲(식물)",
+          "level": 32,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물가 풀숲(식물)",
+          "level": 32,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물가 풀숲(식물)",
+          "level": 94,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물가 풀숲(식물)",
+          "level": 94,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물가 풀숲(식물)",
+          "level": 94,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물가 풀숲(식물)",
+          "level": 94,
+          "chance": null
+        }
+      ],
+      "centipede": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물길 바위(장애물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물길 바위(장애물)",
+          "level": 14,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물길 바위(장애물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물길 바위(장애물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "물길 바위(장애물)",
+          "level": 92,
+          "chance": null
+        }
+      ],
+      "water-moss": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "이끼바위(식물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "이끼바위(식물)",
+          "level": 15,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "이끼바위(식물)",
+          "level": 64,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "이끼바위(식물)",
+          "level": 64,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "이끼바위(식물)",
+          "level": 64,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "이끼바위(식물)",
+          "level": 64,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "이끼바위(식물)",
+          "level": 88,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "이끼바위(식물)",
+          "level": 88,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "이끼바위(식물)",
+          "level": 88,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "이끼바위(식물)",
+          "level": 88,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "이끼바위(식물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "이끼바위(식물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "이끼바위(식물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "이끼바위(식물)",
+          "level": 92,
+          "chance": null
+        }
+      ],
+      "lake-water": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물(장애물)",
+          "level": 10,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "물(장애물)",
+          "level": 10,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "물(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        }
+      ],
+      "loofah-fruit": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "웅덩이(식물)",
+          "level": 15,
+          "chance": null
+        }
+      ],
+      "imugi-scale": [
+        {
+          "type": "개척",
+          "where": "호수",
+          "what": "이무기(영물)",
+          "level": 40,
+          "chance": 0.15
+        }
+      ],
+      "sewer-rat": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "들쥐(동물)",
+          "level": 22,
+          "chance": null
+        }
+      ],
+      "dokkaebi-flame": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "장명등(장애물)",
+          "level": 28,
+          "chance": null
+        }
+      ],
+      "sealing-stone": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "혼유석(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "향로석(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "망주석(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "마애불(장애물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "마애불(장애물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 13",
+          "what": "노호승(요괴 6단계)에게 이기면 30%",
+          "level": 58
+        }
+      ],
+      "gold-crown": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "봉인된 석관(장애물)",
+          "level": 40,
+          "chance": null
+        }
+      ],
+      "gogok": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "봉인된 석관(장애물)",
+          "level": 40,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "절터 석탑(장애물)",
+          "level": 62,
+          "chance": null
+        }
+      ],
+      "whetstone": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "향로석(장애물)",
+          "level": 35,
+          "chance": null
+        }
+      ],
+      "polishing-stone": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "망주석(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "마애불(장애물)",
+          "level": 68,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "마애불(장애물)",
+          "level": 68,
+          "chance": null
+        }
+      ],
+      "spirit-orb": [
+        {
+          "type": "개척",
+          "where": "묘소",
+          "what": "혼백나비(영물)",
+          "level": 100,
+          "chance": 0.15
+        }
+      ],
+      "silver-inlay": [
+        {
+          "type": "개척 요괴",
+          "where": "묘소",
+          "what": "앙괭이(요괴 5단계)에게 이기면 50%",
+          "level": 7
+        }
+      ],
+      "bone-fragment": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "동물 유해(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "동물 유해(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "동물 유해(장애물)",
+          "level": 90,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "동물 유해(장애물)",
+          "level": 90,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "동물 유해(장애물)",
+          "level": 90,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "동물 유해(장애물)",
+          "level": 90,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 18",
+          "what": "백골장군(요괴 9단계)에게 이기면 50%",
+          "level": 98
+        }
+      ],
+      "bat-wing": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "박쥐(동물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "박쥐(동물)",
+          "level": 30,
+          "chance": null
+        }
+      ],
+      "starlight": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "제단(장애물)",
+          "level": 35,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "봉수대(장애물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "봉수대(장애물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 15",
+          "what": "화마(요괴 7단계)에게 이기면 30%",
+          "level": 76
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산마루 돌탑(장애물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 20",
+          "what": "천마(요괴 10단계)에게 이기면 50%",
+          "level": 120
+        }
+      ],
+      "crystal": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "수정기둥(장애물)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "수정기둥(장애물)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "수정기둥(장애물)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "폭포(장애물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 17",
+          "what": "귀목(요괴 8단계)에게 이기면 30%",
+          "level": 92
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음 폭포(장애물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음 폭포(장애물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음 폭포(장애물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음 폭포(장애물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음 폭포(장애물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 19",
+          "what": "대인(요괴 9단계)에게 이기면 50%",
+          "level": 110
+        }
+      ],
+      "waning-flower": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물, 오전)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물, 오전)",
+          "level": 27,
+          "chance": null
+        }
+      ],
+      "crescent-flower": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물, 오후)",
+          "level": 27,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "달꽃터(식물, 오후)",
+          "level": 27,
+          "chance": null
+        }
+      ],
+      "cinnabar": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "종유석(장애물)",
+          "level": 23,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "종유석(장애물)",
+          "level": 23,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "종유석(장애물)",
+          "level": 23,
+          "chance": null
+        }
+      ],
+      "web": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "봉인된 석문(장애물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "봉인된 석문(장애물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "봉인된 석문(장애물)",
+          "level": 20,
+          "chance": null
+        }
+      ],
+      "darkness": [
+        {
+          "type": "개척",
+          "where": "동굴",
+          "what": "암령(영물)",
+          "level": 100,
+          "chance": 0.15
+        }
+      ],
+      "acorn": [
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "참나무(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "참나무(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "참나무(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "참나무(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "다람쥐(동물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "참나무(식물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "참나무(식물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "참나무(식물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "참나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "참나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "참나무(식물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "다람쥐(동물)",
+          "level": 68,
+          "chance": null
+        }
+      ],
+      "chestnut": [
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "밤나무(식물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "밤나무(식물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "밤나무(식물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "다람쥐(동물)",
+          "level": 16,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "밤나무(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "밤나무(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "다람쥐(동물)",
+          "level": 68,
+          "chance": null
+        }
+      ],
+      "pheasant-feather": [
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "꿩(동물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "꿩(동물)",
+          "level": 20,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "꿩(동물)",
+          "level": 34,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "꿩(동물)",
+          "level": 46,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "꿩(동물)",
+          "level": 52,
+          "chance": null
+        }
+      ],
+      "magpie-feather": [
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "흰 까치(영물)",
+          "level": 60,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "흰 까치(영물)",
+          "level": 72,
+          "chance": 0.15
+        }
+      ],
+      "white-squirrel-tail": [
+        {
+          "type": "개척",
+          "where": "산길 5",
+          "what": "흰 다람쥐(영물)",
+          "level": 54,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "흰 다람쥐(영물)",
+          "level": 66,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "흰 다람쥐(영물)",
+          "level": 78,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "흰 다람쥐(영물)",
+          "level": 90,
+          "chance": 0.2
+        }
+      ],
+      "arrowroot": [
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "칡덩굴(장애물)",
+          "level": 22,
+          "chance": null
+        }
+      ],
+      "deodeok": [
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "더덕(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "더덕(식물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "더덕(식물)",
+          "level": 34,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "더덕(식물)",
+          "level": 34,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "더덕(식물)",
+          "level": 34,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "더덕(식물)",
+          "level": 34,
+          "chance": null
+        }
+      ],
+      "doraji": [
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "도라지(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "도라지(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "도라지(식물)",
+          "level": 18,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "도라지(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "도라지(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "도라지(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "도라지(식물)",
+          "level": 26,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "도라지(식물)",
+          "level": 26,
+          "chance": null
+        }
+      ],
+      "badger-fur": [
+        {
+          "type": "개척",
+          "where": "산길 6",
+          "what": "오소리(동물)",
+          "level": 22,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "오소리(동물)",
+          "level": 30,
+          "chance": null
+        }
+      ],
+      "five-color-thread": [
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "금줄 친 당산나무(장애물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "서낭당 돌무더기(장애물)",
+          "level": 24,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 7",
+          "what": "손각시(요괴 3단계)에게 이기면 40%",
+          "level": 18
+        }
+      ],
+      "gold-toad-skin": [
+        {
+          "type": "개척",
+          "where": "산길 7",
+          "what": "금두꺼비(영물)",
+          "level": 84,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "금두꺼비(영물)",
+          "level": 96,
+          "chance": 0.15
+        }
+      ],
+      "charcoal": [
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 8",
+          "what": "숯가마(장애물)",
+          "level": 28,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 8",
+          "what": "창귀(요괴 4단계)에게 이기면 50%",
+          "level": 26
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "벼락 맞은 대추나무(장애물)",
+          "level": 54,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 11",
+          "what": "지귀(요괴 5단계)에게 이기면 50%",
+          "level": 42
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "봉수대(장애물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "봉수대(장애물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "제작 실패",
+          "where": "조리실",
+          "what": "제작법에 없는 조합으로 만들면",
+          "level": 0
+        }
+      ],
+      "dangwi": [
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "당귀(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "당귀(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "당귀(식물)",
+          "level": 30,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 9",
+          "what": "묘귀(요괴 4단계)에게 이기면 50%",
+          "level": 26
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "당귀(식물)",
+          "level": 60,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "당귀(식물)",
+          "level": 60,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "당귀(식물)",
+          "level": 60,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "당귀(식물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "당귀(식물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "당귀(식물)",
+          "level": 86,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "당귀(식물)",
+          "level": 86,
+          "chance": null
+        }
+      ],
+      "wild-ginseng": [
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "산삼 동자(영물)",
+          "level": 108,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "산삼 동자(영물)",
+          "level": 120,
+          "chance": 0.15
+        }
+      ],
+      "golden-serpent-scale": [
+        {
+          "type": "개척",
+          "where": "산길 9",
+          "what": "황구렁이(영물)",
+          "level": 102,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "황구렁이(영물)",
+          "level": 114,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "황구렁이(영물)",
+          "level": 138,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "황구렁이(영물)",
+          "level": 162,
+          "chance": 0.2
+        }
+      ],
+      "wild-grape": [
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "머루 넝쿨(식물)",
+          "level": 36,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "머루 넝쿨(식물)",
+          "level": 36,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "머루 넝쿨(식물)",
+          "level": 36,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "머루 넝쿨(식물)",
+          "level": 36,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "머루 넝쿨(식물)",
+          "level": 36,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 10",
+          "what": "길달(요괴 5단계)에게 이기면 50%",
+          "level": 30
+        }
+      ],
+      "omija": [
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "오미자 덩굴(식물)",
+          "level": 38,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "오미자 덩굴(식물)",
+          "level": 38,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "오미자 덩굴(식물)",
+          "level": 52,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "오미자 덩굴(식물)",
+          "level": 52,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "오미자 덩굴(식물)",
+          "level": 52,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "오미자 덩굴(식물)",
+          "level": 52,
+          "chance": null
+        }
+      ],
+      "shell": [
+        {
+          "type": "개척",
+          "where": "산길 10",
+          "what": "수달(동물)",
+          "level": 38,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "수달(동물)",
+          "level": 96,
+          "chance": null
+        }
+      ],
+      "lightning-jujube": [
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "벼락 맞은 대추나무(장애물)",
+          "level": 54,
+          "chance": null
+        }
+      ],
+      "weasel-fur": [
+        {
+          "type": "개척",
+          "where": "산길 11",
+          "what": "흰 족제비(영물)",
+          "level": 144,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "흰 족제비(영물)",
+          "level": 168,
+          "chance": 0.15
+        }
+      ],
+      "pine-nut": [
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "잣나무(식물)",
+          "level": 54,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "잣나무(식물)",
+          "level": 54,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "잣나무(식물)",
+          "level": 54,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "잣나무(식물)",
+          "level": 72,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "잣나무(식물)",
+          "level": 72,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "잣나무(식물)",
+          "level": 72,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "잣나무(식물)",
+          "level": 72,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "잣나무(식물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "잣나무(식물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "잣나무(식물)",
+          "level": 98,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "잣나무(식물)",
+          "level": 98,
+          "chance": null
+        }
+      ],
+      "marten-fur": [
+        {
+          "type": "개척",
+          "where": "산길 12",
+          "what": "담비(동물)",
+          "level": 56,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "담비(동물)",
+          "level": 62,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "담비(동물)",
+          "level": 74,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "담비(동물)",
+          "level": 98,
+          "chance": null
+        }
+      ],
+      "hawk-feather": [
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "매(동물)",
+          "level": 64,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "매(동물)",
+          "level": 84,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "매(동물)",
+          "level": 122,
+          "chance": null
+        }
+      ],
+      "owl-feather": [
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "수리부엉이(영물)",
+          "level": 192,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "수리부엉이(영물)",
+          "level": 216,
+          "chance": 0.15
+        }
+      ],
+      "fortune-bat-wing": [
+        {
+          "type": "개척",
+          "where": "산길 13",
+          "what": "오복 박쥐(영물)",
+          "level": 186,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "오복 박쥐(영물)",
+          "level": 210,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "오복 박쥐(영물)",
+          "level": 234,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "오복 박쥐(영물)",
+          "level": 258,
+          "chance": 0.2
+        }
+      ],
+      "songi": [
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "송이(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "송이(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "송이(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "송이(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 14",
+          "what": "송이(식물)",
+          "level": 76,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 14",
+          "what": "그슨새(요괴 7단계)에게 이기면 30%",
+          "level": 68
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "송이(식물)",
+          "level": 102,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "송이(식물)",
+          "level": 102,
+          "chance": null
+        }
+      ],
+      "crane-feather": [
+        {
+          "type": "개척",
+          "where": "산길 15",
+          "what": "학(영물)",
+          "level": 240,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "학(영물)",
+          "level": 264,
+          "chance": 0.15
+        }
+      ],
+      "wolf-fang": [
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "늑대(동물)",
+          "level": 88,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "늑대(동물)",
+          "level": 90,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 16",
+          "what": "늑대(동물)",
+          "level": 92,
+          "chance": null
+        },
+        {
+          "type": "개척 요괴",
+          "where": "산길 16",
+          "what": "강철이(요괴 8단계)에게 이기면 30%",
+          "level": 86
+        }
+      ],
+      "lingzhi": [
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "흰 노루(영물)",
+          "level": 282,
+          "chance": 0.15
+        }
+      ],
+      "haedongcheong-feather": [
+        {
+          "type": "개척",
+          "where": "산길 17",
+          "what": "해동청(영물)",
+          "level": 276,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "해동청(영물)",
+          "level": 294,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "해동청(영물)",
+          "level": 324,
+          "chance": 0.2
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "해동청(영물)",
+          "level": 360,
+          "chance": 0.2
+        }
+      ],
+      "bear-fur": [
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "반달가슴곰(동물)",
+          "level": 104,
+          "chance": null
+        }
+      ],
+      "dragon-mane": [
+        {
+          "type": "개척",
+          "where": "산길 18",
+          "what": "용마(영물)",
+          "level": 300,
+          "chance": 0.15
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "용마(영물)",
+          "level": 330,
+          "chance": 0.15
+        }
+      ],
+      "frost-flower": [
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음꽃(식물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음꽃(식물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음꽃(식물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음꽃(식물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "얼음꽃(식물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "얼음꽃(식물)",
+          "level": 122,
+          "chance": null
+        }
+      ],
+      "somdari": [
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "솜다리(식물)",
+          "level": 114,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "솜다리(식물)",
+          "level": 114,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "솜다리(식물)",
+          "level": 114,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "솜다리(식물)",
+          "level": 114,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "솜다리(식물)",
+          "level": 120,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "솜다리(식물)",
+          "level": 120,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "솜다리(식물)",
+          "level": 120,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "솜다리(식물)",
+          "level": 120,
+          "chance": null
+        }
+      ],
+      "goral-horn": [
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "산양(동물)",
+          "level": 112,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 19",
+          "what": "산양(동물)",
+          "level": 110,
+          "chance": null
+        },
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "산양(동물)",
+          "level": 124,
+          "chance": null
+        }
+      ],
+      "turtle-shell": [
+        {
+          "type": "개척",
+          "where": "산길 20",
+          "what": "천년 거북(영물)",
+          "level": 366,
+          "chance": 0.15
+        }
+      ],
+      "fine-woodchip": [
+        {
+          "type": "개척 보너스",
+          "where": "모든 개척 터",
+          "what": "식물 칸을 채집할 때 덤",
+          "level": 5
+        }
+      ],
+      "trap-scraps": [
+        {
+          "type": "개척 보너스",
+          "where": "모든 개척 터",
+          "what": "동물 칸을 채집할 때 덤",
+          "level": 10
+        }
+      ],
+      "picnic": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "5냥",
+          "level": 0
+        }
+      ],
+      "chocolate": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "8냥",
+          "level": 0
+        }
+      ],
+      "ramen": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "8냥",
+          "level": 0
+        }
+      ],
+      "dumpling": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "12냥",
+          "level": 0
+        }
+      ],
+      "chewy": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "5냥",
+          "level": 0
+        }
+      ],
+      "energy": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "20냥",
+          "level": 0
+        }
+      ],
+      "cone-icecream": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "15냥",
+          "level": 0
+        }
+      ],
+      "bag-snack": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "12냥",
+          "level": 0
+        }
+      ],
+      "slice-cake": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "15냥",
+          "level": 0
+        }
+      ],
+      "firecracker": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "30냥",
+          "level": 0
+        }
+      ],
+      "twin-pop": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "10냥",
+          "level": 0
+        }
+      ],
+      "hotbar": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "10냥",
+          "level": 0
+        }
+      ],
+      "brush": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "12냥",
+          "level": 0
+        }
+      ],
+      "hanji": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "6냥",
+          "level": 0
+        }
+      ],
+      "carving-knife": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "10냥",
+          "level": 0
+        }
+      ],
+      "pouch": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "8냥",
+          "level": 0
+        }
+      ],
+      "inkstick": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "10냥",
+          "level": 0
+        }
+      ],
+      "bag": [
+        {
+          "type": "매점",
+          "where": "기숙사 매점",
+          "what": "50냥",
+          "level": 0
+        }
+      ],
+      "cherry-tomato": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-cherry-tomato": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "carrot": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-carrot": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "seed-lettuce": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "potato": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-potato": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "cabbage": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-cabbage": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "spinach": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-spinach": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "soybean": [
+        {
+          "type": "텃밭",
+          "where": "비닐하우스",
+          "what": "씨앗을 심어 거둔다",
+          "level": 0
+        }
+      ],
+      "seed-soybean": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "wheat-seed": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "barley-seed": [
+        {
+          "type": "텃밭",
+          "where": "씨앗 상점",
+          "what": "3냥",
+          "level": 0
+        }
+      ],
+      "lost-hairband": [
+        {
+          "type": "이동",
+          "where": "건물 이동 중",
+          "what": "분실물 줍기",
+          "level": 0
+        }
+      ],
+      "lost-slippers": [
+        {
+          "type": "이동",
+          "where": "건물 이동 중",
+          "what": "분실물 줍기",
+          "level": 0
+        }
+      ],
+      "lost-phone": [
+        {
+          "type": "이동",
+          "where": "건물 이동 중",
+          "what": "분실물 줍기",
+          "level": 0
+        }
+      ],
+      "lost-love-letter": [
+        {
+          "type": "이동",
+          "where": "건물 이동 중",
+          "what": "분실물 줍기",
+          "level": 0
+        }
+      ],
+      "lost-key": [
+        {
+          "type": "이동",
+          "where": "건물 이동 중",
+          "what": "분실물 줍기",
+          "level": 0
+        }
+      ],
+      "trash": [
+        {
+          "type": "제작 실패",
+          "where": "공작소",
+          "what": "제작법에 없는 조합으로 만들면",
+          "level": 0
+        }
+      ],
+      "rice-grain": [
+        {
+          "type": "도깨비 농장",
+          "where": "볍씨 주머니 열기",
+          "what": "주머니 o개 → o d o개",
+          "level": 18
+        }
+      ]
+    }
+  }
+}

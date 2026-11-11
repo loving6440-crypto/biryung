@@ -1,0 +1,7 @@
+{
+  "id": "game/sfx",
+  "source": "modules/game/sfx.js",
+  "exports": {
+    "sfx": {}
+  }
+}

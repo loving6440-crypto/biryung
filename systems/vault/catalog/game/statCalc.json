@@ -1,0 +1,7 @@
+{
+  "id": "game/statCalc",
+  "source": "modules/game/statCalc.js",
+  "exports": {
+    "WEAK_MS": 86400000
+  }
+}

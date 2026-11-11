@@ -1,0 +1,65 @@
+{
+  "id": "game/achievements",
+  "source": "modules/game/achievements.js",
+  "exports": {
+    "ACHIEVEMENTS": [
+      {
+        "id": "student-exercise",
+        "name": "직업은 학생, 취미는 운동",
+        "desc": "학생은 튼튼하게 사는 것이 미덕이다. 그런 의미에서 우리 모두 운동을 하자. 천 꽂힌 램프로 무슨 운동을 하냐고? 지금 서로 말하는 운동이 다른 거 아냐?",
+        "hint": "무언가멋진천이꽂힌알코올램프를 제작한다.",
+        "reward": {
+          "spirit": 20
+        }
+      },
+      {
+        "id": "gods-gaze",
+        "name": "신의 주시",
+        "desc": "오늘은 국립 창록고등학교에 전학을 온 기념비적인 날이다. 이제부터 평범한 나날은 안녕이라고 봐도 좋겠지.",
+        "hint": "캐릭터를 생성하고 24시간이 지난다.",
+        "reward": {
+          "spirit": 20
+        }
+      },
+      {
+        "id": "first-talisman",
+        "name": "첫 부적",
+        "desc": "삐뚤빼뚤하지만 첫 부적 한 장을 완성했다. 칸이 가득 차기 전에 수를 끌어올리는 요령이 조금 붙었다.",
+        "hint": "부적학 수업을 처음으로 마친다.",
+        "reward": {
+          "spirit": 10,
+          "skin": "changnok"
+        }
+      },
+      {
+        "id": "first-practice",
+        "name": "첫 실습",
+        "desc": "엉성했지만 첫 퇴마 실습을 무사히 마쳤다. 다음번엔 조금 더 멀리 달려 보자.",
+        "hint": "퇴마 실습 수업을 처음으로 마친다.",
+        "reward": {
+          "spirit": 10,
+          "skinRunner": "changnok-bloom"
+        }
+      },
+      {
+        "id": "model-student",
+        "name": "나는야 모범생",
+        "desc": "한 주 내내 어느 수업에서건 주간 랭킹 3위 안의 자리를 지켜냈다. 다음 주로 넘어가는 순간까지 그 자리는 흔들리지 않았다.",
+        "hint": "어느 수업이건 주간 랭킹 3위 안에 든 채로 다음 주로 넘어간다.",
+        "reward": {
+          "money": 20,
+          "skin": "golden-dream"
+        }
+      },
+      {
+        "id": "skin-master",
+        "name": "부적 만들기의 달인",
+        "desc": "최초 게임이 열리는 시점부터 얻을 수 있는 모든 2048 타일 스킨을 모았다.",
+        "hint": "최초 게임이 열리는 시점에 얻을 수 있는 2048 타일 스킨을 모두 해금한다.",
+        "reward": {
+          "money": 20
+        }
+      }
+    ]
+  }
+}

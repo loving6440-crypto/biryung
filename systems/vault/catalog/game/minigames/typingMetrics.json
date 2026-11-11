@@ -1,0 +1,32 @@
+{
+  "id": "game/minigames/typingMetrics",
+  "source": "modules/game/minigames/typingMetrics.js",
+  "exports": {
+    "GRADES": [
+      {
+        "min": 0,
+        "name": "초학자"
+      },
+      {
+        "min": 150,
+        "name": "견습 주문사"
+      },
+      {
+        "min": 250,
+        "name": "정식 주문사"
+      },
+      {
+        "min": 350,
+        "name": "명창 주문사"
+      },
+      {
+        "min": 450,
+        "name": "대주술사"
+      },
+      {
+        "min": 550,
+        "name": "신필(神筆)"
+      }
+    ]
+  }
+}

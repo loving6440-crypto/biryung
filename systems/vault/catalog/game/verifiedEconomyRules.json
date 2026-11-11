@@ -1,0 +1,13 @@
+{
+  "id": "game/verifiedEconomyRules",
+  "source": "modules/game/verifiedEconomyRules.js",
+  "exports": {
+    "NPC_BUY_PRICES": {
+      "snake-berry": 1,
+      "mugwort": 2,
+      "clover-leaf": 1,
+      "clover": 12,
+      "fine-woodchip": 3
+    }
+  }
+}

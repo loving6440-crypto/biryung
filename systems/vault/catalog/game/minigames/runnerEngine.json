@@ -1,0 +1,19 @@
+{
+  "id": "game/minigames/runnerEngine",
+  "source": "modules/game/minigames/runnerEngine.js",
+  "exports": {
+    "ACCEL": 10,
+    "GRAVITY": 2100,
+    "GROUND": 132,
+    "H": 160,
+    "MAX_SPEED": 1300,
+    "PLAYER_X": 48,
+    "SCORE_PER_PX": 0.08333333333333333,
+    "STAND": {
+      "w": 32,
+      "h": 26
+    },
+    "START_SPEED": 260,
+    "W": 600
+  }
+}

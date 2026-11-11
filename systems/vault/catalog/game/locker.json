@@ -1,0 +1,10 @@
+{
+  "id": "game/locker",
+  "source": "modules/game/locker.js",
+  "exports": {
+    "LOCKED_TEXT": "다른 학우들의 보관함인 것 같다. 잠겨 있다. 쓸만한 도구가 있으면 열 수 있을지도?",
+    "LOCKER_SLOTS": 100,
+    "STACK_ITEM": 9,
+    "STACK_MATERIAL": 99
+  }
+}

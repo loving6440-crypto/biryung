@@ -1,0 +1,7 @@
+{
+  "id": "game/bgm",
+  "source": "modules/game/bgm.js",
+  "exports": {
+    "bgm": {}
+  }
+}

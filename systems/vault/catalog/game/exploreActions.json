@@ -1,0 +1,8 @@
+{
+  "id": "game/exploreActions",
+  "source": "modules/game/exploreActions.js",
+  "exports": {
+    "RICE_GRAIN": "rice-grain",
+    "RICE_POUCH": "rice-seeds"
+  }
+}

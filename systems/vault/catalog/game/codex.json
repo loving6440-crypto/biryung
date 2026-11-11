@@ -1,0 +1,29 @@
+{
+  "id": "game/codex",
+  "source": "modules/game/codex.js",
+  "exports": {
+    "CODEX_CHAPTERS": [
+      {
+        "id": "items",
+        "no": 1,
+        "title": "재료 및 아이템"
+      },
+      {
+        "id": "enemies",
+        "no": 2,
+        "title": "요괴"
+      },
+      {
+        "id": "npcs",
+        "no": 3,
+        "title": "NPC"
+      },
+      {
+        "id": "skills",
+        "no": 4,
+        "title": "영능력"
+      }
+    ],
+    "NPC_ENTRIES": []
+  }
+}

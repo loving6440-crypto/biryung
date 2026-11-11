@@ -1,0 +1,9 @@
+{
+  "id": "game/bossSlots",
+  "source": "modules/game/bossSlots.js",
+  "exports": {
+    "BOSS_SLOT_COUNT": 3,
+    "SLOT_ITEM_MAX": 3,
+    "SLOT_PSYCHIC_MAX": 2
+  }
+}

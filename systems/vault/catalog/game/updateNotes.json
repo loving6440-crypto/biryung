@@ -1,0 +1,8 @@
+{
+  "id": "game/updateNotes",
+  "source": "modules/game/updateNotes.js",
+  "exports": {
+    "GAME_VERSION": "vC.01",
+    "UPDATE_NOTES": []
+  }
+}

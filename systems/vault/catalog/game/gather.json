@@ -1,0 +1,55 @@
+{
+  "id": "game/gather",
+  "source": "modules/game/gather.js",
+  "exports": {
+    "GATHER_MINUTES": 20,
+    "GATHER_TABLES": {
+      "garden": {
+        "label": "텃밭",
+        "steps": [
+          {
+            "range": [
+              1,
+              5
+            ],
+            "item": "snake-berry",
+            "name": "뱀딸기",
+            "dice": 5
+          },
+          {
+            "range": [
+              1,
+              5
+            ],
+            "item": "mugwort",
+            "name": "쑥",
+            "dice": 3
+          },
+          {
+            "range": [
+              1,
+              5
+            ],
+            "item": "clover-leaf",
+            "name": "토끼풀",
+            "dice": 3,
+            "bonus": {
+              "range": [
+                10,
+                10
+              ],
+              "item": "clover",
+              "name": "네잎클로버",
+              "amount": 1
+            }
+          }
+        ],
+        "fallback": {
+          "item": "fine-woodchip",
+          "name": "절묘한 나무조각",
+          "amount": 1
+        }
+      }
+    }
+  }
+}

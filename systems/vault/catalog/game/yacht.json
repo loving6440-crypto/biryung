@@ -1,0 +1,58 @@
+{
+  "id": "game/yacht",
+  "source": "modules/game/yacht.js",
+  "exports": {
+    "CATEGORIES": [
+      {
+        "id": "ones",
+        "label": "숫자 1"
+      },
+      {
+        "id": "twos",
+        "label": "숫자 2"
+      },
+      {
+        "id": "threes",
+        "label": "숫자 3"
+      },
+      {
+        "id": "fours",
+        "label": "숫자 4"
+      },
+      {
+        "id": "fives",
+        "label": "숫자 5"
+      },
+      {
+        "id": "sixes",
+        "label": "숫자 6"
+      },
+      {
+        "id": "choice",
+        "label": "초이스"
+      },
+      {
+        "id": "fourKind",
+        "label": "포커(같은 눈 4개)"
+      },
+      {
+        "id": "fullHouse",
+        "label": "풀하우스"
+      },
+      {
+        "id": "smallStraight",
+        "label": "스몰 스트레이트"
+      },
+      {
+        "id": "largeStraight",
+        "label": "라지 스트레이트"
+      },
+      {
+        "id": "yacht",
+        "label": "요트(같은 눈 5개)"
+      }
+    ],
+    "DICE_N": 5,
+    "MAX_ROLLS": 3
+  }
+}

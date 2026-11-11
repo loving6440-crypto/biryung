@@ -1,0 +1,22 @@
+{
+  "id": "game/activityCounters",
+  "source": "modules/game/activityCounters.js",
+  "exports": {
+    "EXPLORE_AREA_SPOTS": {
+      "mainHall": [
+        "mainHall"
+      ],
+      "annex": [
+        "annex"
+      ],
+      "shrine": [
+        "shrine"
+      ]
+    },
+    "EXPLORE_SPOTS": [
+      "mainHall",
+      "annex",
+      "shrine"
+    ]
+  }
+}

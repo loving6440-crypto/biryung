@@ -1,0 +1,9 @@
+{
+  "id": "game/inventoryCapacity",
+  "source": "modules/game/inventoryCapacity.js",
+  "exports": {
+    "INVENTORY_SLOTS": 30,
+    "MATERIAL_STACK": 99,
+    "PRODUCT_STACK": 9
+  }
+}

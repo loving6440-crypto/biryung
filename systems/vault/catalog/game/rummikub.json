@@ -1,0 +1,19 @@
+{
+  "id": "game/rummikub",
+  "source": "modules/game/rummikub.js",
+  "exports": {
+    "COLORS": [
+      "red",
+      "blue",
+      "black",
+      "yellow"
+    ],
+    "COLOR_LABEL": {
+      "red": "빨강",
+      "blue": "파랑",
+      "black": "검정",
+      "yellow": "노랑"
+    },
+    "FIRST_MELD_MIN": 30
+  }
+}

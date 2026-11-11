@@ -1,0 +1,1628 @@
+{
+  "id": "game/itemEffectsB16",
+  "source": "modules/game/itemEffectsB16.js",
+  "exports": {
+    "B16_GROUPS": {
+      "foodBattleParty": [
+        "mushroom-stew",
+        "carp-soup",
+        "king-mushroom-stew",
+        "flower-rice-cake",
+        "songi-rice",
+        "frost-bingsu"
+      ],
+      "foodBattleSelf": [
+        "barley-gaetteok",
+        "grilled-king-mushroom",
+        "doraji-jeonggwa",
+        "licorice-taffy",
+        "antler-tonic",
+        "wild-ginseng-jeonggwa"
+      ],
+      "foodBattleGive": [
+        "pickled-raspberry",
+        "snakeberry-punch",
+        "pearl-dumpling",
+        "dangwi-tea",
+        "pine-nut-gangjeong"
+      ],
+      "foodHunt": [
+        "grilled-mushroom",
+        "carrot-mushroom-stirfry",
+        "dandelion-tea",
+        "clover-salad",
+        "ssukbeomuri",
+        "mugwort-potato-pancake",
+        "stirfried-fern",
+        "greens-sujebi",
+        "loofah-namul",
+        "acorn-jelly",
+        "arrowroot-tea",
+        "grilled-deodeok",
+        "clover-hwajeon",
+        "omija-punch",
+        "pine-nut-porridge",
+        "golden-toad-pill",
+        "somdari-tea"
+      ],
+      "foodDaily": [
+        "oyster-mushroom-hotpot",
+        "lake-mushroom-soup",
+        "cabbage-soup",
+        "poison-mushroom-stew",
+        "herb-salad",
+        "grilled-carp",
+        "chestnut-porridge",
+        "sipjeon-tang",
+        "mystery-tonic",
+        "wild-grape-punch",
+        "dragon-palace-soup",
+        "fortune-pill",
+        "elixir-of-youth",
+        "turtle-shell-tonic",
+        "snakeberry-jam",
+        "bibimbap",
+        "flower-pancake"
+      ],
+      "workshopBattle": [
+        "pebble-sling",
+        "charm-bundle",
+        "curse-doll",
+        "green-charm",
+        "exorcism-gate",
+        "centipede-ward",
+        "jaeaek-charm",
+        "ink-talisman",
+        "badger-brush",
+        "cinnabar-paste",
+        "red-fox-charm",
+        "spirit-disposable",
+        "sealing-talisman",
+        "wolf-fang-charm",
+        "fortune-talisman",
+        "turtle-oracle"
+      ],
+      "workshopHunt": [
+        "small-altar",
+        "cairn-model",
+        "snakeskin-bookmark",
+        "mugwort-incense",
+        "moss-pot",
+        "feather-deco",
+        "yarn-doll",
+        "clover-bookmark",
+        "ghostfire-lantern",
+        "jangseung-keyring",
+        "imugi-tag",
+        "jujube-amulet",
+        "hawk-quill",
+        "soul-lantern",
+        "serpent-chest"
+      ],
+      "body": [
+        "straw-raincape",
+        "foxfur-coat",
+        "bat-cape",
+        "talisman-robe",
+        "marten-vest",
+        "hawk-cheollik",
+        "bearfur-overcoat",
+        "frost-hansam",
+        "weasel-galot",
+        "crane-robe"
+      ],
+      "trinket": [
+        "clover-crown",
+        "berry-ribbon",
+        "feather-norigae",
+        "deer-tooth-necklace",
+        "crystal-bracelet",
+        "gogok-norigae",
+        "jujube-hairpin",
+        "magpie-hairpiece",
+        "toad-ring",
+        "dragon-hatstring"
+      ]
+    },
+    "B16_ITEM_EFFECTS": {
+      "mushroom-stew": {
+        "effect": {
+          "partyHp": 12,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +12"
+      },
+      "carp-soup": {
+        "effect": {
+          "partyHp": 20,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +20"
+      },
+      "king-mushroom-stew": {
+        "effect": {
+          "partyHp": 18,
+          "partyMp": 8,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +18 · 의지력 +8"
+      },
+      "oyster-mushroom-hotpot": {
+        "effect": {
+          "hp": 35,
+          "mp": 15
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +35 / 의지력 +15"
+      },
+      "flower-rice-cake": {
+        "effect": {
+          "partyCleanse": true,
+          "partyHp": 10,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +10 / 일행 전원의 나쁜 상태(독·저주·속박 등) 해제"
+      },
+      "songi-rice": {
+        "effect": {
+          "partyHp": 35,
+          "partyMp": 15,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +35 · 의지력 +15"
+      },
+      "frost-bingsu": {
+        "effect": {
+          "partyHp": 20,
+          "partyMp": 30,
+          "partyStat": {
+            "agility": 3
+          },
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 체력 +20 · 의지력 +30 / 일행 전원 그 전투 동안 신속 +3"
+      },
+      "barley-gaetteok": {
+        "effect": {
+          "hp": 12
+        },
+        "battle": true,
+        "party": false,
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "체력 +12"
+      },
+      "grilled-king-mushroom": {
+        "effect": {
+          "hp": 30
+        },
+        "battle": true,
+        "party": false,
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "체력 +30"
+      },
+      "doraji-jeonggwa": {
+        "effect": {
+          "cleanse": true,
+          "mp": 8,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 나의 나쁜 상태(독·저주·속박 등) 해제 / 의지력 +8"
+      },
+      "licorice-taffy": {
+        "effect": {
+          "mp": 25
+        },
+        "battle": true,
+        "party": false,
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "의지력 +25"
+      },
+      "antler-tonic": {
+        "effect": {
+          "battleStat": {
+            "aggression": 4,
+            "endurance": 2
+          },
+          "hp": 20,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 전투 중 호전 +4 · 인내 +2 (다인 전투는 그 전투 동안, 단독 전투는 20분) / 체력 +20"
+      },
+      "wild-ginseng-jeonggwa": {
+        "effect": {
+          "revive": true,
+          "hp": 50,
+          "mp": 30,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 전투불능 시 1회 체력 1로 부활 대기(한 전투에 부활 아이템은 1번) / 체력 +50 / 의지력 +30"
+      },
+      "pickled-raspberry": {
+        "effect": {
+          "giveHp": {
+            "party": 14,
+            "self": 6
+          }
+        },
+        "battle": true,
+        "party": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "체력 회복: 일행에게 건네면 +14, 자신이 먹으면 +6"
+      },
+      "snakeberry-punch": {
+        "effect": {
+          "giveMp": {
+            "party": 15,
+            "self": 6
+          }
+        },
+        "battle": true,
+        "party": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "의지력 회복: 일행에게 건네면 +15, 자신이 먹으면 +6"
+      },
+      "pearl-dumpling": {
+        "effect": {
+          "giveCleanse": true,
+          "giveHp": {
+            "party": 20,
+            "self": 8
+          }
+        },
+        "battle": true,
+        "party": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "체력 회복: 일행에게 건네면 +20, 자신이 먹으면 +8 / 받는 사람의 나쁜 상태(독·저주·속박 등) 해제"
+      },
+      "dangwi-tea": {
+        "effect": {
+          "giveHp": {
+            "party": 25,
+            "self": 10
+          },
+          "giveMp": {
+            "party": 15,
+            "self": 6
+          }
+        },
+        "battle": true,
+        "party": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "체력 회복: 일행에게 건네면 +25, 자신이 먹으면 +10 / 의지력 회복: 일행에게 건네면 +15, 자신이 먹으면 +6"
+      },
+      "pine-nut-gangjeong": {
+        "effect": {
+          "boost": true,
+          "giveHp": {
+            "party": 30,
+            "self": 12
+          }
+        },
+        "battle": true,
+        "party": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "체력 회복: 일행에게 건네면 +30, 자신이 먹으면 +12 / 받는 사람의 다음 행동 피해 2배(1턴)"
+      },
+      "grilled-mushroom": {
+        "effect": {
+          "hunt": {
+            "turns": 2
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +2"
+      },
+      "carrot-mushroom-stirfry": {
+        "effect": {
+          "hunt": {
+            "odds": {
+              "amount": 10,
+              "attempts": 3
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 3번의 채집·수렵 성공률 +10%"
+      },
+      "dandelion-tea": {
+        "effect": {
+          "hunt": {
+            "turns": 3
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +3"
+      },
+      "clover-salad": {
+        "effect": {
+          "hunt": {
+            "bonus": 15
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 이번 개척 동안 추가 보상 확률 +15%"
+      },
+      "ssukbeomuri": {
+        "effect": {
+          "hunt": {
+            "ward": 5
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 5턴 동안 요괴가 다가오지 못하고, 마주쳐도 비켜 간다"
+      },
+      "mugwort-potato-pancake": {
+        "effect": {
+          "hunt": {
+            "ward": 3
+          },
+          "hp": 10
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 3턴 동안 요괴가 다가오지 못하고, 마주쳐도 비켜 간다 / 체력 +10"
+      },
+      "stirfried-fern": {
+        "effect": {
+          "hunt": {
+            "odds": {
+              "amount": 12,
+              "attempts": 4
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 4번의 채집·수렵 성공률 +12%"
+      },
+      "greens-sujebi": {
+        "effect": {
+          "hunt": {
+            "turns": 4
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +4"
+      },
+      "loofah-namul": {
+        "effect": {
+          "hunt": {
+            "attempts": 1
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 지금 칸(옆 칸 장애물 포함) 대상의 남은 시도 +1"
+      },
+      "acorn-jelly": {
+        "effect": {
+          "hunt": {
+            "freeze": 3
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 3턴 동안 동물·영물이 제자리에 멈춘다"
+      },
+      "arrowroot-tea": {
+        "effect": {
+          "hunt": {
+            "stat": {
+              "endurance": 5,
+              "control": 3
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 이번 개척 동안 인내 +5 · 절제 +3"
+      },
+      "grilled-deodeok": {
+        "effect": {
+          "hunt": {
+            "stat": {
+              "insight": 4,
+              "comprehension": 4
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 이번 개척 동안 안목 +4 · 이해 +4"
+      },
+      "clover-hwajeon": {
+        "effect": {
+          "hunt": {
+            "double": 1
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 1번의 성공 보상이 2배"
+      },
+      "omija-punch": {
+        "effect": {
+          "hunt": {
+            "odds": {
+              "amount": 20,
+              "attempts": 5
+            },
+            "turns": 2
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +2 / 다음 5번의 채집·수렵 성공률 +20%"
+      },
+      "pine-nut-porridge": {
+        "effect": {
+          "hunt": {
+            "turns": 8
+          },
+          "mp": 20
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +8 / 의지력 +20"
+      },
+      "golden-toad-pill": {
+        "effect": {
+          "hunt": {
+            "double": 2,
+            "bonus": 25
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 2번의 성공 보상이 2배 / 이번 개척 동안 추가 보상 확률 +25%"
+      },
+      "somdari-tea": {
+        "effect": {
+          "hunt": {
+            "stat": {
+              "insight": 6,
+              "aggression": 6,
+              "endurance": 6,
+              "control": 6,
+              "agility": 6,
+              "comprehension": 6
+            },
+            "turns": 5
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +5 / 이번 개척 동안 모든 육조 +6"
+      },
+      "lake-mushroom-soup": {
+        "effect": {
+          "hp": 18,
+          "mp": 8
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +18 / 의지력 +8"
+      },
+      "cabbage-soup": {
+        "effect": {
+          "hp": 25
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +25"
+      },
+      "poison-mushroom-stew": {
+        "effect": {
+          "mp": 35,
+          "hpCost": 15
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "의지력 +35 / 체력 -15 (1 아래로는 내려가지 않는다)"
+      },
+      "herb-salad": {
+        "effect": {
+          "hp": 15,
+          "mp": 10
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +15 / 의지력 +10"
+      },
+      "grilled-carp": {
+        "effect": {
+          "hp": 15,
+          "buff": {
+            "stat": "endurance",
+            "amount": 1,
+            "hours": 24
+          }
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +15 / 24시간 동안 인내 +1"
+      },
+      "chestnut-porridge": {
+        "effect": {
+          "hp": 45
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +45"
+      },
+      "sipjeon-tang": {
+        "effect": {
+          "buffAll": {
+            "amount": 1,
+            "hours": 24
+          }
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "24시간 동안 모든 육조 +1"
+      },
+      "mystery-tonic": {
+        "effect": {
+          "randomBuff": {
+            "count": 1,
+            "amount": 3,
+            "hours": 24
+          },
+          "hp": 15
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +15 / 24시간 동안 무작위 육조 1개 +3"
+      },
+      "wild-grape-punch": {
+        "effect": {
+          "mp": 45
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "의지력 +45"
+      },
+      "dragon-palace-soup": {
+        "effect": {
+          "hp": 30,
+          "buffs": [
+            {
+              "stat": "agility",
+              "amount": 2,
+              "hours": 24
+            },
+            {
+              "stat": "endurance",
+              "amount": 2,
+              "hours": 24
+            }
+          ]
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +30 / 24시간 동안 신속 +2 · 인내 +2"
+      },
+      "fortune-pill": {
+        "effect": {
+          "randomBuff": {
+            "count": 2,
+            "amount": 4,
+            "hours": 24
+          },
+          "spirit": 20
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "24시간 동안 무작위 육조 2개 +4 / 영력 +20"
+      },
+      "elixir-of-youth": {
+        "effect": {
+          "hpFull": true,
+          "mpFull": true,
+          "cureWeak": true,
+          "spirit": 40
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 완전 회복 / 의지력 완전 회복 / [쇠약] 즉시 회복 / 영력 +40"
+      },
+      "turtle-shell-tonic": {
+        "effect": {
+          "buffAll": {
+            "amount": 3,
+            "hours": 48
+          },
+          "spirit": 60
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "48시간 동안 모든 육조 +3 / 영력 +60"
+      },
+      "snakeberry-jam": {
+        "effect": {
+          "mp": 25,
+          "buff": {
+            "stat": "control",
+            "amount": 1,
+            "hours": 12
+          }
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "의지력 +25 / 12시간 동안 절제 +1"
+      },
+      "bibimbap": {
+        "effect": {
+          "hp": 30,
+          "mp": 20
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +30 / 의지력 +20"
+      },
+      "flower-pancake": {
+        "effect": {
+          "hp": 20,
+          "buff": {
+            "stat": "comprehension",
+            "amount": 1,
+            "hours": 24
+          }
+        },
+        "battle": false,
+        "party": false,
+        "tags": [
+          "완성품"
+        ],
+        "effectText": "체력 +20 / 24시간 동안 이해 +1"
+      },
+      "pebble-sling": {
+        "effect": {
+          "enemyHit": {
+            "n": 2,
+            "sides": 6
+          },
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적에게 막을 수 없는 피해 2d6 (적 체력은 1 아래로 내려가지 않는다 — 마무리는 직접) (한 전투에 1번)"
+      },
+      "charm-bundle": {
+        "effect": {
+          "charms": 1,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 부적 사용 횟수 +1 (한 전투에 1번)"
+      },
+      "curse-doll": {
+        "effect": {
+          "drainSpirit": 3,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적의 영능력 자원(영력) -3 (한 전투에 1번)"
+      },
+      "green-charm": {
+        "effect": {
+          "cleanse": true,
+          "mp": 10,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 나의 나쁜 상태(독·저주·속박 등) 해제 / 의지력 +10"
+      },
+      "exorcism-gate": {
+        "effect": {
+          "partyCleanse": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원의 나쁜 상태(독·저주·속박 등) 해제"
+      },
+      "centipede-ward": {
+        "effect": {
+          "enemyHit": {
+            "n": 3,
+            "sides": 6,
+            "plus": 4
+          },
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적에게 막을 수 없는 피해 3d6 + 4 (적 체력은 1 아래로 내려가지 않는다 — 마무리는 직접) (한 전투에 1번)"
+      },
+      "jaeaek-charm": {
+        "effect": {
+          "drainSpirit": 4,
+          "reveal": 2,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적의 영능력 자원(영력) -4 / 적의 앞으로 2개 행동을 간파 (한 전투에 1번)"
+      },
+      "ink-talisman": {
+        "effect": {
+          "charms": 1,
+          "mp": 10,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 부적 사용 횟수 +1 / 의지력 +10 (한 전투에 1번)"
+      },
+      "badger-brush": {
+        "effect": {
+          "charms": 2,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 부적 사용 횟수 +2 (한 전투에 1번)"
+      },
+      "cinnabar-paste": {
+        "effect": {
+          "battleStat": {
+            "control": 5,
+            "insight": 1
+          },
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 전투 중 절제 +5 · 안목 +1 (다인 전투는 그 전투 동안, 단독 전투는 20분)"
+      },
+      "red-fox-charm": {
+        "effect": {
+          "battleStat": {
+            "agility": 4,
+            "insight": 2
+          },
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 전투 중 신속 +4 · 안목 +2 (다인 전투는 그 전투 동안, 단독 전투는 20분)"
+      },
+      "spirit-disposable": {
+        "effect": {
+          "revive": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": false,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 전투불능 시 1회 체력 1로 부활 대기(한 전투에 부활 아이템은 1번)"
+      },
+      "sealing-talisman": {
+        "effect": {
+          "drainSpirit": 8,
+          "reveal": 1,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적의 영능력 자원(영력) -8 / 적의 앞으로 1개 행동을 간파 (한 전투에 1번)"
+      },
+      "wolf-fang-charm": {
+        "effect": {
+          "battleStat": {
+            "aggression": 6
+          },
+          "enemyHit": {
+            "n": 2,
+            "sides": 10,
+            "pct": 3
+          },
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적에게 막을 수 없는 피해 2d10 + 적 최대 체력의 3% (적 체력은 1 아래로 내려가지 않는다 — 마무리는 직접) / 전투 중 호전 +6 (다인 전투는 그 전투 동안, 단독 전투는 20분) (한 전투에 1번)"
+      },
+      "fortune-talisman": {
+        "effect": {
+          "partyStat": {
+            "insight": 3,
+            "aggression": 3,
+            "endurance": 3,
+            "control": 3,
+            "agility": 3,
+            "comprehension": 3
+          },
+          "partyCharms": 1,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": true,
+        "only": "battle",
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모有"
+        ],
+        "effectText": "전투 중: 일행 전원 그 전투 동안 모든 육조 +3 / 일행 전원 부적 사용 횟수 +1"
+      },
+      "turtle-oracle": {
+        "effect": {
+          "reveal": 5,
+          "drainSpirit": 25,
+          "charms": 3,
+          "cleanse": true,
+          "oncePerBattle": true,
+          "onlyBattle": true
+        },
+        "battle": true,
+        "party": false,
+        "only": "battle",
+        "oncePerBattle": true,
+        "tags": [
+          "완성품",
+          "전투 중 사용 가능",
+          "#턴소모無"
+        ],
+        "effectText": "전투 중: 적의 영능력 자원(영력) -25 / 적의 앞으로 5개 행동을 간파 / 부적 사용 횟수 +3 / 나의 나쁜 상태(독·저주·속박 등) 해제 (한 전투에 1번)"
+      },
+      "small-altar": {
+        "effect": {
+          "hunt": {
+            "ward": 4
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 4턴 동안 요괴가 다가오지 못하고, 마주쳐도 비켜 간다"
+      },
+      "cairn-model": {
+        "effect": {
+          "hunt": {
+            "turns": 3
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +3"
+      },
+      "snakeskin-bookmark": {
+        "effect": {
+          "hunt": {
+            "freeze": 2
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 2턴 동안 동물·영물이 제자리에 멈춘다"
+      },
+      "mugwort-incense": {
+        "effect": {
+          "hunt": {
+            "ward": 6
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 6턴 동안 요괴가 다가오지 못하고, 마주쳐도 비켜 간다"
+      },
+      "moss-pot": {
+        "effect": {
+          "hunt": {
+            "odds": {
+              "amount": 15,
+              "attempts": 3
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 3번의 채집·수렵 성공률 +15%"
+      },
+      "feather-deco": {
+        "effect": {
+          "hunt": {
+            "bonus": 12
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 이번 개척 동안 추가 보상 확률 +12%"
+      },
+      "yarn-doll": {
+        "effect": {
+          "hunt": {
+            "freeze": 3
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 3턴 동안 동물·영물이 제자리에 멈춘다"
+      },
+      "clover-bookmark": {
+        "effect": {
+          "hunt": {
+            "double": 1
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 1번의 성공 보상이 2배"
+      },
+      "ghostfire-lantern": {
+        "effect": {
+          "hunt": {
+            "turns": 5
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +5"
+      },
+      "jangseung-keyring": {
+        "effect": {
+          "hunt": {
+            "ward": 8
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 8턴 동안 요괴가 다가오지 못하고, 마주쳐도 비켜 간다"
+      },
+      "imugi-tag": {
+        "effect": {
+          "hunt": {
+            "odds": {
+              "amount": 25,
+              "attempts": 5
+            }
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 5번의 채집·수렵 성공률 +25%"
+      },
+      "jujube-amulet": {
+        "effect": {
+          "hunt": {
+            "banish": true
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 이 터를 떠도는 요괴를 쫓아낸다(보상 없음)"
+      },
+      "hawk-quill": {
+        "effect": {
+          "hunt": {
+            "stat": {
+              "insight": 6,
+              "agility": 6,
+              "comprehension": 4
+            },
+            "turns": 2
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +2 / 이번 개척 동안 안목 +6 · 신속 +6 · 이해 +4"
+      },
+      "soul-lantern": {
+        "effect": {
+          "hunt": {
+            "turns": 10,
+            "freeze": 4
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 개척 행동 턴 +10 / 4턴 동안 동물·영물이 제자리에 멈춘다"
+      },
+      "serpent-chest": {
+        "effect": {
+          "hunt": {
+            "double": 3,
+            "bonus": 15
+          }
+        },
+        "battle": false,
+        "party": false,
+        "only": "hunt",
+        "tags": [
+          "완성품",
+          "#개척"
+        ],
+        "effectText": "개척 중: 다음 3번의 성공 보상이 2배 / 이번 개척 동안 추가 보상 확률 +15%"
+      },
+      "straw-raincape": {
+        "bonus": {
+          "endurance": 2,
+          "control": 1
+        },
+        "hunt": {
+          "turns": 2
+        },
+        "effectText": "착용 시 인내 +2 · 절제 +1 / 개척: 행동 턴 +2"
+      },
+      "foxfur-coat": {
+        "bonus": {
+          "comprehension": 2,
+          "agility": 1
+        },
+        "effectText": "착용 시 이해 +2 · 신속 +1"
+      },
+      "bat-cape": {
+        "bonus": {
+          "agility": 3
+        },
+        "effectText": "착용 시 신속 +3"
+      },
+      "talisman-robe": {
+        "bonus": {
+          "control": 2,
+          "comprehension": 2
+        },
+        "effectText": "착용 시 절제 +2 · 이해 +2"
+      },
+      "marten-vest": {
+        "bonus": {
+          "endurance": 3,
+          "agility": 2
+        },
+        "effectText": "착용 시 인내 +3 · 신속 +2"
+      },
+      "hawk-cheollik": {
+        "bonus": {
+          "insight": 3,
+          "aggression": 2
+        },
+        "hunt": {
+          "odds": 5
+        },
+        "effectText": "착용 시 안목 +3 · 호전 +2 / 개척: 채집·수렵 성공률 +5%"
+      },
+      "bearfur-overcoat": {
+        "bonus": {
+          "endurance": 5,
+          "aggression": 2
+        },
+        "effectText": "착용 시 인내 +5 · 호전 +2"
+      },
+      "frost-hansam": {
+        "bonus": {
+          "control": 4,
+          "insight": 3
+        },
+        "effectText": "착용 시 절제 +4 · 안목 +3"
+      },
+      "weasel-galot": {
+        "bonus": {
+          "agility": 5,
+          "insight": 3
+        },
+        "hunt": {
+          "odds": 8
+        },
+        "effectText": "착용 시 신속 +5 · 안목 +3 / 개척: 채집·수렵 성공률 +8%"
+      },
+      "crane-robe": {
+        "bonus": {
+          "comprehension": 5,
+          "control": 4,
+          "endurance": 3
+        },
+        "effectText": "착용 시 이해 +5 · 절제 +4 · 인내 +3"
+      },
+      "clover-crown": {
+        "bonus": {
+          "insight": 1
+        },
+        "hunt": {
+          "bonus": 5
+        },
+        "effectText": "착용 시 안목 +1 / 개척: 추가 보상 확률 +5%"
+      },
+      "berry-ribbon": {
+        "bonus": {
+          "agility": 1,
+          "comprehension": 1
+        },
+        "effectText": "착용 시 신속 +1 · 이해 +1"
+      },
+      "feather-norigae": {
+        "bonus": {
+          "agility": 2
+        },
+        "effectText": "착용 시 신속 +2"
+      },
+      "deer-tooth-necklace": {
+        "bonus": {
+          "aggression": 2
+        },
+        "effectText": "착용 시 호전 +2"
+      },
+      "crystal-bracelet": {
+        "bonus": {
+          "insight": 2,
+          "comprehension": 1
+        },
+        "effectText": "착용 시 안목 +2 · 이해 +1"
+      },
+      "gogok-norigae": {
+        "bonus": {
+          "comprehension": 3,
+          "control": 1
+        },
+        "effectText": "착용 시 이해 +3 · 절제 +1"
+      },
+      "jujube-hairpin": {
+        "bonus": {
+          "control": 3,
+          "endurance": 2
+        },
+        "effectText": "착용 시 절제 +3 · 인내 +2"
+      },
+      "magpie-hairpiece": {
+        "bonus": {
+          "insight": 3,
+          "agility": 2
+        },
+        "hunt": {
+          "bonus": 10
+        },
+        "effectText": "착용 시 안목 +3 · 신속 +2 / 개척: 추가 보상 확률 +10%"
+      },
+      "toad-ring": {
+        "bonus": {
+          "insight": 3
+        },
+        "hunt": {
+          "bonus": 20,
+          "odds": 5
+        },
+        "effectText": "착용 시 안목 +3 / 개척: 채집·수렵 성공률 +5% · 추가 보상 확률 +20%"
+      },
+      "dragon-hatstring": {
+        "bonus": {
+          "agility": 4,
+          "aggression": 4,
+          "insight": 3
+        },
+        "hunt": {
+          "turns": 5
+        },
+        "effectText": "착용 시 신속 +4 · 호전 +4 · 안목 +3 / 개척: 행동 턴 +5"
+      }
+    },
+    "B16_TAG_HUNT": "#개척"
+  }
+}

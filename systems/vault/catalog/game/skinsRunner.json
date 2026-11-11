@@ -1,0 +1,44 @@
+{
+  "id": "game/skinsRunner",
+  "source": "modules/game/skinsRunner.js",
+  "exports": {
+    "SKINS_RUNNER": [
+      {
+        "id": "fox",
+        "name": "여우",
+        "desc": "이마에 부적을 붙인 여우. 열심히 뛰고 있지만 다리가 짧다.",
+        "unlock": null
+      },
+      {
+        "id": "changnok-bloom",
+        "name": "창록 교화",
+        "desc": "꽃이 왜 굴러다니고 있어? 벌써 황사 시즌이야?",
+        "unlock": "first-practice"
+      },
+      {
+        "id": "dokkaebi-fire",
+        "name": "도깨비불",
+        "desc": "청록색 불꽃. 놀라지 마시라. 사특한 존재는 아니니까.",
+        "unlock": "unset-dokkaebi-fire-runner"
+      },
+      {
+        "id": "wheat-rabbit",
+        "name": "황금빛 밀밭",
+        "desc": "이 토끼는 원래 롭이어였다. 귀신을 너무 많이 봐서 쫑긋귀가 되었다고 한다.",
+        "unlock": "unset-wheat-rabbit"
+      },
+      {
+        "id": "ugly-duckling",
+        "name": "미운 오리",
+        "desc": "미운 오리는 왜 다리가 4개일까? 이거 미운 오리 아니고 미친 오리 아냐?",
+        "unlock": "unset-ugly-duckling"
+      },
+      {
+        "id": "walking-plant",
+        "name": "걷는 식물",
+        "desc": "뭘 봐? 식물이 걷는 거 처음 봐?",
+        "unlock": "unset-walking-plant"
+      }
+    ]
+  }
+}

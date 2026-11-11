@@ -1,0 +1,56 @@
+{
+  "id": "game/garden",
+  "source": "modules/game/garden.js",
+  "exports": {
+    "GARDEN_CROPS": [
+      {
+        "id": "cherry-tomato",
+        "name": "방울토마토",
+        "seedId": "seed-cherry-tomato"
+      },
+      {
+        "id": "carrot",
+        "name": "당근",
+        "seedId": "seed-carrot"
+      },
+      {
+        "id": "lettuce",
+        "name": "상추",
+        "seedId": "seed-lettuce"
+      },
+      {
+        "id": "potato",
+        "name": "감자",
+        "seedId": "seed-potato"
+      },
+      {
+        "id": "cabbage",
+        "name": "배추",
+        "seedId": "seed-cabbage"
+      },
+      {
+        "id": "spinach",
+        "name": "시금치",
+        "seedId": "seed-spinach"
+      },
+      {
+        "id": "soybean",
+        "name": "콩",
+        "seedId": "seed-soybean"
+      }
+    ],
+    "GARDEN_EXTRA_SEEDS": [
+      {
+        "id": "wheat-seed",
+        "name": "밀 씨앗"
+      },
+      {
+        "id": "barley-seed",
+        "name": "보리 씨앗"
+      }
+    ],
+    "GARDEN_GROW_MS": 3600000,
+    "GARDEN_SLOTS": 5,
+    "SEED_PRICE": 3
+  }
+}

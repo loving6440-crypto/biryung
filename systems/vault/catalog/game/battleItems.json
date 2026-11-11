@@ -1,0 +1,13 @@
+{
+  "id": "game/battleItems",
+  "source": "modules/game/battleItems.js",
+  "exports": {
+    "BATTLE_STATE_KEYS": [
+      "enemyHit",
+      "drainSpirit",
+      "reveal",
+      "charms",
+      "cleanse"
+    ]
+  }
+}

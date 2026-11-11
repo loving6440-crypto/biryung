@@ -1,0 +1,8 @@
+{
+  "id": "game/minigames/logic2048",
+  "source": "modules/game/minigames/logic2048.js",
+  "exports": {
+    "SIZE": 4,
+    "WIN_VALUE": 2048
+  }
+}

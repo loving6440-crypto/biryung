@@ -1,0 +1,22 @@
+{
+  "id": "game/itemsB07",
+  "source": "modules/game/itemsB07.js",
+  "exports": {
+    "B07_ITEMS": [
+      {
+        "id": "lost-key",
+        "kind": "tool",
+        "tags": [
+          "완성품"
+        ],
+        "name": "누군가가 잃어버린 열쇠",
+        "price": null,
+        "desc": "학교에서 이런 걸 잃어버렸다는 것은 그의 고교 인생을 잃어버린 것과 다름이 없다.",
+        "effectText": "누군가의 물품보관소를 열 수 있다. 안에서 무엇이 나올지는 아무도 모르겠지만.",
+        "effect": {},
+        "battle": false
+      }
+    ],
+    "LOST_KEY": "lost-key"
+  }
+}

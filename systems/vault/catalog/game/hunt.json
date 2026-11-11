@@ -1,0 +1,122 @@
+{
+  "id": "game/hunt",
+  "source": "modules/game/hunt.js",
+  "exports": {
+    "HUNT_ENEMIES": {
+      "wildFox": {
+        "name": "야생 여우",
+        "hp": 40,
+        "atk": 5,
+        "act": 7,
+        "spirit": 5,
+        "reward": {
+          "spirit": 5,
+          "items": [
+            {
+              "item": "fox-fur",
+              "name": "여우 꼬리털",
+              "amount": 1
+            }
+          ]
+        },
+        "winText": "여우를 마구 복실하게 만들어줬다! 저러다 꼬리가 홀쭉해지지 않으면 다행인데."
+      },
+      "wildSnake": {
+        "name": "야생 뱀",
+        "hp": 35,
+        "atk": 6,
+        "act": 5,
+        "spirit": 3,
+        "reward": {
+          "spirit": 3,
+          "items": [
+            {
+              "item": "snake-skin",
+              "name": "뱀 허물",
+              "dice": 2
+            }
+          ]
+        },
+        "winText": "산뱀은 체감상 하루종일 허물을 벗고 있는 것 같다."
+      },
+      "wildDeer": {
+        "name": "야생 고라니",
+        "hp": 45,
+        "atk": 7,
+        "act": 6,
+        "spirit": 3,
+        "reward": {
+          "spirit": 3,
+          "items": [
+            {
+              "item": "deer-tooth",
+              "name": "고라니 이빨",
+              "dice": 2
+            }
+          ]
+        },
+        "winText": "신명나게 이갈이를 했으니 당분간 고함을 지르지 않을지도 모른다. 그럴까? 그래줬으면 좋겠는데."
+      },
+      "wildRaccoon": {
+        "name": "야생 너구리",
+        "hp": 38,
+        "atk": 5,
+        "act": 6,
+        "spirit": 2,
+        "reward": {
+          "items": [
+            {
+              "item": "raccoon-claw",
+              "name": "너구리 발톱",
+              "dice": 3
+            }
+          ]
+        },
+        "winText": "나무를 박박 긁던 발톱 몇 개가 부러졌다. 사실 저 중 몇 개는 당신도 긁었다."
+      }
+    },
+    "HUNT_MINUTES": 20,
+    "HUNT_TABLES": {
+      "left": {
+        "label": "왼길",
+        "rolls": [
+          {
+            "range": [
+              1,
+              1
+            ],
+            "enemy": "wildFox"
+          },
+          {
+            "range": [
+              2,
+              3
+            ],
+            "enemy": "wildSnake"
+          },
+          {
+            "range": [
+              4,
+              6
+            ],
+            "enemy": "wildDeer"
+          },
+          {
+            "range": [
+              7,
+              9
+            ],
+            "enemy": "wildRaccoon"
+          },
+          {
+            "range": [
+              10,
+              10
+            ],
+            "enemy": "wildFox"
+          }
+        ]
+      }
+    }
+  }
+}
