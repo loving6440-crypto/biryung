@@ -1,0 +1,152 @@
+{
+  "snapshot": "C.01",
+  "project": "biryeong",
+  "ruleModuleCount": 29,
+  "modules": [
+    {
+      "file": "battle.js",
+      "sha256": "c52201844c7f1e40853493325bc53f63a91491a17f43f17be4ba5f7b197f4f24",
+      "bytes": 126481
+    },
+    {
+      "file": "battleItems.js",
+      "sha256": "5103649f5213dc2778c2f89a8e223f4c9571f2b4cb430203187999ab6ee8d45b",
+      "bytes": 2669
+    },
+    {
+      "file": "bestiary.js",
+      "sha256": "42e98fcff057d4a6c18df9e1e85196322f686d3be3506cdc5c84a296d6aaf35c",
+      "bytes": 36992
+    },
+    {
+      "file": "bossSlots.js",
+      "sha256": "cdb0389163936abc45811503d24fc60fc68c512f2ffc2d7ae7550413f8294a12",
+      "bytes": 2497
+    },
+    {
+      "file": "constants.js",
+      "sha256": "c8851ca73b545286046a15871a79e46dbf4b598f2b5517e5c6db889358851684",
+      "bytes": 10167
+    },
+    {
+      "file": "crafting.js",
+      "sha256": "0804fab4e5f5766835fba93434a520dd7d0b728b2c04289376b84c8c3fec840d",
+      "bytes": 7601
+    },
+    {
+      "file": "gather.js",
+      "sha256": "5cacb7a028f460a7af5df992f39ad0c34da2f89738ed235dec9eaf700a4d8f40",
+      "bytes": 3262
+    },
+    {
+      "file": "hike.js",
+      "sha256": "3c9001008d2445f78fe4510a3fe00f4034471c5fbeb46672136cbf26b90f8833",
+      "bytes": 16770
+    },
+    {
+      "file": "hunt.js",
+      "sha256": "871af7abbf367fb1c08c3d728d9f6df0ce7ec7d4873330ecf233b9d745b4e0c3",
+      "bytes": 4317
+    },
+    {
+      "file": "huntField.js",
+      "sha256": "13e45d6ae98ae34e56647ff68283b884ef889adc7e3a1a9ca39520080c49bc8d",
+      "bytes": 20778
+    },
+    {
+      "file": "huntMigration.js",
+      "sha256": "bd272c0d5a5cba1fcd04622815d00a886b8ca49358e18a9b6f1cb50b5dbff901",
+      "bytes": 5159
+    },
+    {
+      "file": "huntSites.js",
+      "sha256": "e03f4638af5635ded020a34383fbedfb68b3cde5fef65f7660a27802c6103c5e",
+      "bytes": 19797
+    },
+    {
+      "file": "huntTrails.js",
+      "sha256": "48c1a1572783025a300bc110a3d6f6b93bcf43e26256d1faa020bde812916125",
+      "bytes": 22776
+    },
+    {
+      "file": "inventoryCapacity.js",
+      "sha256": "4680354699ab27c903c7bd4ca077c4ed85d219db591411da70cf5f942a3d467f",
+      "bytes": 3865
+    },
+    {
+      "file": "itemEffectsB16.js",
+      "sha256": "474d381b8f9b06dd16a9b2c55c43ef96de7e5b752b929911f8b9dde272f99029",
+      "bytes": 18353
+    },
+    {
+      "file": "items.js",
+      "sha256": "b9794124a007c4f15c5b28e9011968bc7276167710a3bacc4b8a3c110a8ae9f1",
+      "bytes": 61567
+    },
+    {
+      "file": "itemsB05.js",
+      "sha256": "e9b2fc0524446c46e33a7ee221867ddf112110e59df6ba1edfac61a6449776ce",
+      "bytes": 7264
+    },
+    {
+      "file": "itemsB06.js",
+      "sha256": "c756190980b09a266d67633bdb11560c8cf9064358eba2e521ec7fd2fb7c905e",
+      "bytes": 4345
+    },
+    {
+      "file": "itemsB07.js",
+      "sha256": "98d772e4685f184f852cc06bbcf3f627aaff8a3f5688abcac35dc9452e0ca984",
+      "bytes": 878
+    },
+    {
+      "file": "itemsB08.js",
+      "sha256": "e31e0bd3e9c6185e5cc52ce9cf369794f1e6dcca9721aa40395eef458ce13656",
+      "bytes": 7994
+    },
+    {
+      "file": "itemsB17.js",
+      "sha256": "05e09b05034e99c8956a2adc512f69ca64d4be401336ee1044d4e84da7c2efa2",
+      "bytes": 2650
+    },
+    {
+      "file": "mbattle.js",
+      "sha256": "195daffed5297878b6cba86a1f5496a0754713520f625cffff54fc91cbd970eb",
+      "bytes": 77533
+    },
+    {
+      "file": "recipesB08.js",
+      "sha256": "4a6cbb90a6d9ff7429dfb5a6f198e63e37c42217f94efa96392847cd71a5d689",
+      "bytes": 28227
+    },
+    {
+      "file": "spiritRegen.js",
+      "sha256": "69ae5e7782f5eb03859e42df03448fc660f229e01991718516115d4e7b96792a",
+      "bytes": 1600
+    },
+    {
+      "file": "statCalc.js",
+      "sha256": "5af0bc75e4b570b802446ba78faae99ba9877a6fc07b34f6cae958ac0224eeb9",
+      "bytes": 1987
+    },
+    {
+      "file": "v79Items.js",
+      "sha256": "1074f83336312c7a2e02fb7f3b0ff6fa4d364b20290162e0b85bf1abaaf859e7",
+      "bytes": 18027
+    },
+    {
+      "file": "v79SheetData.js",
+      "sha256": "980d3294681ca0380ed8a2daa4ffe78c21567bec1fa77cb10301609e9b6aaa03",
+      "bytes": 8240
+    },
+    {
+      "file": "verifiedEconomyRules.js",
+      "sha256": "c382af3a3b69c5a64849d78fef8ad630e25dc6bc3ecccb265936e2bf4c50c955",
+      "bytes": 358
+    },
+    {
+      "file": "verifiedExpeditionRules.js",
+      "sha256": "10906414460d6025faee452f063b92bae4bde5db334368c179e0e29ed644038c",
+      "bytes": 507
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "biryeong",
+  "private": true,
+  "version": "0.5.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "check": "node --test tests/*.test.mjs",
+    "rebuild:data": "node systems/data/build-catalogs.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
