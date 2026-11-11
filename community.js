@@ -18,8 +18,8 @@
   function setFeedback(message){feedback.hidden=!message;feedback.textContent=message||'';}
   async function api(path,options={}){
     let response;
-    try {response=await fetch(`/api/community/${path}`,{credentials:'same-origin',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});} catch {throw new Error('비령 커뮤니티 서버에 연결할 수 없습니다.');}
-    let data;try{data=await response.json();}catch{throw new Error('서버에서 잘못된 응답이 왔습니다.');}
+    try {response=await fetch(`api/community/${path}`,{credentials:'same-origin',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});} catch {throw new Error('비령 커뮤니티 서버에 연결할 수 없습니다.');}
+    let data;try{data=await response.json();}catch{throw new Error(response.status===404||response.status===405?'이 주소에는 비령 커뮤니티 서버가 연결되어 있지 않습니다. (GitHub Pages 같은 정적 페이지에서는 지도와 화면만 볼 수 있습니다)':'서버에서 잘못된 응답이 왔습니다.');}
     if(!response.ok)throw new Error(errorText[data.error]||data.error||`서버 오류 (${response.status})`);
     return data;
   }
@@ -241,8 +241,8 @@
     }
     if(shouldScroll)list.scrollTop=list.scrollHeight;initialDM=false;
   }
-  fetch('/health',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(info=>{
-    const status=$('#communityConnectionStatus');if(status)status.textContent=info?.database==='configured'?'비령 내부 통신 연결':'학당 통신 · 서버 설정 필요';
+  fetch('health',{cache:'no-store'}).then(r=>r.ok?r.json().catch(()=>null):null).then(info=>{
+    const status=$('#communityConnectionStatus');if(status)status.textContent=!info?'학당 통신 · 서버 미연결':info.database==='configured'?'비령 내부 통신 연결':'학당 통신 · 서버 설정 필요';
   }).catch(()=>{const status=$('#communityConnectionStatus');if(status)status.textContent='학당 통신 · 서버 미연결';});
   document.querySelectorAll('[data-community]').forEach(btn=>btn.addEventListener('click',()=>openCommunity(btn.dataset.community)));
   document.querySelectorAll('[data-community-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.communityTab;activeMemo=null;activeThread=null;adminView=false;setFeedback('');render().catch(e=>setFeedback(e.message));}));

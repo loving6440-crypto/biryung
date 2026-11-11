@@ -58,7 +58,7 @@ test('Six stats and pure battle/pioneer engine are importable',()=>{
 });
 
 test('No original server network URLs in frontend or dedicated server',()=>{
-  const src=readFileSync(at('site/app.js'),'utf8')+readFileSync(at('server/index.mjs'),'utf8');
+  const src=readFileSync(at('app.js'),'utf8')+readFileSync(at('server/index.mjs'),'utf8');
   assert.ok(!src.includes('SUPABASE_'));
   assert.ok(!/chorokdongsaek-C01\/server|\.onrender\.com|supabase\.co/.test(src));
   assert.ok(!/\bfetch\s*\(/.test(src));

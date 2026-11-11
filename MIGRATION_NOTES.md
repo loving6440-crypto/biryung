@@ -13,3 +13,5 @@
 - 제외: NPC 7명(이름 · 초상화 · 대사 · 선물 반응 · 도감), 퀘스트 전부, 초록동색 서버 · 로그인 · 앱 뼈대(App · Game · main), 패치 노트.
 - 바뀐 파일 33개는 NPC · 퀘스트를 빼면서 고친 것이고, 70개는 폴더 구조에 맞춰 import 경로만 바뀌었습니다. 나머지 109개는 C.01 과 같습니다.
 - `systems/data/`, `systems/rules/`, `server/`, `site/` 는 손대지 않았습니다.
+- 화면 파일을 `site/` 에서 저장소 맨 위로 옮겼습니다(GitHub Pages 용). 서버는 맨 위의 화면 파일 목록과 `assets/` · `fonts/` 만 내보내고, `server/` · `systems/` · `tests/` · 설정 파일 요청에는 404 를 돌려줍니다. 커뮤니티 API 주소는 상대 경로(`api/community/…`, `health`)로 바꿨습니다.
+- `.nojekyll`, `.github/workflows/pages.yml`(화면 파일만 Pages 로 배포) 추가.

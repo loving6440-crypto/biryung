@@ -1,0 +1,39 @@
+# 비령 화면을 GitHub Pages 로 내보낸다.
+# 저장소 Settings → Pages → Build and deployment → Source 를 "GitHub Actions" 로 고르면,
+# main 브랜치에 올릴 때마다 아래 화면 파일만 모아 Pages 에 올린다(server/ · systems/ · tests/ 는 올리지 않는다).
+# (Source 를 "Deploy from a branch" → main / (root) 로 골라도 index.html 이 맨 위에 있어 그대로 열린다.)
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 화면 파일 모으기
+        run: |
+          mkdir -p _site
+          cp index.html app.js styles.css community.js community.css .nojekyll _site/
+          cp -r assets fonts _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

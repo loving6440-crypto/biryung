@@ -1,4 +1,4 @@
-# 비령은 v0.5부터 단일 Web Service가 site/와 API를 모두 제공합니다.
+# 비령은 v0.5부터 단일 Web Service가 저장소 맨 위의 화면 파일(index.html 등)과 API를 모두 제공합니다.
 # 다른 React/초록동색 서버를 공유하지 않습니다.
 # 권장 배포: 루트의 render.yaml 사용. 아래는 별도의 서비스명 예시입니다.
 services:
