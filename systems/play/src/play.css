@@ -1,0 +1,7 @@
+/* 비령 play — 초록동색 화면 스타일(index.css) 위에 덮는 비령 설정. */
+/* 글꼴: 메인 화면과 같은 세 가지(갈무리9는 보관고 index.css 의 @font-face 를 쓴다) */
+:root,[data-ui-font='galmuri9']{--ui-font-family:'Galmuri9','Gowun Dodum','Noto Sans KR',sans-serif}
+[data-ui-font='kopub-dotum']{--ui-font-family:'KoPub Dotum','Noto Sans KR',sans-serif}
+[data-ui-font='kopub-batang']{--ui-font-family:'KoPub Batang','Noto Serif KR',serif}
+.font-serif,.font-myeongjo{font-family:var(--ui-font-family)}
+body{background:#0b1522}

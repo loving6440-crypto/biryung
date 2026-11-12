@@ -1,7 +1,7 @@
 {
   "name": "biryeong",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.8.0",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -13,9 +13,18 @@
     "vault": "node systems/vault/cli.mjs",
     "vault:build": "node systems/vault/build.mjs",
     "vault:verify": "node systems/vault/cli.mjs verify",
-    "check:vault-c01": "node --test systems/vault/tests/c01/*.test.mjs"
+    "check:vault-c01": "node --test systems/vault/tests/c01/*.test.mjs",
+    "site:data": "node systems/site-data/build.mjs",
+    "play:build": "node systems/play/build.mjs",
+    "build": "node systems/site-data/build.mjs && node systems/play/build.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3"
   }
 }

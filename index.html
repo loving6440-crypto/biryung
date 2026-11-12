@@ -10,6 +10,8 @@
   <link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-kopub@1.0">
   <link rel="stylesheet" href="styles.css">
+  <script src="game-data.js" defer></script>
+  <script src="titles.js" defer></script>
   <script src="app.js" defer></script>
   <script src="community.js" defer></script>
   <link rel="stylesheet" href="community.css">
@@ -28,29 +30,50 @@
       <div class="header-mid"><span class="tiny-flame">✦</span> 入山者 案內所 <span class="tiny-flame">✦</span></div>
       <nav class="top-buttons" aria-label="게임 메뉴">
         <button class="chip-button" id="storyBtn" type="button">사건 기록 <span>↗</span></button>
-        <button class="chip-button chip-gold" id="journalBtn" type="button">나의 기록 <span id="journalCount">00</span></button>
+        <button class="chip-button chip-gold" id="journalBtn" type="button" title="내 프로필 열기">나의 기록 <span id="journalCount">人</span></button>
         <div class="font-control" id="fontControl">
           <button class="chip-button font-toggle" id="fontToggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="fontMenu" title="글꼴 선택">가 <span>글꼴 ▾</span></button>
           <div class="font-menu" id="fontMenu" hidden role="group" aria-label="글꼴 선택">
-            <div class="font-menu-header"><span>화면 글꼴 · 7종</span><button type="button" class="font-menu-close" id="fontClose" aria-label="글꼴 메뉴 닫기">✕</button></div>
-            <p>7종의 화면 글꼴 중 선택</p>
+            <div class="font-menu-header"><span>화면 글꼴 · 3종</span><button type="button" class="font-menu-close" id="fontClose" aria-label="글꼴 메뉴 닫기">✕</button></div>
+            <p>갈무리 · KoPub 돋움 · KoPub 바탕</p>
             <div id="fontOptions" class="font-options"></div>
             <div class="font-preview" id="fontPreview">秘靈 · 비령 가나다 123</div>
-            <small class="font-note" id="fontNotice">일부 서체는 원본 폰트 파일을 추가해야 표시됩니다.</small>
+            <small class="font-note" id="fontNotice"></small>
           </div>
         </div>
       </nav>
     </header>
 
-    <section class="hero" aria-labelledby="heroTitle">
+    <section class="hero" id="hero" data-page="0" aria-labelledby="heroTitle" aria-roledescription="carousel">
       <div class="hero-landscape" aria-hidden="true"></div>
       <div class="hero-shade" aria-hidden="true"></div>
+      <div class="hero-pagetint" aria-hidden="true"></div>
       <img class="hero-canopy" src="assets/canopy.png" alt="" aria-hidden="true">
-      <div class="hero-content">
-        <p class="hero-overline">THE CHILDREN OF THE VANISHED · 第一章</p>
-        <div class="hero-title-row"><span class="hero-mark">「</span><h1 id="heroTitle">秘靈</h1><span class="hero-mark">」</span></div>
-        <p class="hero-tagline">비령 · 무당들이 사라진 밤, 그 자식들이 산으로 모였다.</p>
-        <div class="five-colours" aria-label="오방색: 청, 적, 황, 백, 흑"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="hero-track" id="heroTrack">
+        <div class="hero-slide" data-colour="blue" aria-label="1 / 5 · 청">
+          <div class="hero-content">
+            <p class="hero-overline">THE CHILDREN OF THE VANISHED · 第一章</p>
+            <div class="hero-title-row"><span class="hero-mark">「</span><h1 id="heroTitle">秘靈</h1><span class="hero-mark">」</span></div>
+            <p class="hero-tagline">비령 · 무당들이 사라진 밤, 그 자식들이 산으로 모였다.</p>
+          </div>
+        </div>
+        <div class="hero-slide" data-colour="red" aria-label="2 / 5 · 적">
+          <div class="hero-content"><p class="hero-overline">赤 · 南</p><div class="hero-title-row"><span class="hero-mark">「</span><p class="hero-page-title">赤</p><span class="hero-mark">」</span></div><p class="hero-tagline">붉은 쪽 · 아직 비어 있는 페이지</p></div>
+        </div>
+        <div class="hero-slide" data-colour="yellow" aria-label="3 / 5 · 황">
+          <div class="hero-content"><p class="hero-overline">黃 · 中央</p><div class="hero-title-row"><span class="hero-mark">「</span><p class="hero-page-title">黃</p><span class="hero-mark">」</span></div><p class="hero-tagline">노란 쪽 · 아직 비어 있는 페이지</p></div>
+        </div>
+        <div class="hero-slide" data-colour="white" aria-label="4 / 5 · 백">
+          <div class="hero-content"><p class="hero-overline">白 · 西</p><div class="hero-title-row"><span class="hero-mark">「</span><p class="hero-page-title">白</p><span class="hero-mark">」</span></div><p class="hero-tagline">흰 쪽 · 아직 비어 있는 페이지</p></div>
+        </div>
+        <div class="hero-slide" data-colour="black" aria-label="5 / 5 · 흑">
+          <div class="hero-content"><p class="hero-overline">黑 · 北</p><div class="hero-title-row"><span class="hero-mark">「</span><p class="hero-page-title">黑</p><span class="hero-mark">」</span></div><p class="hero-tagline">검은 쪽 · 아직 비어 있는 페이지</p></div>
+        </div>
+      </div>
+      <button type="button" class="hero-arrow hero-arrow-prev" id="heroPrev" aria-label="이전 배너">‹</button>
+      <button type="button" class="hero-arrow hero-arrow-next" id="heroNext" aria-label="다음 배너">›</button>
+      <div class="five-colours" id="heroDots" role="tablist" aria-label="배너 쪽 고르기">
+        <button type="button" role="tab" aria-label="청 · 1쪽" aria-selected="true"></button><button type="button" role="tab" aria-label="적 · 2쪽" aria-selected="false"></button><button type="button" role="tab" aria-label="황 · 3쪽" aria-selected="false"></button><button type="button" role="tab" aria-label="백 · 4쪽" aria-selected="false"></button><button type="button" role="tab" aria-label="흑 · 5쪽" aria-selected="false"></button>
       </div>
       <div class="hero-sidelabel hero-sidelabel-left">江原道 · 飛靈山</div>
       <div class="hero-sidelabel hero-sidelabel-right">山門 開放 · UNKNOWN</div>
@@ -83,31 +106,31 @@
       <section class="map-section" aria-labelledby="mapHeading">
         <header class="map-heading">
           <div><div class="map-kicker">DESTINATION SELECT / 四方</div><h2 id="mapHeading">사방의 구역 <span>四方</span></h2></div>
-          <p><span class="blinking-square">■</span> 이동할 장소를 선택하세요</p>
+          <p><span class="blinking-square">■</span> 들어갈 장소를 누르세요</p>
         </header>
         <div class="zone-grid" role="group" aria-label="학당의 네 구역">
-          <button class="zone-card is-selected north" data-zone="north" type="button" aria-pressed="true">
+          <button class="zone-card north" data-zone="north" type="button">
             <img src="assets/north_scene.png" alt="별빛 아래 금줄을 두른 산문과 등롱" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
             <span class="zone-number">01 <b>北</b> / NORTH</span>
             <span class="zone-status"><i></i> 진입 가능</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">GATE OF THE MOUNTAIN</span><strong>산문</strong><small>금줄 밖으로는 나가지 마라</small></span><span class="enter-icon">↗</span></span>
           </button>
-          <button class="zone-card east" data-zone="east" type="button" aria-pressed="false">
-            <img src="assets/east_scene.png" alt="달빛 아래 강학당과 계단, 불 밝힌 창" class="zone-art">
+          <button class="zone-card east" data-zone="east" type="button">
+            <img src="assets/east_scene.png" alt="별빛 아래 강학당과 계단, 불 밝힌 창" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
             <span class="zone-number">02 <b>東</b> / EAST</span>
             <span class="zone-status"><i></i> 진입 가능</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HALL OF TALISMANS</span><strong>강학당</strong><small>부적과 주문을 배우는 곳</small></span><span class="enter-icon">↗</span></span>
           </button>
-          <button class="zone-card west" data-zone="west" type="button" aria-pressed="false">
+          <button class="zone-card west" data-zone="west" type="button">
             <img src="assets/west_scene.png" alt="꽃나무와 등불이 있는 전통 생활관" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
             <span class="zone-number">03 <b>西</b> / WEST</span>
             <span class="zone-status"><i></i> 진입 가능</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HOUSE OF THE LEFT BEHIND</span><strong>생활관</strong><small>남겨진 자들이 잠드는 곳</small></span><span class="enter-icon">↗</span></span>
           </button>
-          <button class="zone-card south" data-zone="south" type="button" aria-pressed="false">
+          <button class="zone-card south" data-zone="south" type="button">
             <img src="assets/south_scene.png" alt="붉은 봉인과 안개에 잠긴 비령산 금지된 동굴" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
             <span class="zone-number">04 <b>南</b> / SOUTH</span>
@@ -124,15 +147,25 @@
         </nav>
       </section>
 
-      <aside class="detail-panel pixel-panel" aria-labelledby="detailTitle">
+      <aside class="status-panel pixel-panel" aria-labelledby="statusHeading">
         <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
-        <div class="panel-heading"><span>구역 정보</span><span id="detailNumber">AREA 01</span></div>
-        <div class="detail-image-frame"><img id="detailImage" src="assets/north_scene.png" alt="선택된 구역의 도트 풍경"><div class="detail-image-tag" id="detailEnglish">NORTH GATE</div></div>
-        <div class="detail-heading-row"><div><p class="detail-direction" id="detailDirection">北 · 검은 경계</p><h2 id="detailTitle">산문</h2></div><span class="detail-symbol" id="detailSymbol">北</span></div>
-        <p class="detail-copy" id="detailDescription">속세와 학당의 경계를 가르는 낡은 문. 새벽마다 금줄 안쪽에는 정체 모를 발자국이 발견된다.</p>
-        <div class="action-heading"><span>행동 선택</span><span>SELECT ACTION</span></div>
-        <div class="action-list" id="actionList"></div>
-        <div class="detail-note"><span class="blinking-square">■</span><span id="detailHint">이곳을 지나는 모든 이는 이름을 남겨야 합니다.</span></div>
+        <div class="panel-heading"><span id="statusHeading">나의 상태</span><span>STATUS</span></div>
+        <button type="button" class="status-who" id="statusWho" title="내 프로필 열기">
+          <span class="status-avatar" id="statusAvatar" aria-hidden="true"></span>
+          <span class="status-who-text"><small id="statusTitle">칭호 없음</small><strong id="statusName">이름 없는 입산자</strong><em id="statusSub">프로필을 만들어 주세요</em></span>
+        </button>
+        <div class="status-bars" id="statusBars"></div>
+        <div class="action-heading"><span>육조 스탯</span><span>SIX ROOTS</span></div>
+        <div class="status-stats" id="statusStats"></div>
+        <div class="status-spacer"></div>
+        <div class="status-menu" role="group" aria-label="내 메뉴">
+          <button type="button" data-menu="inventory"><i>囊</i><span>소지품</span></button>
+          <button type="button" data-menu="quest"><i>導</i><span>적응 퀘스트</span></button>
+          <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
+          <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>
+          <div class="status-admin-slot" data-admin-slot aria-hidden="true"></div>
+          <button type="button" data-menu="notes"><i>報</i><span>업데이트 노트</span></button>
+        </div>
       </aside>
     </main>
 
@@ -147,6 +180,21 @@
     <div class="dialog-scroll"><div class="dialog-sigil" aria-hidden="true">✧</div><h2 id="dialogTitle">비령산의 기록</h2><div id="dialogContent"></div></div>
     <div class="dialog-foot"><span id="dialogFootnote">비령 · 보관 문서</span><button class="dialog-confirm" id="dialogConfirm" type="button">확인　↵</button></div>
   </dialog>
+  <dialog class="panel-dialog" id="panelDialog" aria-labelledby="panelTitle">
+    <div class="panel-window">
+      <header class="panel-head"><div><span class="panel-eyebrow" id="panelEyebrow"></span><h2 id="panelTitle"></h2></div><button type="button" class="panel-close" id="panelClose" aria-label="닫기">✕</button></header>
+      <nav class="panel-tabs" id="panelTabs" hidden></nav>
+      <nav class="panel-chips" id="panelChips" hidden></nav>
+      <div class="panel-body" id="panelBody"></div>
+    </div>
+  </dialog>
+  <dialog class="play-dialog" id="playDialog" aria-label="실행 화면">
+    <div class="play-window">
+      <div class="play-bar"><span>秘靈 · 실행</span><span class="play-bar-actions"><a id="playOpenTab" href="play/index.html" target="_blank" rel="noopener">새 탭으로 ↗</a><button type="button" id="playClose" aria-label="실행 화면 닫기">✕ 닫기</button></span></div>
+      <iframe id="playFrame" title="비령 실행 화면" src="about:blank"></iframe>
+    </div>
+  </dialog>
+  <div class="toast-stack" id="toastStack" popover="manual" aria-live="polite"></div>
   <dialog class="community-dialog" id="communityDialog" aria-labelledby="communityTitle">
     <div class="community-window">
       <header class="community-window-head"><div><span class="community-overline">秘靈 / COMMUNICATION NETWORK</span><h2 id="communityTitle">지신성</h2></div><button type="button" class="community-close" id="communityClose" aria-label="커뮤니티 닫기">✕</button></header>

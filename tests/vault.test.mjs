@@ -99,3 +99,36 @@ test('Vault: 기존 비령 데이터 · 규칙 스냅샷(systems/data · systems
   assert.ok(!existsSync(join(ROOT, 'src')));
   assert.ok(!Vault.entries().some((e) => e.path.startsWith('..') || e.path.includes(sep + '..')));
 });
+
+test('Site: 구역 데이터 · 칭호 · 업적 파일이 맞게 들어 있다', () => {
+  const load = (f) => { const w = {}; new Function('window', readFileSync(join(ROOT, f), 'utf8'))(w); return w; };
+  const d = load('game-data.js').BIRYEONG_DATA;
+  assert.equal(d.zones.north.tabs.length, 0);
+  assert.deepEqual(d.zones.east.tabs.map((x) => x.name), ['본관', '별관']);
+  assert.deepEqual(d.zones.west.tabs.map((x) => x.name), ['기숙사']);
+  assert.deepEqual(d.zones.south.tabs.map((x) => x.name), ['뒷산']);
+  assert.equal(d.rules.statMin, 1); assert.equal(d.rules.startPoints, 10);
+  assert.ok(!/\{\{npc:/.test(JSON.stringify(d)));
+  const t = load('titles.js');
+  assert.equal(t.BIRYEONG_TITLES.length, 50); assert.equal(t.BIRYEONG_ACHIEVEMENTS.length, 30);
+  for (const a of t.BIRYEONG_ACHIEVEMENTS) assert.ok(t.BIRYEONG_TITLES.some((x) => x.id === a.title && x.from === 'achievement'), a.id);
+  const css = readFileSync(join(ROOT, 'styles.css'), 'utf8') + readFileSync(join(ROOT, 'app.js'), 'utf8');
+  assert.ok(!/NeoDunggeunmo|Stardust|Ramche|Silver/.test(css));
+});
+
+test('Play: 실행 화면이 빌드되어 있고, 구역 화면의 ▶ 주소가 모두 실행 화면의 주소다', () => {
+  for (const f of ['index.html', 'play.js', 'play.css', 'bgm.mp3', 'bg-roof.webp']) assert.ok(existsSync(join(ROOT, 'play', f)), `play/${f}`);
+  const html = readFileSync(join(ROOT, 'play/index.html'), 'utf8');
+  assert.match(html, /src="play\.js\?v=/); assert.ok(!/src="\//.test(html), '절대 경로 없이 열려야 한다(GitHub Pages 하위 주소)');
+  const routes = readFileSync(join(ROOT, 'systems/play/src/routes.js'), 'utf8');
+  const app = readFileSync(join(ROOT, 'systems/play/src/App.jsx'), 'utf8');
+  const screens = new Set([...app.matchAll(/case '([a-z]*)':/g)].map((m) => m[1]));
+  const w = {}; new Function('window', readFileSync(join(ROOT, 'game-data.js'), 'utf8'))(w);
+  const links = [];
+  (function walk(o) { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if (o.play) links.push(o.play.to); Object.values(o).forEach(walk); } })(w.BIRYEONG_DATA.zones);
+  assert.ok(links.length > 100);
+  for (const to of links) assert.ok(screens.has(to.split('/')[0]), `실행 화면에 없는 주소: ${to}`);
+  for (const s of ['battle', 'extra', 'pioneer', 'workshop', 'kitchen', 'lesson', 'store', 'armory', 'garden', 'train', 'sleep', 'rest', 'stats', 'inventory']) assert.ok(routes.includes(`path: '${s}`), s);
+  const css = readFileSync(join(ROOT, 'play/play.css'), 'utf8');
+  assert.ok(!/neodgm|NeoDunggeunmo/i.test(css), '비령 글꼴 정책: 갈무리 · KoPub 만');
+});

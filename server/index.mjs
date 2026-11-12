@@ -10,8 +10,8 @@ const port=Number(process.env.PORT || 10000);
 // v0.6: 화면 파일(index.html 등)은 저장소 맨 위에 있다(GitHub Pages 에서 바로 열리도록).
 // 서버는 아래 목록에 있는 화면 파일과 assets/ · fonts/ 폴더만 내보낸다 — server/ · systems/ · tests/ · 설정 파일은 내보내지 않는다.
 const base=resolve(fileURLToPath(new URL('../',import.meta.url)));
-const PUBLIC_FILES=new Set(['index.html','app.js','styles.css','community.js','community.css','404.html']);
-const PUBLIC_DIRS=['assets','fonts'];
+const PUBLIC_FILES=new Set(['index.html','app.js','styles.css','community.js','community.css','game-data.js','titles.js','404.html']);
+const PUBLIC_DIRS=['assets','fonts','play'];
 const isPublic=(file)=>{const rel=file.slice(base.length+1);if(PUBLIC_FILES.has(rel))return true;const [dir,...rest]=rel.split(sep);return PUBLIC_DIRS.includes(dir)&&rest.length>0&&!rest.some(p=>p.startsWith('.'));};
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.woff2':'font/woff2','.woff':'font/woff','.ttf':'font/ttf'};
 const answer=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}).end(JSON.stringify(body));};
