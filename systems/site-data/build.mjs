@@ -28,7 +28,7 @@ const STAT = Object.fromEntries(C.STAT_KEYS.map((k) => [k, C.STAT_META[k].label]
 
 // ── 장면(탐사) 노드 정리: 화면이 쓰는 것만 남긴다 ──
 // 탐사 장면의 기능 칸 → 실행 화면(play/index.html#주소). 주소가 없는 것은 안내 글만 보인다.
-const WIDGET_PLAY = { armoryManage: ['armory', '무구 관리하기'], seedShop: ['garden', '씨앗 상점 열기'], greenhouse: ['garden', '비닐하우스 열기'], extraBattle: ['extra/1', '추가전투 시작'], gotoInfirmary: ['rest', '양호실에서 쉬기'] }
+const WIDGET_PLAY = { armoryManage: ['armory', '무구 관리하기'], seedShop: ['garden', '씨앗 상점으로'], greenhouse: ['garden', '비닐하우스로'], extraBattle: ['extra/1', '추가전투로'], gotoInfirmary: ['rest', '양호실로'] }
 const WIDGET_NOTE = {
   ricePouch: '볍씨 주머니는 아직 화면에 연결되지 않았다.', goblinToday: '오늘의 도깨비 놀이는 아직 화면에 연결되지 않았다.', outsideGuide: '교문 밖은 짙은 안개에 잠겨 있다.',
 }
@@ -77,25 +77,25 @@ const siteLine = (s) => {
   return { play: run(`pioneer/${s.id}`, '이 터로 개척 나가기'), name: s.name, sub: `${s.maxTurns}턴 · 칸 ${s.nodes.length}개`, desc: '', lines: [...Object.entries(count).map(([k, v]) => `${kind(k)}: ${[...v].join(', ')}`), s.spirit ? `영물: ${s.spirit.name} (${Math.round((s.spirit.chance ?? 0) * 100)}%)` : '', s.ghost ? `요괴: ${s.ghost.name ?? battle.ALL_ENEMIES.find((e) => e.id === (s.ghost.enemy ?? s.ghost.id))?.name ?? ''}` : ''].filter((l) => l && !l.endsWith(': ')) }
 }
 
+// kind: 'play' = 그 자리에서 바로 실행되는 화면(systems/play). 주소는 App.jsx 의 화면 이름.
+const play = (id, title, to, intro) => ({ id, title, kind: 'play', to, ...(intro ? { intro } : {}) })
 const zones = {
-  north: { title: '산문', tabs: [] },
+  north: { title: '산문', story: true, tabs: [] }, // 산문 = 스토리 퀘스트(story.js)
   east: {
     title: '강학당',
     tabs: [
       { id: 'mainHall', name: '본관', hanja: '靑', sections: [
         text('intro', '둘러보기', LI.mainHall),
-        list('lessons', '수업', C.COURSES.map((c) => { const i = courseInfo.COURSE_INFO[c.id] ?? {}; return { play: run(`lesson/${c.id}`, `${c.game} 시작`), name: c.title, sub: c.game, desc: i.long ?? c.note, lines: [i.short, i.minLabel ? `통과 기준: ${i.minLabel}` : '', i.ranked ? '주간 랭킹 과목' : ''].filter(Boolean) } }),
-          `플레이는 몇 번이든 할 수 있고, 보상(영력)은 하루 한 번. 최소 점수를 넘긴 뒤 ${courseInfo.LESSON_WAIT_MINUTES}분을 기다리면 받는다.`, run('lesson', '수업 고르기')),
+        play('lessons', '수업', 'lesson', `몇 번이든 들을 수 있고, 보상(영력)은 하루 한 번. 최소 점수를 넘긴 뒤 ${courseInfo.LESSON_WAIT_MINUTES}분을 기다리면 받는다.`),
         scene('explore', '본관 탐사', '본관', explore.FLOORS),
-        text('infirmary', '양호실', [...LI.infirmary, `휴식: ${Object.values(progress.REST_KINDS).map((k) => k.label).join(' / ')} — ${progress.REST_MIN}~${progress.REST_MAX}분, 1분에 1씩 회복.`], run('rest', '양호실에서 쉬기')),
+        play('infirmary', '양호실', 'rest', LI.infirmary.join('\n\n')),
       ] },
       { id: 'annex', name: '별관', hanja: '白', sections: [
         text('intro', '둘러보기', LI.annex),
+        play('workshop', '공작소', 'workshop'),
+        play('kitchen', '조리실', 'kitchen'),
         scene('explore', '별관 탐사', '별관', annex.ANNEX_FLOORS),
         list('clubs', '동아리', clubs.CLUBS.map((c) => ({ name: c.name, sub: `${c.floor} · ${c.room}`, desc: (c.desc ?? []).join(' '), lines: [] }))),
-        list('workshop', '공작소', crafting.RECIPES.map(recipeLine), crafting.WORKSHOP.desc, run('workshop', '공작소에서 제작하기')),
-        list('kitchen', '조리실', cooking.COOK_RECIPES.map(recipeLine), cooking.KITCHEN.desc, run('kitchen', '조리실에서 요리하기')),
-        list('board', '패 놀이터', [['요트 다이스', '주사위 다섯 개로 족보를 채운다.'], ['윷놀이', '윷을 던져 말을 먼저 내보낸다.'], ['루미큐브', '패를 묶어 먼저 손을 비운다.'], ['오목', '다섯 알을 먼저 잇는다.'], ['홀짝', '화투패의 홀짝을 맞힌다.']].map(([name, desc]) => ({ name, sub: '판놀이', desc, lines: [] })), '함께하는 판놀이는 서버 연결이 필요해 아직 열리지 않았다.'),
       ] },
     ],
   },
@@ -104,10 +104,9 @@ const zones = {
     tabs: [
       { id: 'dorm', name: '기숙사', hanja: '黑', sections: [
         text('intro', '둘러보기', LI.dorm),
-        text('train', '수련', [`수련: ${progress.TRAIN_MIN}~${progress.TRAIN_MAX}분(${progress.TRAIN_UNIT_MIN}분 단위). 끝까지 수련하면 영력이 오른다.`], run('train', '수련 시작하기')),
-        text('sleep', '잠', [`침대에 누워 6시간을 푹 잔다. 일어나면 체력과 의지력이 가득 차고 영력이 오른다.`], run('sleep', '잠자리에 들기')),
-        text('stats', '스탯 올리기', ['모은 영력으로 육조 스탯을 1씩 올린다. (비용 = 지금 수치 × 10)'], run('stats', '스탯 올리기')),
-        list('store', '매점', items.STORE_ITEMS.map((i) => ({ play: run('store', '매점에서 사기'), name: i.name, sub: `${i.price}냥`, desc: i.desc ?? '', lines: [i.effectText, (i.tags ?? []).join(' · ')].filter(Boolean) })), [store.STORE_INFO.oneLine, ...store.STORE_INFO.paragraphs].join('\n\n'), run('store', '매점 들어가기')),
+        play('train', '수련', 'train'),
+        play('sleep', '잠', 'sleep'),
+        play('store', '매점', 'store'),
         list('cafeteria', '급식실', meals.MEAL_SLOTS.map((m) => ({ name: m.label, sub: m.time, desc: '', lines: [] })), meals.CAFETERIA.oneLine),
       ] },
     ],
@@ -117,20 +116,22 @@ const zones = {
     tabs: [
       { id: 'gym', name: '뒷산', hanja: '赤', sections: [
         text('intro', '둘러보기', LI.gym),
-        list('practice', '퇴마 실습', battle.ENEMIES.map(enemyLine), `영력을 얻는 승리는 하루 ${progress.GYM_DAILY_REWARDS}회. 전투 튜토리얼도 여기서 연다.`, run('battle', '퇴마 실습 열기')),
-        list('bestiary', '전투 데이터', bestiary.BESTIARY.map(enemyLine), '둘레길 [추가전투]의 적 50종. 一~十단계, 단계마다 단독 3 · 파티 1 · 보스 1.', run('extra/1', '추가전투 열기')),
+        play('practice', '퇴마 실습', 'battle', `영력을 얻는 승리는 하루 ${progress.GYM_DAILY_REWARDS}회. 전투 튜토리얼도 여기서 연다.`),
+        play('extra', '추가전투', 'extra/1', '금역 깊은 곳의 상대 50종. 一~十단계, 단계마다 단독 3 · 파티 1 · 보스 1.'),
+        play('pioneer', '개척', 'pioneer'),
         scene('hike', '산 탐사', '뒷산', hike.HIKE_PATHS),
-        list('pioneer', '개척', Object.values(hunt.HUNT_SITES).map(siteLine), `개척 터 ${Object.keys(hunt.HUNT_SITES).length}곳. ${hunt.HUNT_SIZE}×${hunt.HUNT_SIZE} 칸을 움직이며 채집 · 수렵한다.`, run('pioneer', '개척 열기')),
-        list('armory', '무구보관소', items.WEAPONS.map((w) => ({ name: w.name, sub: '무구', desc: w.desc ?? '', lines: [w.effectText].filter(Boolean) })), armory.ARMORY.desc, run('armory', '무구 강화하기')),
-        list('garden', '텃밭', garden.GARDEN_CROPS.map((c) => ({ name: c.name, sub: `씨앗 ${garden.SEED_PRICE}냥`, desc: items.ITEMS.find((i) => i.id === c.id)?.desc ?? '', lines: [] })), `비닐하우스 ${garden.GARDEN_SLOTS}칸 · ${Math.round(garden.GARDEN_GROW_MS / 60000)}분 성장.`, run('garden', '텃밭 가기')),
+        play('armory', '무구보관소', 'armory', armory.ARMORY.desc),
+        play('garden', '텃밭', 'garden'),
         list('goblin', '도깨비 놀이', hike.GOBLIN_GAMES.map((g) => ({ name: g.name, sub: `겨루는 스탯: ${STAT[g.stat] ?? g.stat}`, desc: g.result, lines: [] }))),
-        list('psychics', '영능력', battle.PSYCHICS.map((p) => ({ name: p.label, sub: p.mp != null ? `의지력 ${p.mp}` : '', desc: p.note ?? '', lines: [p.detail, p.cond].filter(Boolean) }))),
       ] },
     ],
   },
 }
 
-const data = npcFill({
+
+const { TEXT_SWAPS } = await import('../biryeong/reskin.data.js')
+const swapText = (v) => typeof v === 'string' ? TEXT_SWAPS.reduce((t, [x, y]) => t.split(x).join(y), v) : Array.isArray(v) ? v.map(swapText) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapText(x)])) : v
+const data = swapText(npcFill({
   generatedFrom: 'systems/vault (초록동색 C.01 콘텐츠 보관고)',
   rules: {
     statKeys: C.STAT_KEYS,
@@ -140,11 +141,11 @@ const data = npcFill({
     nameMax: C.NAME_MAX_LENGTH, introMax: C.GREETING_MAX_LENGTH,
   },
   zones,
-})
+}))
 const left = JSON.stringify(data).match(/\{\{npc:[^}]*\}\}/g)
 if (left) throw new Error('채워지지 않은 NPC 자리표: ' + [...new Set(left)].join(' '))
 const body = `/* 秘靈 · 비령 — 구역 화면 데이터. 직접 고치지 말 것: npm run site:data 로 systems/vault 에서 다시 만든다. */\nwindow.BIRYEONG_DATA = ${JSON.stringify(data)};\n`
 writeFileSync(join(ROOT, 'game-data.js'), body)
 const count = (n) => 1 + (n.choices ?? []).reduce((a, c) => a + count(c), 0)
-for (const [k, z] of Object.entries(zones)) console.log(k, z.title, z.tabs.map((t) => `${t.name}: ${t.sections.map((s) => `${s.title}(${s.kind === 'scene' ? count(s.root) - 1 + '장면' : s.kind === 'list' ? s.items.length : s.paras.length})`).join(', ')}`).join(' | ') || '(비어 있음)')
+for (const [k, z] of Object.entries(zones)) console.log(k, z.title, z.tabs.map((t) => `${t.name}: ${t.sections.map((s) => `${s.title}(${s.kind === 'scene' ? count(s.root) - 1 + '장면' : s.kind === 'list' ? s.items.length : s.kind === 'play' ? '실행' : s.paras.length})`).join(', ')}`).join(' | ') || '(비어 있음)')
 console.log('game-data.js', Math.round(Buffer.byteLength(body) / 1024) + 'KB')

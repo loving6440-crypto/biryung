@@ -10,8 +10,11 @@
   <link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-kopub@1.0">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="play/play.css">
   <script src="game-data.js" defer></script>
   <script src="titles.js" defer></script>
+  <script src="story.js" defer></script>
+  <script src="play/play.js" defer></script>
   <script src="app.js" defer></script>
   <script src="community.js" defer></script>
   <link rel="stylesheet" href="community.css">
@@ -82,24 +85,25 @@
 
     <div class="dispatch" role="note">
       <div class="dispatch-badge">긴급 속보</div>
-      <div class="dispatch-text">강원도 비령산에서 전국 무속인 집단 사망 사건 발생. 혈연 관계에 있는 미성년 보호 대상자, 임시학당으로 입산 조치.</div>
+      <div class="dispatch-text">2046 · 전국 무속인 전원 실종. 비령(秘靈) 통제 체계 가동. 혈연 관계의 미성년 보호 대상자, 비령산 임시학당으로 입산 조치.</div>
       <div class="dispatch-spark">◆ ◆ ◆</div>
     </div>
 
     <main class="main-layout" id="mainContent">
+      <div class="home-view" id="homeView">
       <aside class="lore-panel pixel-panel" aria-labelledby="loreHeading">
         <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
         <div class="panel-heading"><span>기밀 문서</span><span>NO. 001</span></div>
-        <p class="fine-label">사건 분류 · 대규모 실종 / 변사</p>
+        <p class="fine-label">사건 분류 · 대규모 실종 / 2046</p>
         <div class="paper-seal" aria-hidden="true">禁</div>
         <h2 id="loreHeading">모든 무당이<br><em>사라진 밤.</em></h2>
         <div class="gold-rule"></div>
-        <p>어느 날, 전국의 무당들이 동시에 자취를 감췄다.</p>
-        <p>며칠 뒤, 강원도 <strong>비령산</strong>에서 수많은 주검이 발견되었다. 누구도 그 이유를 알지 못했다.</p>
-        <p class="lore-strong">그리고 남겨진 아이들이<br>하나둘 산으로 모였다.</p>
+        <p>초대형 인공지능 <strong>비령(秘靈)</strong>이 처음으로 모든 신의 응답을 하나로 통합했다. 예측 정확도 100%.</p>
+        <p>그 다음 날, 한국의 모든 무당이 한순간에 사라졌다.</p>
+        <p class="lore-strong">남겨진 아이들의 손에는<br>물건이 하나씩 쥐여 있었다.</p>
         <div class="paper-spacer"></div>
-        <div class="info-index"><span>실종 인원</span><strong>확인 불가</strong></div>
-        <div class="info-index"><span>현재 상태</span><strong class="red">조사 중</strong></div>
+        <div class="info-index"><span>실종 인원</span><strong>전원</strong></div>
+        <div class="info-index"><span>현재 상태</span><strong class="red">비령 통제 중</strong></div>
         <button type="button" class="lore-link" id="readCase">▤　사건 개요 열람 <span>→</span></button>
       </aside>
 
@@ -147,6 +151,19 @@
         </nav>
       </section>
 
+      </div>
+      <section class="page-view pixel-panel" id="pageView" hidden aria-labelledby="panelTitle">
+        <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
+        <header class="page-head">
+          <button type="button" class="page-back" id="pageBack">◂ 뒤로가기</button>
+          <div class="page-head-text"><span class="panel-eyebrow" id="panelEyebrow"></span><h2 id="panelTitle"></h2></div>
+          <a class="page-home" href="#/">사방 지도</a>
+        </header>
+        <nav class="panel-tabs" id="panelTabs" hidden></nav>
+        <nav class="panel-chips" id="panelChips" hidden></nav>
+        <div class="panel-body" id="panelBody"></div>
+        <div class="play-host" id="playHost" hidden><div class="play-scope" id="playRoot"></div></div>
+      </section>
       <aside class="status-panel pixel-panel" aria-labelledby="statusHeading">
         <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
         <div class="panel-heading"><span id="statusHeading">나의 상태</span><span>STATUS</span></div>
@@ -160,7 +177,7 @@
         <div class="status-spacer"></div>
         <div class="status-menu" role="group" aria-label="내 메뉴">
           <button type="button" data-menu="inventory"><i>囊</i><span>소지품</span></button>
-          <button type="button" data-menu="quest"><i>導</i><span>적응 퀘스트</span></button>
+          <button type="button" data-menu="quest"><i>導</i><span>적응 퀘스트</span><b id="statusQuest"></b></button>
           <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
           <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>
           <div class="status-admin-slot" data-admin-slot aria-hidden="true"></div>
@@ -175,25 +192,7 @@
     </footer>
   </div>
 
-  <dialog class="story-dialog" id="storyDialog" aria-labelledby="dialogTitle">
-    <div class="dialog-head"><span id="dialogEyebrow">기록 001</span><button type="button" id="dialogClose" aria-label="닫기">✕</button></div>
-    <div class="dialog-scroll"><div class="dialog-sigil" aria-hidden="true">✧</div><h2 id="dialogTitle">비령산의 기록</h2><div id="dialogContent"></div></div>
-    <div class="dialog-foot"><span id="dialogFootnote">비령 · 보관 문서</span><button class="dialog-confirm" id="dialogConfirm" type="button">확인　↵</button></div>
-  </dialog>
-  <dialog class="panel-dialog" id="panelDialog" aria-labelledby="panelTitle">
-    <div class="panel-window">
-      <header class="panel-head"><div><span class="panel-eyebrow" id="panelEyebrow"></span><h2 id="panelTitle"></h2></div><button type="button" class="panel-close" id="panelClose" aria-label="닫기">✕</button></header>
-      <nav class="panel-tabs" id="panelTabs" hidden></nav>
-      <nav class="panel-chips" id="panelChips" hidden></nav>
-      <div class="panel-body" id="panelBody"></div>
-    </div>
-  </dialog>
-  <dialog class="play-dialog" id="playDialog" aria-label="실행 화면">
-    <div class="play-window">
-      <div class="play-bar"><span>秘靈 · 실행</span><span class="play-bar-actions"><a id="playOpenTab" href="play/index.html" target="_blank" rel="noopener">새 탭으로 ↗</a><button type="button" id="playClose" aria-label="실행 화면 닫기">✕ 닫기</button></span></div>
-      <iframe id="playFrame" title="비령 실행 화면" src="about:blank"></iframe>
-    </div>
-  </dialog>
+  <div class="play-scope" id="playPortal"></div>
   <div class="toast-stack" id="toastStack" popover="manual" aria-live="polite"></div>
   <dialog class="community-dialog" id="communityDialog" aria-labelledby="communityTitle">
     <div class="community-window">

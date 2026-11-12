@@ -1,0 +1,208 @@
+brush|나노 붓|붓털 한 올 한 올이 먹을 머금는 섬유다.
+hanji|전도 한지|회로가 스미는 종이. 부적의 바탕.
+dove-feather|멧비둘기 깃|금역 초입에서 흔히 줍는다.
+raccoon-claw|너구리 발톱|작지만 단단하다.
+deer-tooth|고라니 송곳니|길게 자란 이빨.
+snake-skin|뱀 허물|벗어 두고 간 옛 몸.
+fox-fur|여우 꼬리털|빛에 따라 색이 바뀐다.
+mugwort|쑥|귀신이 싫어하는 풀. 2046년에도 유효하다.
+snake-berry|뱀딸기|붉고 시다.
+charm-scrap|부적 파편|회로가 끊긴 부적 조각.
+crumpled-hanji|구겨진 전도지|누가 쓰다 버렸다.
+broken-inkstick|부러진 먹 카트리지|반쯤 남은 먹.
+split-brush|갈라진 붓|털이 벌어져 못 쓴다.
+jangseung-piece|장승 파편|마을 경계 장승에서 떨어진 조각. 아직 지키려 든다.
+dye|변색 염료|천에 스미면 지워지지 않는다.
+five-color-thread|오방 광섬유|청 적 황 백 흑, 다섯 빛이 흐르는 실.
+fine-woodchip|결 고운 나무조각|결이 이상하게 곱다.
+creek-orchid|개울 난초|물가에 숨어 핀다.
+clover-leaf|토끼풀|세 잎.
+pencil|흑연 펜슬|결국 종이에는 이게 제일 잘 써진다.
+friendship-letter|손편지|손으로 쓴 편지. 서버에 남지 않는 말.
+carp|수조 잉어|청화호 양식 잉어.
+imugi-scale|이무기 비늘|용이 못 된 것의 비늘. 미세하게 대전되어 있다.
+stone|화강암 덩이|묵직하다.
+mushroom|배양 버섯|갓이 고르다.
+poison-mushroom|오염 버섯|색이 지나치게 곱다.
+wild-raspberry|산딸기|가시 사이에 열린다.
+water-moss|물이끼|습기를 머금는다.
+trap-scraps|덫 잔해|부서진 덫의 쇠붙이.
+sewer-rat|배관쥐|관로를 타고 다니는 쥐.
+carving-knife|조각도|나무를 깎는 칼.
+pouch|복주머니|입구를 조이는 주머니.
+clover|네잎클로버|찾은 사람 몫의 행운.
+inkstick|먹 카트리지|부적 프린터에도, 붓에도 쓴다.
+cherry-tomato|방울토마토|수경 재배.
+carrot|당근|흙에서 뽑았다.
+potato|감자|어디서든 자란다.
+cabbage|배추|속이 꽉 찼다.
+spinach|시금치|잎이 짙다.
+soybean|콩|밭의 고기.
+soybean-oil|콩기름|맑게 짠 기름.
+seed-cherry-tomato|방울토마토 씨앗 캡슐|심으면 방울토마토가 자란다.
+seed-carrot|당근 씨앗 캡슐|심으면 당근이 자란다.
+seed-lettuce|상추 씨앗 캡슐|심으면 상추가 자란다.
+seed-potato|감자 씨앗 캡슐|심으면 감자가 자란다.
+seed-cabbage|배추 씨앗 캡슐|심으면 배추가 자란다.
+seed-spinach|시금치 씨앗 캡슐|심으면 시금치가 자란다.
+seed-soybean|콩 씨앗 캡슐|심으면 콩이 자란다.
+rice|쌀|신에게 올리는 것도, 사람이 먹는 것도 결국 이것.
+centipede|지네|마디마다 독이 돈다.
+small-pot|소형 옹기|숨 쉬는 그릇.
+lettuce|상추|쌈 채소.
+lake-water|청화수|청화호의 푸른 물. 관측값이 늘 조금 어긋난다.
+cherry-branch|벚나무 가지|봄에 꺾었다.
+alcohol-lamp|알코올 램프|실험실에서 가져온 불.
+cloth-scrap|자투리 천|쓰고 남은 천.
+nail|쇠못|박는 데 쓴다. 귀신도 박힌다.
+sugar|정제당|하얗고 달다.
+dandelion|민들레|아스팔트 틈에서도 핀다.
+rabbit-fur|토끼 털뭉치|부드럽다.
+gogok|곡옥|굽은 옥. 오래된 무덤에서 나온다.
+pinecone|솔방울|불쏘시개.
+crystal|수정 원석|영자를 가둔다.
+bone-fragment|뼛조각|누구의 것인지 비령도 답하지 않는다.
+waning-flower|그믐꽃|달이 없는 밤에만 핀다.
+crescent-flower|초승꽃|초승달 아래에서만 핀다.
+cinnabar|주사|부적의 붉은색. 수은을 품었다.
+licorice|감초|약방의 기본.
+oyster-mushroom|느타리버섯|겹겹이 자란다.
+rice-seeds|볍씨 주머니|의식용 볍씨를 담은 주머니.
+boar-tusk|멧돼지 엄니|휘어진 엄니.
+fern|고사리|어린 순.
+chwinamul|취나물|향이 진한 산나물.
+azalea|진달래|먹을 수 있는 꽃.
+brick|폐건물 벽돌|무너진 건물의 것.
+pebble|조약돌|던지기 좋다.
+dokkaebi-flame|도깨비불 시료|병에 가둔 푸른 불. 관측하면 꺼지려 든다.
+sealing-stone|봉인석|무언가를 눌러 두던 돌.
+pearl|진주|청화호 조개가 품었다.
+loofah-fruit|수세미 열매|말리면 섬유가 남는다.
+king-mushroom|대왕균|손바닥만 한 버섯.
+ginseng|산삼|사람 모양의 뿌리.
+darkness|응축된 어둠|빛을 비춰도 밝아지지 않는 덩어리.
+antler|녹용|봄에 자른 뿔.
+spirit-orb|혼백 구슬|누군가의 일부가 담겼다. 재생 장치에 넣으면 목소리가 난다.
+bat-wing|박쥐 날개막|얇고 질기다.
+starlight|채집한 별빛|병 속에서 아직 반짝인다.
+web|거미줄|끈적인다.
+charcoal|숯|태우고 남은 것. 정화에 쓴다.
+acorn|도토리|다람쥐 몫을 조금 빌렸다.
+chestnut|밤|가시 속의 알.
+pheasant-feather|꿩 깃|무늬가 화려하다.
+arrowroot|칡 뿌리|질긴 뿌리.
+deodeok|더덕|향이 먼저 온다.
+doraji|도라지|쓴 뿌리.
+dangwi|당귀|피를 돌게 한다.
+badger-fur|오소리 털|붓 만들기에 좋다.
+wild-grape|머루|산포도.
+omija|오미자|다섯 맛의 열매.
+lightning-jujube|벽조목|벼락 맞은 대추나무. 자연이 만든 축전지.
+pine-nut|잣|고소하다.
+marten-fur|담비 털|윤기가 흐른다.
+songi|송이버섯|솔숲의 향.
+hawk-feather|매 깃|바람을 가른다.
+wolf-fang|늑대 송곳니|아직 날카롭다.
+bear-fur|곰 털|거칠고 두껍다.
+frost-flower|서리꽃|녹지 않는 얼음 꽃.
+goral-horn|산양 뿔|절벽의 주인 것.
+somdari|솜다리|고산의 흰 꽃.
+magpie-feather|흰까치 깃|길조의 깃.
+gold-toad-skin|금두꺼비 허물|금빛 허물.
+wild-ginseng|천종삼|하늘이 내린 삼. 백 년을 묵었다.
+weasel-fur|흰족제비 털|눈처럼 희다.
+owl-feather|부엉이 깃|소리 없이 난다.
+crane-feather|학 깃|길고 희다.
+lingzhi|불로초|늙지 않는 풀이라고들 한다.
+dragon-mane|용마 갈기|물에서 나온 말의 갈기.
+turtle-shell|천년거북 등딱지|점을 치던 등딱지.
+white-squirrel-tail|흰다람쥐 꼬리털|보기 드문 흰 털.
+golden-serpent-scale|황구렁이 비늘|집을 지키던 업의 비늘.
+fortune-bat-wing|오복 날개막|복을 뜻하는 박쥐의 것.
+haedongcheong-feather|해동청 깃|송골매의 깃.
+rice-grain|볍씨|심기 전의 쌀.
+wheat-seed|밀 씨앗|밀의 씨앗.
+barley-seed|보리 씨앗|보리의 씨앗.
+magpie-plain-feather|까치 깃|검고 흰 깃.
+twine|합성 노끈|질긴 끈.
+yarn-ball|털실 뭉치|둥글게 감았다.
+pine-ink|송연묵|소나무 그을음으로 만든 먹. 회로 전도율이 높다.
+red-pigment|붉은 꽃물|꽃에서 짠 물감.
+crystal-bead|수정 구슬|깎아 낸 수정.
+jujube-plaque|벽조목 패|벼락 나무를 깎은 패.
+feather-bundle|깃털 다발|묶어 둔 깃.
+seal-powder|봉인 분말|봉인석을 빻았다.
+talisman-ink|부적 잉크|부적 프린터 전용 붉은 잉크.
+lake-broth|청화 육수|청화수로 우린 국물.
+acorn-flour|도토리 가루|묵의 재료.
+chestnut-syrup|밤 조청|끈적한 단맛.
+herb-decoction|약재 추출액|달여 낸 물.
+wild-grape-juice|머루즙|검붉은 즙.
+barley-flour|보릿가루|거친 가루.
+blanched-greens|데친 나물|숨을 죽였다.
+wheat-flour|밀가루|반죽의 기본.
+trash|폐기물|쓸모를 다했다.
+shell|조개껍데기|안쪽이 무지갯빛이다.
+feather-deco|깃털 장식|깃을 엮은 장식.
+jangseung-keyring|장승 키링|작은 장승. 열쇠를 지킨다.
+green-charm|녹색 홀로부적|초록빛이 도는 부적. 기본 회로.
+clover-bookmark|네잎 책갈피|행운을 끼워 둔다.
+jaeaek-charm|재액부|재앙을 대신 맞는 부적.
+exorcism-gate|축귀문 프로젝터|잡귀를 몰아내는 문을 허공에 띄운다.
+red-fox-charm|붉은여우 부적|여우의 꾀를 빌린다.
+spirit-disposable|일회용 수호령 캡슐|한 번 지키고 사라지는 수호령. 유통기한이 있다.
+lost-hairband|누군가의 머리끈|누가 잃어버렸다.
+lost-slippers|누군가의 실내화|한 짝이 아니라 다행이다.
+lost-love-letter|누군가의 러브레터|읽지 않는 것이 예의.
+lost-phone|누군가의 단말기|잠겨 있다. 배경 화면은 가족 사진.
+bandage|재생 패치|붙이면 상처가 아문다.
+diary|종이 일기장|서버에 올라가지 않는 기록.
+curse-doll|저주 인형|누군가를 닮았다.
+beginner-godok|입문용 고독 키트|독충을 가두는 작은 옹기. 연습용.
+godok|고독|독충들이 서로 먹고 하나만 남았다.
+exercise-lamp|근사한 천이 꽂힌 알코올 램프|무언가 멋지다. 그게 전부다.
+small-altar|휴대 제단|주머니에 들어가는 돌제단.
+pebble-sling|돌팔매 주머니|조약돌을 넣어 휘두른다.
+cairn-model|돌탑 모형|소원을 쌓는다.
+charm-bundle|부적 묶음|한 다발로 묶었다.
+snakeskin-bookmark|뱀허물 책갈피|얇고 반투명하다.
+mugwort-incense|쑥 향|태우면 공기가 맑아진다.
+centipede-ward|지네 부적|독으로 독을 막는다.
+moss-pot|이끼 테라리움|작은 병 속의 숲.
+ink-talisman|송연묵 부적|검은 먹으로 쓴 부적. 깊게 스민다.
+yarn-doll|털실 인형|손으로 떴다.
+badger-brush|오소리털 붓|획이 힘차다.
+cinnabar-paste|주사 인주|붉은 도장밥.
+ghostfire-lantern|도깨비불 등롱|푸른 불을 가둔 등.
+sealing-talisman|봉인 부적|움직임을 묶는다.
+imugi-tag|이무기 비늘 호패|비늘로 만든 신분패. 문이 열린다.
+wolf-fang-charm|늑대 송곳니 부적|물어뜯는 기운.
+jujube-amulet|벽조목 호부|벼락의 기운으로 몸을 지킨다.
+hawk-quill|매깃 펜|날카로운 획.
+soul-lantern|혼백 등불|떠난 이를 비춘다.
+serpent-chest|황구렁이 비늘 함|업이 지키는 상자.
+fortune-talisman|오복 부적|다섯 복을 부른다.
+turtle-oracle|천년거북 점판|비령보다 오래된 예측 장치.
+polishing-stone|연마석|무구의 날을 고른다.
+plain-cloth|무명천|닦는 천.
+whetstone|숫돌|날을 세운다.
+oil-cloth|기름 먹인 천|녹을 막는다.
+five-knot|오방 매듭|다섯 빛 매듭. 무구에 묶는다.
+cinnabar-charm|주사 호신부|붉게 쓴 호신 부적.
+silver-inlay|은입사 장식|은실을 박아 넣은 무늬.
+hwatu-pine|소나무 패|일월. 솔과 학.
+hwatu-plum|매화 패|이월. 매화와 꾀꼬리.
+hwatu-cherry|벚꽃 패|삼월. 벚꽃과 장막.
+hwatu-black-wisteria|흑싸리 패|사월. 흑싸리와 두견.
+hwatu-orchid|난초 패|오월. 난초와 다리.
+hwatu-peony|모란 패|유월. 모란과 나비.
+hwatu-red-wisteria|홍싸리 패|칠월. 홍싸리와 멧돼지.
+hwatu-gwangsan|공산 패|팔월. 빈 산과 달.
+hwatu-chrysanthemum|국화 패|구월. 국화와 잔.
+hwatu-maple|단풍 패|시월. 단풍과 사슴.
+hwatu-paulownia|오동 패|십일월. 오동과 봉황.
+hwatu-willow|비 패|십이월. 버들과 비.
+goblin-token|도깨비 인증 토큰|도깨비가 발급한 증표. 위조할 수 없다.
+lost-key|누군가의 카드키|어느 문인지는 모른다.
+bag|확장 가방|소지품을 더 담는다.
+someones-bag|주인 없는 가방|열어 보기 전에는 무엇이 들었는지 알 수 없다.

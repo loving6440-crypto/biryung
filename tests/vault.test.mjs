@@ -100,35 +100,54 @@ test('Vault: 기존 비령 데이터 · 규칙 스냅샷(systems/data · systems
   assert.ok(!Vault.entries().some((e) => e.path.startsWith('..') || e.path.includes(sep + '..')));
 });
 
-test('Site: 구역 데이터 · 칭호 · 업적 파일이 맞게 들어 있다', () => {
+test('Site: 구역 · 칭호 · 업적 · 스토리 데이터가 맞게 들어 있다', () => {
   const load = (f) => { const w = {}; new Function('window', readFileSync(join(ROOT, f), 'utf8'))(w); return w; };
   const d = load('game-data.js').BIRYEONG_DATA;
-  assert.equal(d.zones.north.tabs.length, 0);
+  assert.equal(d.zones.north.story, true);
   assert.deepEqual(d.zones.east.tabs.map((x) => x.name), ['본관', '별관']);
   assert.deepEqual(d.zones.west.tabs.map((x) => x.name), ['기숙사']);
   assert.deepEqual(d.zones.south.tabs.map((x) => x.name), ['뒷산']);
   assert.equal(d.rules.statMin, 1); assert.equal(d.rules.startPoints, 10);
   assert.ok(!/\{\{npc:/.test(JSON.stringify(d)));
+  assert.ok(!/창록|초록동색/.test(JSON.stringify(d)), '구역 글에 옛 이름이 남아 있다');
+  // 그 자리에서 실행되는 칸의 주소는 모두 실행 화면에 있는 화면이다
+  const app = readFileSync(join(ROOT, 'systems/play/src/App.jsx'), 'utf8');
+  const screens = new Set([...app.matchAll(/case '([a-z]+)':/g)].map((m) => m[1]));
+  const plays = [];
+  (function walk(o) { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if (o.kind === 'play') plays.push(o.to); if (o.play) plays.push(o.play.to); Object.values(o).forEach(walk); } })(d.zones);
+  assert.ok(plays.length >= 12);
+  for (const to of plays) assert.ok(screens.has(to.split('/')[0]), `실행 화면에 없는 주소: ${to}`);
   const t = load('titles.js');
-  assert.equal(t.BIRYEONG_TITLES.length, 50); assert.equal(t.BIRYEONG_ACHIEVEMENTS.length, 30);
+  assert.equal(t.BIRYEONG_ACHIEVEMENTS.length, 60); assert.equal(t.BIRYEONG_TITLES.length, 64);
+  const perGroup = {}; for (const a of t.BIRYEONG_ACHIEVEMENTS) perGroup[a.group] = (perGroup[a.group] || 0) + 1;
+  assert.deepEqual(perGroup, { roam: 5, day: 5, days: 10, steady: 20, month: 10, peak: 10 });
   for (const a of t.BIRYEONG_ACHIEVEMENTS) assert.ok(t.BIRYEONG_TITLES.some((x) => x.id === a.title && x.from === 'achievement'), a.id);
-  const css = readFileSync(join(ROOT, 'styles.css'), 'utf8') + readFileSync(join(ROOT, 'app.js'), 'utf8');
-  assert.ok(!/NeoDunggeunmo|Stardust|Ramche|Silver/.test(css));
+  const s = load('story.js').BIRYEONG_STORY;
+  assert.equal(s.steps.length, 10); assert.equal(s.steps[1].options.length, 5);
+  for (const st of s.steps) assert.ok(st.text.length && st.goal.when && st.reward, st.id);
+  const css = readFileSync(join(ROOT, 'styles.css'), 'utf8') + readFileSync(join(ROOT, 'app.js'), 'utf8') + readFileSync(join(ROOT, 'play/play.css'), 'utf8');
+  assert.ok(!/NeoDunggeunmo|neodgm|Stardust|Ramche/.test(css), '글꼴은 갈무리 · KoPub 만');
+  assert.ok(!/<dialog class="(panel|play|story)-dialog"/.test(readFileSync(join(ROOT, 'index.html'), 'utf8')), '페이지로 바꾼 창이 남아 있다');
 });
 
-test('Play: 실행 화면이 빌드되어 있고, 구역 화면의 ▶ 주소가 모두 실행 화면의 주소다', () => {
-  for (const f of ['index.html', 'play.js', 'play.css', 'bgm.mp3', 'bg-roof.webp']) assert.ok(existsSync(join(ROOT, 'play', f)), `play/${f}`);
-  const html = readFileSync(join(ROOT, 'play/index.html'), 'utf8');
-  assert.match(html, /src="play\.js\?v=/); assert.ok(!/src="\//.test(html), '절대 경로 없이 열려야 한다(GitHub Pages 하위 주소)');
-  const routes = readFileSync(join(ROOT, 'systems/play/src/routes.js'), 'utf8');
-  const app = readFileSync(join(ROOT, 'systems/play/src/App.jsx'), 'utf8');
-  const screens = new Set([...app.matchAll(/case '([a-z]*)':/g)].map((m) => m[1]));
-  const w = {}; new Function('window', readFileSync(join(ROOT, 'game-data.js'), 'utf8'))(w);
-  const links = [];
-  (function walk(o) { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if (o.play) links.push(o.play.to); Object.values(o).forEach(walk); } })(w.BIRYEONG_DATA.zones);
-  assert.ok(links.length > 100);
-  for (const to of links) assert.ok(screens.has(to.split('/')[0]), `실행 화면에 없는 주소: ${to}`);
-  for (const s of ['battle', 'extra', 'pioneer', 'workshop', 'kitchen', 'lesson', 'store', 'armory', 'garden', 'train', 'sleep', 'rest', 'stats', 'inventory']) assert.ok(routes.includes(`path: '${s}`), s);
+test('Play: 실행 화면 부품이 빌드되어 있고, 스타일이 .play-scope 안에 갇혀 있다', () => {
+  for (const f of ['play.js', 'play.css', 'bgm.mp3']) assert.ok(existsSync(join(ROOT, 'play', f)), `play/${f}`);
   const css = readFileSync(join(ROOT, 'play/play.css'), 'utf8');
-  assert.ok(!/neodgm|NeoDunggeunmo/i.test(css), '비령 글꼴 정책: 갈무리 · KoPub 만');
+  const selectors = [...css.matchAll(/(?:^|\})([^{}@]+)\{/g)].map((m) => m[1].trim()).filter((x) => !/^(from|to|[\d.]+%)/.test(x));
+  assert.ok(selectors.length > 500);
+  for (const sel of selectors) assert.ok(sel.includes('.play-scope'), `범위 밖 스타일: ${sel.slice(0, 60)}`);
+  assert.ok(/z-\\\[70\\\]/.test(css), '대괄호 유틸리티(z-[70])가 빠졌다');
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
+  assert.match(html, /src="play\/play\.js"/); assert.match(html, /id="playRoot"/); assert.match(html, /id="pageBack"/);
+});
+
+test('Reskin: 아이템 312 · 상대 57 · 영능력 13 이 모두 비령판 이름을 갖고, 아이템마다 도트 아이콘이 있다', async () => {
+  const r = await import('../systems/biryeong/reskin.data.js');
+  const { ITEMS } = await Vault.load('game/items');
+  const { ALL_ENEMIES, PSYCHICS } = await Vault.load('game/battle');
+  for (const i of ITEMS) { assert.ok(r.ITEM_RESKIN[i.id]?.name && r.ITEM_RESKIN[i.id]?.desc, i.id); const px = r.ITEM_PIXELS[i.id]; assert.ok(r.PIXEL_TEMPLATES[px.t] && r.PIXEL_PALETTES[px.p], i.id); }
+  for (const e of ALL_ENEMIES) assert.ok(r.ENEMY_RESKIN[e.id]?.name && r.ENEMY_RESKIN[e.id]?.blurb, e.id);
+  for (const p of PSYCHICS) assert.ok(r.PSYCHIC_RESKIN[p.id]?.label, p.id);
+  for (const grid of Object.values(r.PIXEL_TEMPLATES)) { assert.equal(grid.length, 12); for (const row of grid) assert.match(row, /^[.kabcd]{12}$/); }
+  assert.equal(new Set(Object.values(r.ITEM_RESKIN).map((x) => x.name)).size, ITEMS.length, '아이템 이름이 겹친다');
 });

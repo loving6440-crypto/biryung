@@ -1,17 +1,28 @@
 /* 비령 — 화면 로직. 서버 없이 동작한다(내 프로필 · 진행 기록은 이 브라우저에 보관).
- * 구역 데이터는 game-data.js(보관고에서 생성), 칭호 · 업적은 titles.js 에 있다. */
+ *
+ * 페이지는 주소(#/…)로 바뀐다. 머리글 · 배너 · 오른쪽 '나의 상태'는 어느 페이지에서나 그대로 있고, 가운데만 바뀐다.
+ *   #/                      사방 지도(처음 화면)
+ *   #/zone/<구역>/<탭>/<칸>/<탐사 경로…>    구역 (north 산문 = 스토리 퀘스트 · east 강학당 · west 생활관 · south 금역)
+ *   #/go/<실행 주소>          전투 · 개척 · 수업 등을 바로 (예: #/go/battle/scarecrow, #/go/lesson/ward-tetris)
+ *   #/profile · #/profile/edit · #/codex · #/codex/titles · #/notes · #/case · #/money
+ * 데이터: game-data.js(구역, 보관고에서 생성) · titles.js(칭호 · 업적) · story.js(스토리 퀘스트) · play/play.js(실행 화면 부품)
+ */
 (() => {
   'use strict';
 
   const DATA = window.BIRYEONG_DATA || { rules: {}, zones: {} };
   const TITLES = window.BIRYEONG_TITLES || [];
   const ACHIEVEMENTS = window.BIRYEONG_ACHIEVEMENTS || [];
+  const ACH_GROUPS = window.BIRYEONG_ACHIEVEMENT_GROUPS || [];
+  const STORY = window.BIRYEONG_STORY || { steps: [], premise: [] };
+  const Play = () => window.BiryeongPlay || null;
+  const playApi = () => Play()?.api() || null;
   const R = Object.assign({ statKeys: [], stats: {}, statMin: 1, startPoints: 10, hpMax: 100, mpMax: 100, spiritStart: 100, spiritMax: 500, startMoney: 0, nameMax: 12, introMax: 30 }, DATA.rules);
   const $ = (selector, root = document) => root.querySelector(selector);
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const btn = (cls, text, onClick) => { const b = h('button', cls, text); b.type = 'button'; if (onClick) b.addEventListener('click', onClick); return b; };
 
-  /* ───────── 글꼴 (갈무리 · KoPub 돋움 · KoPub 바탕) ───────── */
+  /* ─────────   /* ───────── 글꼴 (갈무리 · KoPub 돋움 · KoPub 바탕) ───────── */
   const UI_FONTS = [
     { id: 'galmuri9', label: '갈무리9', detail: '기본 · 도트', family: 'Galmuri9' },
     { id: 'kopub-dotum', label: 'KoPub 돋움', detail: '웹폰트', family: 'KoPub Dotum' },
@@ -27,7 +38,6 @@
     for (const input of fontOptions.querySelectorAll('input[name="biryeong-font"]')) input.checked = input.value === id;
     $('#fontNotice').textContent = '서체를 불러올 수 없는 오프라인 환경에서는 대체 글꼴이 표시될 수 있습니다.';
     try { localStorage.setItem(FONT_STORAGE_KEY, id); } catch (_) { /* 저장할 수 없는 환경 */ }
-    if (byUser) mark('fontChanged');
   }
   function toggleFontMenu(force) {
     const shouldOpen = typeof force === 'boolean' ? force : fontMenu.hidden;
@@ -50,50 +60,57 @@
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !fontMenu.hidden) { toggleFontMenu(false); event.stopPropagation(); } });
   window.addEventListener('storage', (event) => { if (event.key === FONT_STORAGE_KEY) setFont(event.newValue); });
 
-  /* ───────── 저장: 내 프로필 + 진행 기록 ───────── */
+  /* ───────── 저장: 내 프로필 + 진행 기록 ─────────
+   * 실행 화면(play)이 같은 칸에 game · counts · playLog 를 적는다. 메인 화면은 그 셋을 덮어쓰지 않는다. */
   const SAVE_KEY = 'biryeong-save-v1';
-  const blankStats = () => Object.fromEntries(R.statKeys.map((k) => [k, R.statMin]));
-  const blankSave = () => ({ profile: null, flags: {}, sets: {}, counts: {}, achievements: {}, titles: {}, lantern: false });
-  let save = blankSave();
-  try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (raw && typeof raw === 'object') save = Object.assign(blankSave(), raw); } catch (_) { /* 저장 없이 동작 */ }
-  let saveWarned = false;
-  // 실행 화면(play/)이 같은 저장 칸에 game · counts · playLog 를 적는다. 메인 화면은 그 칸을 덮어쓰지 않는다.
   const PLAY_KEYS = ['game', 'counts', 'playLog'];
+  const blankStats = () => Object.fromEntries(R.statKeys.map((k) => [k, R.statMin]));
+  const blankSave = () => ({ profile: null, flags: {}, sets: {}, achievements: {}, titles: {}, story: { done: {}, heirloom: null }, lantern: false });
   const readStored = () => { try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return raw && typeof raw === 'object' ? raw : {}; } catch (_) { return {}; } };
+  let save = Object.assign(blankSave(), readStored());
+  save.story = Object.assign({ done: {}, heirloom: null }, save.story);
+  // 예전 판(v0.7~0.8)의 업적 · 칭호 기록 가운데 지금 없는 것은 지운다.
+  const achIds = new Set(ACHIEVEMENTS.map((a) => a.id)), titleIds = new Set(TITLES.map((t) => t.id));
+  for (const id of Object.keys(save.achievements)) if (!achIds.has(id)) delete save.achievements[id];
+  for (const id of Object.keys(save.titles)) if (!titleIds.has(id)) delete save.titles[id];
+  let saveWarned = false;
+  function pullPlay() { const latest = readStored(); for (const k of PLAY_KEYS) { if (k in latest) save[k] = latest[k]; else delete save[k]; } }
   function persist() {
-    const latest = readStored();
-    for (const k of PLAY_KEYS) { if (k in latest) save[k] = latest[k]; else delete save[k]; }
-    save.counts = save.counts || {};
+    pullPlay();
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
     catch (_) { if (!saveWarned) { saveWarned = true; toast('저장 실패', '이 브라우저에 기록을 저장할 수 없습니다. 사진이 너무 크거나 저장 공간이 막혀 있을 수 있습니다.'); } }
   }
   const profile = () => save.profile;
-  const game = () => (save.profile && save.game ? save.game : null); // 실행 화면에서 플레이한 뒤의 상태
+  const game = () => (save.profile && save.game ? save.game : null); // 실행 화면의 플레이어 상태(체력 · 영력 · 스탯 · 소지금 …)
+  const counts = () => save.counts || {};
   const statsNow = () => game()?.stats ?? (save.profile ? save.profile.stats : blankStats());
-  /** 실행 화면이 바꾼 값(game · counts · playLog)을 다시 읽는다. */
-  function refreshFromPlay() {
-    const latest = readStored();
-    for (const k of PLAY_KEYS) { if (k in latest) save[k] = latest[k]; else delete save[k]; }
-    save.counts = save.counts || {};
-    renderStatus();
-    checkAchievements();
-  }
   const titleById = Object.fromEntries(TITLES.map((t) => [t.id, t]));
   const ownsTitle = (id) => titleById[id]?.from === 'start' || !!save.titles[id];
   const ownedTitles = () => TITLES.filter((t) => ownsTitle(t.id));
 
-  /* ───────── 업적 ───────── */
+  /* ───────── 알림 ───────── */
   const toastStack = $('#toastStack');
   function toast(head, text) {
     const el = h('div', 'toast'); el.append(h('strong', '', head), h('span', '', text));
     toastStack.appendChild(el);
-    // 열려 있는 창(dialog) 위에 보이도록 맨 위 층으로 다시 올린다.
-    try { if (toastStack.matches(':popover-open')) toastStack.hidePopover(); toastStack.showPopover(); } catch (_) { /* popover 를 모르는 브라우저: 그대로 둔다 */ }
+    try { if (toastStack.matches(':popover-open')) toastStack.hidePopover(); toastStack.showPopover(); } catch (_) { /* popover 를 모르는 브라우저 */ }
     setTimeout(() => el.classList.add('is-leaving'), 4200);
     setTimeout(() => { el.remove(); if (!toastStack.children.length) { try { toastStack.hidePopover(); } catch (_) { /* 무시 */ } } }, 4800);
   }
-  const met = (w) => (w.flag ? !!save.flags[w.flag] : w.set ? Object.keys(save.sets[w.set] || {}).length >= w.n : w.count ? ((save.counts || {})[w.count] || 0) >= w.n : false);
-  const progressOf = (w) => (w.set ? [Math.min(Object.keys(save.sets[w.set] || {}).length, w.n), w.n] : w.count ? [Math.min((save.counts || {})[w.count] || 0, w.n), w.n] : null);
+
+  /* ───────── 업적 조건 ───────── */
+  const dayKey = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  function streakNow() { // 오늘부터 거꾸로, 하루도 빠지지 않은 날 수
+    const days = save.sets.days || {};
+    let n = 0;
+    for (const d = new Date(); days[dayKey(d)]; d.setDate(d.getDate() - 1)) n += 1;
+    return n;
+  }
+  const valueOf = (w) => (w.set ? Object.keys(save.sets[w.set] || {}).length : w.pset ? Object.keys(counts().sets?.[w.pset] || {}).length : w.count ? Math.floor(counts()[w.count] || 0) : w.streak ? streakNow() : 0);
+  const targetOf = (w) => w.n ?? w.streak ?? 1;
+  const met = (w) => (w.all ? w.all.every(met) : w.flag ? !!save.flags[w.flag] : valueOf(w) >= targetOf(w));
+  /** 진행도 [지금, 목표] — 여러 조건이면 채운 조건 수 */
+  const progressOf = (w) => (w.all ? [w.all.filter(met).length, w.all.length] : w.flag ? null : [Math.min(valueOf(w), targetOf(w)), targetOf(w)]);
   function checkAchievements() {
     let changed = false;
     for (const a of ACHIEVEMENTS) {
@@ -121,63 +138,37 @@
     return frag;
   }
   const para = (text, cls = '') => { const p = h('p', `panel-p ${cls}`.trim()); p.append(rich(text)); return p; };
+  const emptyBox = (markText, line, small) => { const e = h('div', 'panel-empty'); e.append(h('span', 'panel-empty-mark', markText), h('p', '', line), h('small', '', small || '')); return e; };
 
-  /* ───────── 작은 글 창(사건 기록 등) ───────── */
-  const dialog = $('#storyDialog');
-  function openStory(eyebrow, title, texts, footnote) {
-    $('#dialogEyebrow').textContent = eyebrow;
-    $('#dialogTitle').textContent = title;
-    $('#dialogFootnote').textContent = footnote || '비령 · 비공개 기록';
-    const parent = $('#dialogContent');
-    parent.replaceChildren(...texts.map((t) => h('p', '', t)));
-    if (!dialog.open) dialog.showModal();
-  }
-  function showCase() {
-    openStory('檔案 001 / 비령산 집단 실종 사건', '그날 사라진 사람들', [
-      '그날의 실종은 어느 한 마을에서 시작되지 않았다. 전국 각지에서 무당들이 같은 순간 흔적도 없이 사라졌다. 누구도 그들이 어디로 갔는지 설명하지 못했다.',
-      '얼마 뒤, 강원도 비령산에서 실종된 무당들의 주검이 대거 발견되었다. 사건의 경위는 여전히 밝혀지지 않았다.',
-      '남은 것은 그들의 아이들이다. 친부모가 무당이었다는 사실을 모른 채 자란 이도, 일찍 가족을 잃은 이도 있다. 그 후손들을 비령산에 모아 임시 학교를 세웠다.',
-      '누군가는 이곳을 피난처라고 부른다. 누군가는 진실을 묻기 위해 만든 장소라고 말한다.'
-    ], '보관 문서 001 · 비령');
-    mark('caseRead');
-  }
-
-  /* ───────── 큰 창(구역 · 프로필 · 도감 …) ───────── */
-  const panel = $('#panelDialog'), panelBody = $('#panelBody'), panelTabs = $('#panelTabs'), panelChips = $('#panelChips');
-  function openPanel(eyebrow, title, kind) {
+  /* ───────── 페이지 틀 ─────────
+   * 처음 화면(#homeView)과 페이지(#pageView) 가운데 하나만 보인다. 머리글 · 배너 · 나의 상태는 그대로 둔다. */
+  const homeView = $('#homeView'), pageView = $('#pageView');
+  const panelBody = $('#panelBody'), panelTabs = $('#panelTabs'), panelChips = $('#panelChips'), playHost = $('#playHost');
+  let steps = 0; // 이 화면 안에서 주소를 바꾼 횟수(뒤로가기가 사이트 밖으로 나가지 않게)
+  const go = (hash) => { if (location.hash === hash) route(); else { steps += 1; location.hash = hash; } };
+  const back = () => { if (steps > 0) { steps -= 1; history.back(); } else location.hash = '#/'; };
+  function openPage(eyebrow, title, kind) {
     $('#panelEyebrow').textContent = eyebrow; $('#panelTitle').textContent = title;
-    panel.dataset.kind = kind || '';
+    pageView.dataset.kind = kind || '';
     panelTabs.hidden = true; panelTabs.replaceChildren(); panelChips.hidden = true; panelChips.replaceChildren(); panelBody.replaceChildren();
-    if (!panel.open) panel.showModal();
-    panelBody.scrollTop = 0;
+    homeView.hidden = true; pageView.hidden = false;
+    showPlay(null);
   }
+  function showHome() { pageView.hidden = true; homeView.hidden = false; showPlay(null); }
   function setTabs(nav, list, current, onPick) {
     nav.hidden = list.length < 1;
     nav.replaceChildren(...list.map((t) => { const b = btn(t.id === current ? 'is-on' : '', t.label, () => onPick(t.id)); b.setAttribute('aria-pressed', String(t.id === current)); return b; }));
   }
-  $('#panelClose').addEventListener('click', () => panel.close());
-  panel.addEventListener('click', (event) => { if (event.target === panel) panel.close(); });
-
-  /* ───────── 실행 화면 (play/index.html#주소) ─────────
-   * 전투 · 개척 · 제작 · 수업 · 매점 … 은 초록동색 화면을 묶은 실행 화면에서 돈다(systems/play).
-   * 메인 화면에서는 그 화면을 창 안에 띄운다. 주소만 알면 새 탭(play/index.html#battle/scarecrow 등)으로도 바로 열린다. */
-  const playDialog = $('#playDialog'), playFrame = $('#playFrame');
-  const playUrl = (to) => `play/index.html#${to}`;
-  function openPlay(to) {
-    if (!profile()) { toast('내 프로필 먼저', '실행 화면은 내 프로필(이름 · 육조 스탯)로 플레이한다.'); openProfile(false); return; }
-    if (panel.open) panel.close();
-    $('#playOpenTab').href = playUrl(to);
-    playFrame.src = playUrl(to);
-    if (!playDialog.open) playDialog.showModal();
-    playFrame.focus();
+  /** 실행 화면 부품(전투 · 제작 · 수업 …)을 페이지 본문 아래에 보인다. null 이면 감춘다(시간은 계속 흐른다). */
+  function showPlay(to) {
+    const P = Play();
+    playHost.hidden = !to;
+    if (!P) return;
+    P.show(to && profile() ? to : null);
+    if (to && !profile()) { playHost.hidden = true; panelBody.append(needProfile()); }
   }
-  function closePlay() { if (playDialog.open) playDialog.close(); }
-  playDialog.addEventListener('close', () => { playFrame.src = 'about:blank'; refreshFromPlay(); });
-  $('#playClose').addEventListener('click', closePlay);
-  window.addEventListener('message', (event) => { if (event.source === playFrame.contentWindow && event.data?.type === 'biryeong-play-close') closePlay(); });
-  window.addEventListener('storage', (event) => { if (event.key === SAVE_KEY) refreshFromPlay(); });
-  window.addEventListener('focus', refreshFromPlay);
-  const playButton = (play, cls = 'play-btn') => { const b = btn(cls, `▶ ${play.label}`, () => openPlay(play.to)); b.dataset.play = play.to; return b; };
+  const needProfile = () => { const box = emptyBox('名', '먼저 내 프로필을 만들어 주세요.', '이름과 육조 스탯이 있어야 움직일 수 있다.'); box.append(btn('solid-btn', '내 프로필 만들기', () => go('#/profile'))); return box; };
+  $('#pageBack').addEventListener('click', back);
 
   /* ───────── 구역 ───────── */
   const ZONE_META = {
@@ -186,48 +177,34 @@
     west: { hanja: '西', eyebrow: '03 西 / HOUSE OF THE LEFT BEHIND' },
     south: { hanja: '南', eyebrow: '04 南 / THE FORBIDDEN PEAK' },
   };
-  const zoneView = { zone: null, tab: null, section: null, path: [] };
-  function enterZone(key) {
+  const zoneHash = (key, tab, section, path = []) => `#/zone/${[key, tab, section, ...path].filter(Boolean).join('/')}`;
+  function renderZone(key, tabId, sectionId, path) {
     const zone = DATA.zones[key];
-    if (!zone) return;
-    zoneView.zone = key; zoneView.tab = zone.tabs[0]?.id ?? null; zoneView.section = zone.tabs[0]?.sections[0]?.id ?? null; zoneView.path = [];
-    openPanel(ZONE_META[key].eyebrow, zone.title, 'zone');
+    if (!zone) { go('#/'); return; }
+    openPage(ZONE_META[key].eyebrow, zone.title, 'zone');
     mark(`zone:${key}`); addTo('zones', key);
-    renderZone();
-  }
-  function renderZone() {
-    const zone = DATA.zones[zoneView.zone];
-    panelBody.replaceChildren();
-    if (!zone.tabs.length) {
-      setTabs(panelTabs, [], null, () => {}); panelChips.hidden = true;
-      const empty = h('div', 'panel-empty'); empty.append(h('span', 'panel-empty-mark', ZONE_META[zoneView.zone].hanja), h('p', '', '아직 비어 있는 곳.'), h('small', '', '금줄 너머로 바람 소리만 들린다.'));
-      panelBody.append(empty); return;
-    }
-    const tab = zone.tabs.find((t) => t.id === zoneView.tab) ?? zone.tabs[0];
-    const section = tab.sections.find((s) => s.id === zoneView.section) ?? tab.sections[0];
-    setTabs(panelTabs, zone.tabs.map((t) => ({ id: t.id, label: `${t.hanja} ${t.name}` })), tab.id, (id) => { zoneView.tab = id; zoneView.section = zone.tabs.find((t) => t.id === id).sections[0].id; zoneView.path = []; renderZone(); });
-    setTabs(panelChips, tab.sections.map((s) => ({ id: s.id, label: s.title })), section.id, (id) => { zoneView.section = id; zoneView.path = []; renderZone(); });
-    panelChips.hidden = false;
-    if (section.play) panelBody.append(playButton(section.play, 'play-btn play-btn-lead'));
+    if (zone.story) { renderStory(); return; }
+    if (!zone.tabs.length) { panelBody.append(emptyBox(ZONE_META[key].hanja, '아직 비어 있는 곳.', '금줄 너머로 바람 소리만 들린다.')); return; }
+    const tab = zone.tabs.find((t) => t.id === tabId) ?? zone.tabs[0];
+    const section = tab.sections.find((s) => s.id === sectionId) ?? tab.sections[0];
+    addTo('pages', `${key}/${tab.id}/${section.id}`);
+    if (zone.tabs.length > 1) setTabs(panelTabs, zone.tabs.map((t) => ({ id: t.id, label: `${t.hanja} ${t.name}` })), tab.id, (id) => go(zoneHash(key, id)));
+    setTabs(panelChips, tab.sections.map((s) => ({ id: s.id, label: s.title })), section.id, (id) => go(zoneHash(key, tab.id, id)));
     if (section.kind === 'text') section.paras.forEach((t) => panelBody.append(para(t)));
-    else if (section.kind === 'list') renderList(section, tab);
-    else renderScene(section, tab);
-    panelBody.scrollTop = 0;
+    else if (section.kind === 'list') renderList(section);
+    else if (section.kind === 'play') { if (section.intro) panelBody.append(para(section.intro, 'panel-intro')); showPlay(section.to); }
+    else renderScene(section, key, tab, path);
   }
-  function renderList(section, tab) {
+  function renderList(section) {
     if (section.intro) panelBody.append(para(section.intro, 'panel-intro'));
-    panelBody.append(h('p', 'panel-count', `${section.items.length}개 · 눌러서 펼치기`));
-    const isEnemy = ['practice', 'bestiary'].includes(section.id);
     const listEl = h('div', 'entry-list');
-    section.items.forEach((item, i) => {
+    section.items.forEach((item) => {
       const d = h('details', 'entry');
       const sum = h('summary'); sum.append(h('strong', '', item.name), h('span', '', item.sub || ''));
       d.append(sum);
       if (item.desc) d.append(para(item.desc, 'entry-desc'));
       (item.lines || []).forEach((l) => d.append(para(l, 'entry-line')));
       if (!item.desc && !(item.lines || []).length) d.append(h('p', 'panel-p entry-line', '(설명이 아직 없다)'));
-      if (item.play) d.append(playButton(item.play, 'play-btn play-btn-item'));
-      d.addEventListener('toggle', () => { if (!d.open) return; addTo('entries', `${tab.id}:${section.id}:${i}`); if (isEnemy) addTo('enemies', `${section.id}:${i}`); });
       listEl.append(d);
     });
     panelBody.append(listEl);
@@ -246,20 +223,20 @@
     return out;
   }
   const whenLabel = (when) => Object.entries(when).map(([k, [lo, hi]]) => `${R.stats[k]?.label ?? k} ${lo != null ? `${lo} 이상` : ''}${hi != null ? ` ${hi} 이하` : ''}`.trim()).join(' · ');
-  function renderScene(section, tab) {
+  function renderScene(section, key, tab, path) {
     const stats = statsNow();
     let node = section.root;
-    const trail = [node];
-    for (const id of zoneView.path) { const next = (node.choices || []).find((c) => c.id === id); if (!next) break; node = next; trail.push(node); }
+    const trail = [node], walked = [];
+    for (const id of path) { const next = (node.choices || []).find((c) => c.id === id); if (!next) break; node = next; trail.push(node); walked.push(id); }
+    const here = (ids) => zoneHash(key, tab.id, section.id, ids);
     const crumbs = h('div', 'scene-crumbs');
     trail.forEach((n, i) => {
       if (i) crumbs.append(h('span', 'scene-sep', '›'));
-      const last = i === trail.length - 1;
-      const c = last ? h('strong', '', '') : btn('', '', () => { zoneView.path = zoneView.path.slice(0, i); renderZone(); });
+      const c = i === trail.length - 1 ? h('strong', '', '') : btn('', '', () => go(here(walked.slice(0, i))));
       c.append(rich(n.name)); crumbs.append(c);
     });
     panelBody.append(crumbs);
-    if (trail.length > 1) addTo('scenes', `${tab.id}:${zoneView.path.join('/')}`);
+    if (trail.length > 1) addTo('scenes', `${tab.id}:${walked.join('/')}`);
     const hour = new Date().getHours();
     const closed = node.night && !(node.night.from > node.night.to ? hour >= node.night.from || hour < node.night.to : hour >= node.night.from && hour < node.night.to);
     const box = h('div', `scene-box${node.fx === 'jitter' ? ' scene-jitter' : ''}`);
@@ -269,25 +246,20 @@
       if (node.seq) {
         let page = 0;
         const seqP = para(node.seq[0], 'scene-seq');
-        const next = btn('scene-next', node.seq.length > 1 ? '다음 ▸' : '', () => { page += 1; seqP.replaceChildren(rich(node.seq[page])); if (page >= node.seq.length - 1) next.hidden = true; });
+        const next = btn('scene-next', '다음 ▸', () => { page += 1; seqP.replaceChildren(rich(node.seq[page])); if (page >= node.seq.length - 1) next.hidden = true; });
         next.hidden = node.seq.length < 2;
         box.append(seqP, next);
       }
       if (node.after) box.append(para(node.after, 'scene-after'));
       if (node.result) {
         const cost = node.cost || {};
-        const label = cost.mp ? `의지력 ${cost.mp} 쓰기` : cost.wait ? `${cost.wait}분 기다리기 (지금은 바로 지나간다)` : '결과 보기';
-        const reveal = btn('scene-cost', label, () => {
-          const p = profile();
-          if (cost.mp && p) { if (p.mp < cost.mp) { toast('의지력 부족', `의지력이 ${cost.mp} 필요하다.`); return; } p.mp -= cost.mp; persist(); renderStatus(); }
-          reveal.replaceWith(...node.result.map((t) => para(t, 'scene-result')));
-        });
+        const reveal = btn('scene-cost', cost.mp ? `의지력 ${cost.mp} 쓰기` : cost.wait ? `${cost.wait}분 기다리기 (지금은 바로 지나간다)` : '결과 보기', () => reveal.replaceWith(...node.result.map((t) => para(t, 'scene-result'))));
         box.append(reveal);
       }
       if (node.note) box.append(h('p', 'scene-note', node.note));
       if (node.notice) box.append(h('p', 'scene-notice', node.notice));
       if (node.widgetNote) box.append(h('p', 'scene-note', node.widgetNote));
-      if (node.play) box.append(playButton(node.play));
+      if (node.play) box.append(btn('solid-btn scene-go', `${node.play.label} ▸`, () => go(`#/go/${node.play.to}`)));
     }
     if (box.childNodes.length) panelBody.append(box);
     const kids = closed ? [] : (node.choices || []);
@@ -295,7 +267,7 @@
       const wrap = h('div', 'scene-choices');
       kids.forEach((c) => {
         const ok = meets(c.when, stats);
-        const b = btn(`scene-choice${ok ? '' : ' is-locked'}`, '', () => { zoneView.path = [...zoneView.path, c.id]; renderZone(); });
+        const b = btn(`scene-choice${ok ? '' : ' is-locked'}`, '', () => go(here([...walked, c.id])));
         b.append(rich(c.name));
         if (c.when) b.append(h('small', '', ok ? whenLabel(c.when) : `${whenLabel(c.when)} 필요`));
         b.disabled = !ok;
@@ -303,7 +275,102 @@
       });
       panelBody.append(wrap);
     }
-    if (trail.length > 1) panelBody.append(btn('scene-back', '◂ 돌아가기', () => { zoneView.path = zoneView.path.slice(0, -1); renderZone(); }));
+  }
+
+  /* ───────── 바로 실행 페이지 (#/go/…) ───────── */
+  function renderGo(to) {
+    const label = (Play()?.routes || []).find((r) => r.path === to)?.label ?? (Play()?.routes || []).find((r) => r.path === to.split('/')[0])?.label ?? '실행';
+    openPage('實行 / PLAY', label, 'play');
+    addTo('pages', `go/${to.split('/')[0]}`);
+    showPlay(to);
+  }
+
+  /* ───────── 스토리 퀘스트 (산문) ───────── */
+  const HEIRLOOM = Object.fromEntries((STORY.steps.find((s) => s.options)?.options || []).map((o) => [o.id, o]));
+  const storyIndex = () => STORY.steps.findIndex((s) => !save.story.done[s.id]); // 지금 진행 중인 절(-1 = 모두 끝)
+  const rewardText = (r) => [r?.spirit ? `영력 +${r.spirit}` : '', r?.money ? `${r.money}냥` : ''].filter(Boolean).join(' · ');
+  function claimStep(step) {
+    if (save.story.done[step.id] || !met(step.goal.when)) return;
+    const api = playApi();
+    if (!api) { toast('잠시만', '실행 화면을 불러오는 중이다. 잠시 뒤 다시 눌러 주세요.'); return; }
+    api.grant({ spirit: step.reward?.spirit || 0, money: step.reward?.money || 0, log: `스토리 「${step.title}」 완료. (${rewardText(step.reward)})` });
+    save.story.done[step.id] = Date.now();
+    persist(); pullPlay(); renderStatus();
+    toast('스토리 진행', `${step.title} — ${rewardText(step.reward)}`);
+    route();
+  }
+  function renderStory() {
+    addTo('pages', 'story');
+    const current = storyIndex();
+    const head = h('div', 'story-head');
+    head.append(h('p', 'story-chapter', STORY.chapter), h('p', 'panel-count', `진행 ${current < 0 ? STORY.steps.length : current} / ${STORY.steps.length}${save.story.heirloom ? ` · 유품: ${HEIRLOOM[save.story.heirloom]?.name ?? ''}` : ''}`));
+    panelBody.append(head);
+    const pre = h('details', 'story-premise'); pre.open = current <= 0;
+    pre.append(h('summary', '', '2046 · 비령'), ...STORY.premise.map((t) => para(t)));
+    panelBody.append(pre);
+    STORY.steps.forEach((step, i) => {
+      const done = !!save.story.done[step.id], now = i === current;
+      const box = h('section', `story-step${done ? ' is-done' : now ? ' is-now' : ' is-locked'}`);
+      const title = h('h3', '', done || now ? step.title : `${step.title.split(' · ')[0]} · ？？？`);
+      title.prepend(h('span', 'story-mark', done ? '◆' : now ? '◈' : '◇'));
+      box.append(title);
+      if (done || now) step.text.forEach((t) => box.append(para(t)));
+      if (now) {
+        if (step.options) {
+          const pick = h('div', 'story-options');
+          step.options.forEach((o) => {
+            const b = btn(`story-option${save.story.heirloom === o.id ? ' is-on' : ''}`, '', () => { save.story.heirloom = o.id; persist(); mark('heirloomChosen'); route(); });
+            b.append(h('strong', '', o.name), h('small', '', o.note)); pick.append(b);
+          });
+          box.append(pick);
+        }
+        const ok = met(step.goal.when), prog = progressOf(step.goal.when);
+        const goal = h('div', 'story-goal');
+        goal.append(h('span', '', `목표 — ${step.goal.desc}`), h('b', '', ok ? '달성' : prog ? `${prog[0]} / ${prog[1]}` : '미달성'));
+        box.append(goal);
+        const claim = btn('solid-btn', `다음으로 (${rewardText(step.reward)})`, () => claimStep(step)); claim.disabled = !ok;
+        box.append(claim);
+      } else if (done && step.options && save.story.heirloom) box.append(h('p', 'story-chosen', `고른 유품 — ${HEIRLOOM[save.story.heirloom]?.name ?? ''}`));
+      panelBody.append(box);
+    });
+    if (current < 0) panelBody.append(h('p', 'panel-fine', '제1장을 모두 마쳤다. 다음 장을 기다린다.'));
+  }
+
+  /* ───────── 사건 기록 · 소지금 · 업데이트 노트 ───────── */
+  function renderCase() {
+    openPage('檔案 001 / 2046 · 무속인 전원 실종 사건', '그날 사라진 사람들', 'simple');
+    STORY.premise.forEach((t) => panelBody.append(para(t)));
+    ['무당들이 사라진 이후 전국에서는 기이한 현상이 발생하기 시작한다. 사당의 신들이 모습을 드러내고, 오래전에 죽은 사람들이 살아 돌아오며, 인간의 기억 속에만 존재하던 괴담이 현실이 된다.',
+      '실종된 무당들의 자녀에게는 공통점이 있었다. 모두 실종 직전 부모에게 정체불명의 물건을 하나씩 받았다는 것. 방울, 부채, 거울, 칼, 오색천.',
+      '이 물건들은 단순한 유품이 아니었다. 무당들이 사라지기 전, 자신들이 모시던 신과의 마지막 약속을 담아 놓은 매개체였다.',
+      '무당들의 후손들은 한 자리에 모이게 된다. 비령을 통한 정부의 제어, 그 기반을 다지기 위한 일환으로.'].forEach((t) => panelBody.append(para(t)));
+    panelBody.append(h('p', 'panel-fine', '보관 문서 001 · 비령'), btn('solid-btn', '산문으로 — 스토리 퀘스트', () => go('#/zone/north')));
+    mark('caseRead');
+  }
+  function renderMoney() {
+    const p = profile();
+    openPage('錢 / 소지금', `${Math.floor(game()?.money ?? p?.money ?? 0)}냥`, 'simple');
+    addTo('pages', 'money');
+    panelBody.append(para(p ? '주머니 속 엽전을 세어 보았다. 퇴마 실습에서 이기거나 매점에 물건을 팔면 늘어나고, 매점에서 사면 줄어든다.' : '프로필을 만들면 주머니가 생긴다.'));
+    const acts = h('div', 'profile-actions'); acts.append(btn('ghost-btn', '매점으로', () => go('#/zone/west/dorm/store')), btn('ghost-btn', '퇴마 실습으로', () => go('#/zone/south/gym/practice')));
+    panelBody.append(acts);
+    const log = (save.playLog || []).slice(-25).reverse();
+    if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
+  }
+  const UPDATE_NOTES = [
+    { v: 'v0.9', date: '2026-11-12', lines: ['창이 뜨던 화면을 모두 페이지로 바꿈. 어느 페이지든 머리글 · 배너 · 나의 상태는 그대로, [뒤로가기] 로 돌아온다.', '전투 · 개척 · 제작 · 수업 · 매점 등이 구역 페이지 안에서 바로 열린다. 화면 색을 비령에 맞춤.', '나의 상태에서 육조 스탯을 바로 올릴 수 있다.', '아이템 312종 · 상대 57종 · 영능력 13종의 이름과 설명을 2046년 비령 세계관으로 고치고, 아이템에 도트 아이콘을 붙임.', '업적 60개 · 칭호 64개로 다시 짬(둘러보기 · 하루 · 며칠 · 꾸준히 · 한 달 · 극).', '산문에 스토리 퀘스트 제1장 「사라진 자들의 아이들」.'] },
+    { v: 'v0.8', date: '2026-11-12', lines: ['전투 · 개척 · 제작 · 수업 미니게임을 실행할 수 있게 연결.'] },
+    { v: 'v0.7', date: '2026-11-12', lines: ['내 프로필, 나의 상태, 구역 데이터, 배너 다섯 쪽, 칭호와 업적.'] },
+    { v: 'v0.6', date: '2026-11-12', lines: ['초록동색 C.01 콘텐츠 보관고(NPC · 퀘스트 제외), GitHub Pages 대응.'] },
+  ];
+  function renderNotes() {
+    openPage('報 / UPDATE NOTES', '업데이트 노트', 'simple');
+    addTo('pages', 'notes');
+    UPDATE_NOTES.forEach((n) => {
+      const box = h('div', 'note-box'); const head = h('p', 'panel-label'); head.append(h('b', '', n.v), n.date ? ` · ${n.date}` : '');
+      const ul = h('ul'); n.lines.forEach((l) => ul.append(h('li', '', l)));
+      box.append(head, ul); panelBody.append(box);
+    });
   }
 
   /* ───────── 내 프로필 ───────── */
@@ -325,37 +392,38 @@
     img.onerror = () => { URL.revokeObjectURL(url); toast('사진', '이 그림은 읽을 수 없습니다.'); };
     img.src = url;
   }
-  function openProfile(editing) {
+  const openProfile = (editing) => go(editing ? '#/profile/edit' : '#/profile');
+  function renderProfile(editing) {
     const p = profile();
-    openPanel('個人記錄 / MY PROFILE', '내 프로필', 'profile');
+    openPage('個人記錄 / MY PROFILE', '내 프로필', 'profile');
+    addTo('pages', 'profile');
     if (!p || editing) renderProfileForm(p); else renderProfileCard(p);
   }
   function renderProfileCard(p) {
-    panelBody.replaceChildren();
     const card = h('div', 'profile-card');
-    const av = h('div', 'profile-avatar'); avatarInto(av, p.photo, p.name);
+    const avatar = h('div', 'profile-avatar'); avatarInto(avatar, p.photo, p.name);
     const info = h('div', 'profile-info');
     info.append(h('small', 'profile-title', p.title && ownsTitle(p.title) ? `「${titleById[p.title].name}」` : '칭호 없음'), h('h3', '', p.name));
-    const meta = h('p', 'profile-meta'); meta.append(h('span', '', `나이 ${p.age || '—'}`), h('span', '', `성별 ${p.gender || '—'}`)); info.append(meta);
-    info.append(h('p', 'profile-intro', p.intro || '(한줄소개가 비어 있다)'));
-    card.append(av, info);
+    const meta = h('p', 'profile-meta'); meta.append(h('span', '', `나이 ${p.age || '—'}`), h('span', '', `성별 ${p.gender || '—'}`));
+    if (save.story.heirloom) meta.append(h('span', '', `유품 ${HEIRLOOM[save.story.heirloom]?.name ?? ''}`));
+    info.append(meta, h('p', 'profile-intro', p.intro || '(한줄소개가 비어 있다)'));
+    card.append(avatar, info);
     panelBody.append(card, h('div', 'panel-rule'));
-    const grid = h('div', 'profile-stats');
-    const st = statsNow();
+    const grid = h('div', 'profile-stats'); const st = statsNow();
     R.statKeys.forEach((k) => { const c = h('div', 'profile-stat'); c.title = R.stats[k].detail; c.append(h('span', '', R.stats[k].label), h('b', '', String(Math.floor(st[k] ?? 1)))); grid.append(c); });
     panelBody.append(h('p', 'panel-label', '육조 스탯'), grid);
     const pick = h('div', 'profile-field');
     const sel = h('select'); sel.id = 'profileTitleSelect';
     sel.append(new Option('칭호 없음', ''));
     ownedTitles().forEach((t) => sel.append(new Option(t.name, t.id, false, p.title === t.id)));
-    sel.addEventListener('change', () => { p.title = sel.value || null; persist(); if (sel.value) mark('titleEquipped'); renderStatus(); renderProfileCard(p); });
+    sel.addEventListener('change', () => { p.title = sel.value || null; persist(); renderStatus(); route(); });
     const lab = h('label', '', `칭호 고르기 (가진 칭호 ${ownedTitles().length} / ${TITLES.length})`); lab.htmlFor = sel.id;
     pick.append(lab, sel);
     if (p.title && titleById[p.title]) pick.append(h('small', '', titleById[p.title].desc));
     panelBody.append(pick);
     const foot = h('div', 'profile-actions');
-    foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => openCodex('titles')));
-    panelBody.append(foot, h('p', 'panel-fine', '프로필은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
+    foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => go('#/codex/titles')));
+    panelBody.append(foot, h('p', 'panel-fine', '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
   function renderProfileForm(p) {
     const creating = !p;
@@ -410,7 +478,7 @@
     const actions = h('div', 'profile-actions');
     const submit = h('button', 'solid-btn', creating ? '명부에 이름 남기기' : '저장'); submit.type = 'submit';
     actions.append(submit);
-    if (!creating) actions.append(btn('ghost-btn', '취소', () => openProfile(false)));
+    if (!creating) actions.append(btn('ghost-btn', '취소', () => back()));
     form.append(error, actions);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -429,21 +497,30 @@
       else mark('profileEdited');
       if (save.profile.photo) mark('photoSet');
       if (save.profile.intro) mark('introSet');
-      renderStatus(); openProfile(false);
+      window.BiryeongPlay?.reload(); // 실행 화면의 캐릭터도 새 프로필로 다시 읽는다
+      renderStatus(); location.replace('#/profile');
     });
     panelBody.append(form);
     nameIn.focus();
   }
 
-  /* ───────── 오른쪽: 나의 상태 ───────── */
+  /* ───────── 오른쪽: 나의 상태 (육조 스탯은 여기서 바로 올린다) ───────── */
+  function raiseStat(key) {
+    const api = playApi();
+    if (!api) { if (!profile()) go('#/profile'); return; }
+    const before = api.player.stats[key];
+    api.upgradeStat(key);
+    if (api.player.stats[key] === before) toast('영력 부족', `${R.stats[key].label}을(를) 올리려면 영력 ${api.statCost(key)}이(가) 필요하다.`);
+    setTimeout(refreshFromPlay, 0);
+  }
   function renderStatus() {
-    const p = profile();
+    const p = profile(), g = game();
     avatarInto($('#statusAvatar'), p?.photo, p?.name);
     $('#statusTitle').textContent = p?.title && ownsTitle(p.title) ? `「${titleById[p.title].name}」` : '칭호 없음';
     $('#statusName').textContent = p?.name ?? '이름 없는 입산자';
     $('#statusSub').textContent = p ? (p.intro || '한줄소개 없음') : '눌러서 프로필 만들기';
-    const g = game();
-    const bars = [['체력', 'hp', g?.hp ?? p?.hp ?? R.hpMax, g?.hpMax ?? R.hpMax], ['영력', 'spirit', g?.spirit ?? p?.spirit ?? R.spiritStart, R.spiritMax], ['의지력', 'mp', g?.mp ?? p?.mp ?? R.mpMax, g?.mpMax ?? R.mpMax]];
+    const spirit = g?.spirit ?? p?.spirit ?? R.spiritStart;
+    const bars = [['체력', 'hp', g?.hp ?? p?.hp ?? R.hpMax, g?.hpMax ?? R.hpMax], ['영력', 'spirit', spirit, R.spiritMax], ['의지력', 'mp', g?.mp ?? p?.mp ?? R.mpMax, g?.mpMax ?? R.mpMax]];
     $('#statusBars').replaceChildren(...bars.map(([label, key, value, max]) => {
       const row = h('div', `status-bar bar-${key}`);
       const top = h('div', 'status-bar-top'); top.append(h('span', '', label), h('b', '', `${Math.floor(value)} / ${max}`));
@@ -452,76 +529,75 @@
       row.append(top, track); return row;
     }));
     const stats = statsNow();
-    $('#statusStats').replaceChildren(...R.statKeys.map((k) => { const c = h('div', 'status-stat'); c.title = R.stats[k].detail; c.append(h('span', '', R.stats[k].label), h('b', '', String(Math.floor(stats[k] ?? 1)))); return c; }));
+    $('#statusStats').replaceChildren(...R.statKeys.map((k) => {
+      const now = Math.floor(stats[k] ?? 1), cost = now * 10, can = !!p && spirit >= cost && now < R.statMax;
+      const c = h('div', 'status-stat'); c.title = R.stats[k].detail;
+      const up = btn('status-stat-up', '+', () => raiseStat(k));
+      up.disabled = !can; up.title = !p ? '프로필을 먼저 만든다' : now >= R.statMax ? '더 올릴 수 없다' : `영력 ${cost} 로 ${R.stats[k].label} +1`;
+      up.setAttribute('aria-label', `${R.stats[k].label} 올리기 (영력 ${cost})`);
+      c.append(h('span', '', R.stats[k].label), h('b', '', String(now)), up, h('small', '', `영력 ${cost}`));
+      return c;
+    }));
     $('#statusMoney').textContent = `${Math.floor(g?.money ?? p?.money ?? 0)}냥`;
+    const si = storyIndex();
+    $('#statusQuest').textContent = si < 0 ? '완료' : `${si} / ${STORY.steps.length}`;
   }
-
-  /* ───────── 소지품 · 적응 퀘스트 · 소지금 · 업데이트 노트 ───────── */
-  const UPDATE_NOTES = [
-    { v: 'v0.8', date: '2026-11-12', lines: ['전투(퇴마 실습 · 추가전투 50종) · 개척 23곳 · 공작소 · 조리실 · 수업 미니게임 6종을 바로 실행할 수 있게 연결.', '매점 · 무구보관소 · 텃밭 · 수련 · 잠 · 양호실 · 스탯 올리기 · 소지품도 실행 화면에서 동작.', '구역 화면의 ▶ 버튼, 또는 play/index.html#주소 로 바로 열기.', '전투 · 수업 · 제작 · 개척 · 소지금 업적을 달성할 수 있게 됨.'] },
-    { v: 'v0.7', date: '2026-11-12', lines: ['내 프로필(이름 · 나이 · 성별 · 한줄소개 · 사진)과 육조 스탯 첫 배분.', '오른쪽에 나의 상태(체력 · 영력 · 의지력 · 육조 스탯)와 메뉴 버튼.', '강학당(본관 · 별관) · 생활관(기숙사) · 비령산 금역(뒷산)에 데이터 배치. 산문은 비어 있음.', '메인 배너 다섯 쪽(청 · 적 · 황 · 백 · 흑).', '칭호 50개 · 업적 30개, 도감에서 확인.', '글꼴은 갈무리 · KoPub 돋움 · KoPub 바탕 세 가지.'] },
-    { v: 'v0.6', date: '2026-11-12', lines: ['초록동색 C.01 콘텐츠 보관고 추가(NPC · 퀘스트 제외).', '화면 파일을 저장소 맨 위로 옮겨 GitHub Pages 에서 바로 열림.'] },
-    { v: 'v0.5', date: '', lines: ['사방 지도, 지신성 · 낮새들의 터 · 밤쥐들의 터.'] },
-  ];
-  function openInventory() { openPlay('inventory'); }
-  function openQuest() {
-    openPanel('適應 / FIRST DAYS', '적응 퀘스트', 'simple');
-    const e = h('div', 'panel-empty'); e.append(h('span', 'panel-empty-mark', '導'), h('p', '', '아직 받은 적응 퀘스트가 없다.'), h('small', '', '퀘스트 내용은 준비 중이다.')); panelBody.append(e);
-  }
-  function openMoney() {
-    const p = profile();
-    openStory('錢 / 소지금', `${Math.floor(game()?.money ?? p?.money ?? 0)}냥`, [p ? '주머니 속 엽전을 세어 보았다.' : '프로필을 만들면 주머니가 생긴다.', '퇴마 실습에서 이기거나 매점에 물건을 팔면 늘어나고, 매점에서 사면 줄어든다.'], '비령 · 소지금');
-  }
-  function openNotes() {
-    openPanel('報 / UPDATE NOTES', '업데이트 노트', 'simple');
-    UPDATE_NOTES.forEach((n) => {
-      const box = h('div', 'note-box'); const head = h('p', 'panel-label'); head.append(h('b', '', n.v), n.date ? ` · ${n.date}` : '');
-      const ul = h('ul'); n.lines.forEach((l) => ul.append(h('li', '', l)));
-      box.append(head, ul); panelBody.append(box);
-    });
-  }
+  /** 실행 화면이 바꾼 값(game · counts · playLog)을 다시 읽는다. */
+  function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); if (/^#\/zone\/north/.test(location.hash)) refreshStoryGoal(); }
+  function refreshStoryGoal() { const i = storyIndex(); if (i < 0) return; const ok = met(STORY.steps[i].goal.when); const b = $('.story-step.is-now .solid-btn'); if (b && b.disabled === ok) route(); }
 
   /* ───────── 업적 / 도감 ───────── */
-  function openCodex(tab = 'achievements') {
-    openPanel('圖鑑 / CODEX', '업적 / 도감', 'codex');
-    const draw = (current) => {
-      setTabs(panelTabs, [{ id: 'achievements', label: `업적 ${Object.keys(save.achievements).length} / ${ACHIEVEMENTS.length}` }, { id: 'titles', label: `칭호 ${ownedTitles().length} / ${TITLES.length}` }], current, draw);
-      panelBody.replaceChildren();
-      const listEl = h('div', 'codex-list');
-      if (current === 'achievements') {
-        ACHIEVEMENTS.forEach((a) => {
-          const got = save.achievements[a.id];
-          const row = h('div', `codex-row${got ? ' is-got' : ''}`);
-          const text = h('div', 'codex-text');
-          text.append(h('strong', '', a.name), h('p', '', got ? a.desc : a.hint));
-          const prog = !got && progressOf(a.when);
+  function renderCodex(tab) {
+    const current = tab === 'titles' ? 'titles' : 'achievements';
+    openPage('圖鑑 / CODEX', '업적 / 도감', 'codex');
+    addTo('pages', `codex/${current}`);
+    setTabs(panelTabs, [{ id: 'achievements', label: `업적 ${Object.keys(save.achievements).length} / ${ACHIEVEMENTS.length}` }, { id: 'titles', label: `칭호 ${ownedTitles().length} / ${TITLES.length}` }], current, (id) => go(id === 'titles' ? '#/codex/titles' : '#/codex'));
+    const row = (got, name, text, side) => { const r = h('div', `codex-row${got ? ' is-got' : ''}`); const t = h('div', 'codex-text'); t.append(h('strong', '', name), h('p', '', text)); r.append(h('span', 'codex-mark', got ? '◆' : '◇'), t, side); return r; };
+    if (current === 'achievements') {
+      ACH_GROUPS.forEach((group) => {
+        const list = ACHIEVEMENTS.filter((a) => a.group === group.id);
+        panelBody.append(h('p', 'panel-label codex-group', `${group.name} · ${list.filter((a) => save.achievements[a.id]).length} / ${list.length}`));
+        const listEl = h('div', 'codex-list');
+        list.forEach((a) => {
+          const got = save.achievements[a.id], prog = !got && progressOf(a.when);
           const side = h('div', 'codex-side');
-          side.append(h('span', 'codex-state', got ? '달성' : a.live ? (prog ? `${prog[0]} / ${prog[1]}` : '미달성') : '준비 중'));
-          if (a.title && titleById[a.title]) side.append(h('small', '', `칭호 [${titleById[a.title].name}]`));
-          row.append(h('span', 'codex-mark', got ? '◆' : '◇'), text, side); listEl.append(row);
+          side.append(h('span', 'codex-state', got ? '달성' : prog ? `${prog[0].toLocaleString()} / ${prog[1].toLocaleString()}` : '미달성'));
+          if (titleById[a.title]) side.append(h('small', '', `칭호 [${titleById[a.title].name}]`));
+          listEl.append(row(got, a.name, got ? a.desc : a.hint, side));
         });
         panelBody.append(listEl);
-      } else {
-        const p = profile();
-        TITLES.forEach((t) => {
-          const got = ownsTitle(t.id);
-          const row = h('div', `codex-row${got ? ' is-got' : ''}`);
-          const text = h('div', 'codex-text');
-          const source = ACHIEVEMENTS.find((a) => a.title === t.id);
-          text.append(h('strong', '', got ? t.name : '???'), h('p', '', got ? t.desc : source ? `업적 [${source.name}] 달성 시 획득` : '아직 얻을 방법이 알려지지 않았다.'));
-          const side = h('div', 'codex-side');
-          if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); mark('titleEquipped'); renderStatus(); draw('titles'); }));
-          else side.append(h('span', 'codex-state', got ? '보유' : '미획득'));
-          row.append(h('span', 'codex-mark', got ? '◆' : '◇'), text, side); listEl.append(row);
-        });
-        panelBody.append(listEl);
-      }
-      panelBody.scrollTop = 0;
-    };
-    draw(tab);
+      });
+    } else {
+      const p = profile(); const listEl = h('div', 'codex-list');
+      TITLES.forEach((t) => {
+        const got = ownsTitle(t.id), source = ACHIEVEMENTS.find((a) => a.title === t.id);
+        const side = h('div', 'codex-side');
+        if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); renderStatus(); route(); }));
+        else side.append(h('span', 'codex-state', got ? '보유' : '미획득'));
+        listEl.append(row(got, got ? t.name : '???', got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : '아직 얻을 방법이 알려지지 않았다.', side));
+      });
+      panelBody.append(listEl);
+    }
   }
 
-  /* ───────── 메인 배너 (다섯 쪽) ───────── */
+  /* ───────── 주소 → 페이지 ───────── */
+  function route() {
+    const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean);
+    const [head, ...rest] = parts;
+    if (!head) showHome();
+    else if (head === 'zone') renderZone(rest[0], rest[1], rest[2], rest.slice(3));
+    else if (head === 'go' && rest.length) renderGo(rest.join('/'));
+    else if (head === 'profile') renderProfile(rest[0] === 'edit');
+    else if (head === 'codex') renderCodex(rest[0]);
+    else if (head === 'notes') renderNotes();
+    else if (head === 'case') renderCase();
+    else if (head === 'money') renderMoney();
+    else { location.replace('#/'); return; }
+    if (head) { const top = pageView.getBoundingClientRect().top; if (top < 70 || top > window.innerHeight * 0.45) window.scrollTo({ top: window.scrollY + top - 84, behavior: 'smooth' }); }
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ─────────   /* ───────── 메인 배너 (다섯 쪽) ───────── */
   const hero = $('#hero'), heroTrack = $('#heroTrack'), heroDots = [...$('#heroDots').children];
   const PAGES = heroDots.length;
   let heroPage = 0;
@@ -538,7 +614,7 @@
   $('#heroNext').addEventListener('click', () => goHero(heroPage + 1));
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    if (document.querySelector('dialog[open]') || !fontMenu.hidden) return;
+    if (document.querySelector('dialog[open], .play-scope [role=dialog]') || !fontMenu.hidden || !pageView.hidden) return; // 배너는 처음 화면에서만 방향키로 넘긴다
     const t = event.target;
     if (t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
     goHero(heroPage + (event.key === 'ArrowRight' ? 1 : -1));
@@ -553,33 +629,40 @@
   hero.addEventListener('pointercancel', () => { swipe = null; });
 
   /* ───────── 연결 ───────── */
-  document.querySelectorAll('[data-zone]').forEach((card) => card.addEventListener('click', () => enterZone(card.dataset.zone)));
-  $('#storyBtn').addEventListener('click', showCase);
-  $('#readCase').addEventListener('click', showCase);
-  $('#journalBtn').addEventListener('click', () => openProfile(false));
-  $('#statusWho').addEventListener('click', () => openProfile(false));
-  const MENU = { inventory: openInventory, quest: openQuest, codex: () => openCodex('achievements'), money: openMoney, notes: openNotes };
+  document.querySelectorAll('[data-zone]').forEach((card) => card.addEventListener('click', () => go(`#/zone/${card.dataset.zone}`)));
+  $('#storyBtn').addEventListener('click', () => go('#/case'));
+  $('#readCase').addEventListener('click', () => go('#/case'));
+  $('#journalBtn').addEventListener('click', () => go('#/profile'));
+  $('#statusWho').addEventListener('click', () => go('#/profile'));
+  const MENU = {
+    inventory: () => { const api = playApi(); if (api) api.openInventory(); else go('#/profile'); },
+    quest: () => go('#/zone/north'), codex: () => go('#/codex'), money: () => go('#/money'), notes: () => go('#/notes'),
+  };
   document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => MENU[b.dataset.menu]?.()));
   document.querySelectorAll('[data-community]').forEach((b) => b.addEventListener('click', () => addTo('community', b.dataset.community)));
   document.querySelectorAll('[data-community-tab]').forEach((b) => b.addEventListener('click', () => addTo('community', b.dataset.communityTab)));
-  $('#dialogClose').addEventListener('click', () => dialog.close());
-  $('#dialogConfirm').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
   const lanternBtn = $('#lanternBtn');
-  function setLantern(on) {
+  lanternBtn.addEventListener('click', () => {
+    const on = !document.body.classList.contains('lantern-lit');
     document.body.classList.toggle('lantern-lit', on);
     lanternBtn.textContent = on ? '☾ 등불 끄기' : '☼ 등불 켜기';
     lanternBtn.setAttribute('aria-pressed', String(on));
-  }
-  lanternBtn.addEventListener('click', () => { const on = !document.body.classList.contains('lantern-lit'); setLantern(on); if (on) mark('lantern'); });
+  });
+
+  // 실행 화면 부품과의 연결
+  window.addEventListener('biryeong:saved', refreshFromPlay);
+  window.addEventListener('biryeong:toast', (event) => toast(event.detail.head, event.detail.text));
+  window.addEventListener('biryeong:nav', (event) => { if (event.detail.back) back(); else go(`#/go/${event.detail.path}`); });
+  window.addEventListener('storage', (event) => { if (event.key === SAVE_KEY) refreshFromPlay(); });
+  function mountPlay() { const P = Play(); if (!P) return; P.mount($('#playRoot')); route(); }
+  if (Play()) mountPlay(); else window.addEventListener('biryeong:play-ready', mountPlay, { once: true });
 
   let storedFont = DEFAULT_FONT;
   try { storedFont = localStorage.getItem(FONT_STORAGE_KEY) || DEFAULT_FONT; } catch (_) { /* 기본 글꼴 */ }
   setFont(storedFont, false);
   goHero(0);
   renderStatus();
-  const now = new Date();
-  addTo('days', `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`);
-  if (now.getHours() < 4) mark('nightVisit');
+  addTo('days', dayKey(new Date()));
+  route();
   checkAchievements();
 })();

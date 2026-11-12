@@ -1,7 +1,22 @@
-/* 비령 play — 초록동색 화면 스타일(index.css) 위에 덮는 비령 설정. */
-/* 글꼴: 메인 화면과 같은 세 가지(갈무리9는 보관고 index.css 의 @font-face 를 쓴다) */
-:root,[data-ui-font='galmuri9']{--ui-font-family:'Galmuri9','Gowun Dodum','Noto Sans KR',sans-serif}
-[data-ui-font='kopub-dotum']{--ui-font-family:'KoPub Dotum','Noto Sans KR',sans-serif}
-[data-ui-font='kopub-batang']{--ui-font-family:'KoPub Batang','Noto Serif KR',serif}
-.font-serif,.font-myeongjo{font-family:var(--ui-font-family)}
-body{background:#0b1522}
+/* 비령 play — 초록동색 화면 스타일 위에 덮는 비령 설정. 이 파일도 .play-scope 안쪽으로 들어간다(& = .play-scope). */
+& {
+  /* 비령 팔레트: 감청 바탕 + 낡은 금 · 옥 · 연지 */
+  --c-ink: #0b1522; --c-ink-raised: #101e2e; --c-ink-muted: #172a3a;
+  --c-gold: #e6cf9c; --c-gold-dim: #806e50; --c-gold-fill: #d5b579;
+  --c-crimson: #d56b69; --c-paper: #efe6ce; --c-mana: #68a9b9; --c-spirit: #d4b078;
+  --c-shade: #07111b; --c-edge: #cfd8cd;
+  --facet-main: #d5b579; --facet-beast: #c66a6c;
+  --panel-from: #101e2e; --panel-to: #101e2e; --stage-glow: #0b1522; --stage-base: #0b1522;
+  --scrim: rgb(2 5 12 / 0.83);
+  --loc-mainHall: #68a9b9; --loc-annex: #efe6ce; --loc-dorm: #8d9bc4; --loc-gym: #d56b69; --loc-shrine: #d4b078; --loc-infirmary: #4f948d;
+  --pixel-frame: #d0af73; --pixel-frame-cool: #4f948d; --pixel-red: #d56b69;
+  /* 글꼴은 메인 화면이 정한 --ui-font-family 를 그대로 물려받는다 */
+  --font-sans: var(--ui-font-family); --font-serif: var(--ui-font-family); --font-myeongjo: var(--ui-font-family);
+  /* 페이지 안에 끼워 넣는 부품이므로 화면 전체를 차지하지 않는다 */
+  width: auto; max-width: none; height: auto; min-height: 0; overflow: visible;
+  background: transparent; color: var(--c-paper); font-family: var(--ui-font-family); font-size: 14px; line-height: 1.5;
+  text-align: left; image-rendering: auto; transition: none;
+}
+.font-serif, .font-myeongjo { font-family: var(--ui-font-family); }
+h1, h2, h3, h4 { letter-spacing: 0; }
+&#playPortal { position: static; }

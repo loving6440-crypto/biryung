@@ -1,7 +1,7 @@
 // 비령 play — 바로가기 주소 목록.
-// 실행 화면은 play/index.html#<주소> 로 바로 열린다. 메인 화면 · 다른 페이지에서 이 주소로 링크하면 된다.
-//   예) play/index.html#battle/scarecrow   play/index.html#lesson/talisman-2048   play/index.html#pioneer/left-trail-3
-// 새 화면을 붙이면 여기에 한 줄, App.jsx 의 SCREENS 에 한 줄을 더한다.
+// 실행 화면은 index.html#/go/<주소> 로 바로 열린다.
+//   예) index.html#/go/battle/scarecrow   index.html#/go/lesson/talisman-2048   index.html#/go/pioneer/left-trail-3
+// 새 화면을 붙이면 여기에 한 줄, App.jsx 의 switch 에 한 줄을 더한다.
 import { ENEMIES, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { COURSES } from '@vault/game/constants.js'
 import { HUNT_PATHS, HUNT_SITES } from '@vault/game/huntSites.js'
@@ -27,14 +27,12 @@ export const ROUTE_GROUPS = [
     ...COURSES.map((c) => ({ path: `lesson/${c.id}`, label: c.title, note: c.game })),
   ] },
   { title: '생활', items: [
-    { path: 'inventory', label: '소지품', note: '쓰기 · 착용 · 가방' },
     { path: 'store', label: '매점', note: '구매 · 판매 · 제작법' },
     { path: 'armory', label: '무구보관소', note: '무구 강화' },
     { path: 'garden', label: '텃밭', note: '씨앗 · 비닐하우스' },
     { path: 'train', label: '수련', note: '기숙사 수련' },
     { path: 'sleep', label: '잠', note: '기숙사 휴식' },
     { path: 'rest', label: '양호실', note: '휴식 · 상담' },
-    { path: 'stats', label: '스탯 올리기', note: '영력으로 육조 올리기' },
   ] },
 ]
 
