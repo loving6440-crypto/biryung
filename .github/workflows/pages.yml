@@ -31,6 +31,20 @@ jobs:
           mkdir -p _site
           cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js .nojekyll _site/
           cp -r assets fonts play _site/
+      # 관리자 코드: 저장소 Settings → Environments → github-pages → Environment secrets 에 ADMIN_CODE 를 넣는다.
+      # 코드 자체는 올리지 않고 SHA-256 만 config.js 에 적는다. 비어 있으면 config.js 의 임시 코드 그대로 둔다.
+      - name: 관리자 코드 넣기
+        env:
+          ADMIN_CODE: ${{ secrets.ADMIN_CODE }}
+        run: |
+          if [ -n "$ADMIN_CODE" ]; then
+            CODE=$(printf '%s' "$ADMIN_CODE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            HASH=$(printf '%s' "$CODE" | sha256sum | cut -d' ' -f1)
+            sed -i -E "s/adminCodeHash: '[0-9a-f]*'/adminCodeHash: '$HASH'/" _site/config.js
+            grep -q "adminCodeHash: '$HASH'" _site/config.js && echo "관리자 코드를 넣었다."
+          else
+            echo "ADMIN_CODE 가 없어 임시 관리자 코드를 그대로 쓴다."
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
