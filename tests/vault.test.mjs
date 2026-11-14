@@ -125,7 +125,7 @@ test('Site: 구역 · 칭호 · 업적 · 스토리 데이터가 맞게 들어 �
   assert.deepEqual(perGroup, { roam: 5, day: 5, days: 10, steady: 20, month: 10, peak: 10 });
   for (const a of t.BIRYEONG_ACHIEVEMENTS) assert.ok(t.BIRYEONG_TITLES.some((x) => x.id === a.title && x.from === 'achievement'), a.id);
   const s = load('story.js').BIRYEONG_STORY;
-  assert.equal(s.steps.length, 10); assert.equal(s.steps[1].options.length, 5);
+  assert.equal(s.steps.length, 10); assert.equal(s.steps[1].options.length, 10); // v1.3 유품 10종 = 무구 10종
   for (const st of s.steps) assert.ok(st.text.length && st.goal.when && st.reward, st.id);
   const css = readFileSync(join(ROOT, 'styles.css'), 'utf8') + readFileSync(join(ROOT, 'app.js'), 'utf8') + readFileSync(join(ROOT, 'play/play.css'), 'utf8');
   assert.ok(!/NeoDunggeunmo|neodgm|Stardust|Ramche/.test(css), '글꼴은 갈무리 · KoPub 만');
@@ -190,4 +190,72 @@ t10('v1.0 칭호 114개 모두에 기능이 있고, 업적 하나에 칭호 하�
   assert10.equal(T.length, 114); assert10.equal(A.length, 110)
   assert10.equal(new Set(T.map((t) => t.name)).size, T.length)
   for (const t of T) { assert10.ok(t.perk?.type && t.perk.v > 0 && t.perkText, t.id); if (t.from !== 'start') assert10.equal(A.filter((a) => a.title === t.id).length, 1, t.id) }
+})
+
+// ── v1.2: 본편 퀘스트 데이터 ──
+t10('v1.2 본편 데이터: 장면 97개 · 모든 단계에 갈 곳이 있고 · 상대 · 지점 · 분기가 맞물린다', () => {
+  const window = {}
+  for (const f of ['../titles.js', '../titles2.js', '../story-data.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
+  const D = window.BIRYEONG_QUESTS
+  assert10.equal(D.scenes.length, 97)
+  const ids = new Set(D.scenes.map((s) => s.id)); assert10.equal(ids.size, 97)
+  const spots = new Set(Object.entries(D.regions).flatMap(([r, v]) => v.spots.map((s) => `${r}/${s.id}`)))
+  for (const s of D.scenes) {
+    assert10.ok(s.steps.length > 0, s.id)
+    const covered = new Set()
+    for (const st of s.steps) {
+      assert10.ok(st.w, `${s.id} 갈 곳`)
+      if (st.w.startsWith('out:')) assert10.ok(spots.has(st.w.slice(4)), `${s.id} ${st.w}`)
+      for (const n of st.n ?? []) {
+        if (n.startsWith('battle:')) assert10.ok(D.foes[n.slice(7).split('×')[0].split('|')[0]], `${s.id} ${n}`)
+        if (n.startsWith('spot:')) assert10.ok(spots.has(n.slice(5)), `${s.id} ${n}`)
+      }
+      if (st.l) for (let i = st.l[0]; i < st.l[1]; i++) covered.add(i)
+    }
+    assert10.equal(covered.size, s.lines.length, `${s.id} 의 모든 대사가 어느 단계에 들어 있어야 한다`)
+    for (const ln of s.lines) if (ln.t === 'choice') { assert10.ok(ln.o.length >= 2, `${s.id} 선택지`); assert10.equal(ln.e.length, ln.o.length) }
+  }
+  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 18)
+})
+
+// ── v1.3: 유품 10종 · 본편 아이템 · 제작법 · 보스 패턴이 퀘스트와 맞물린다 ──
+t10('v1.3 본편: 유품 10종 = 무구 10종, 퀘스트가 쓰는 아이템 · 제작법 · 보스가 모두 있다', async () => {
+  const window = {}
+  for (const f of ['../titles.js', '../titles2.js', '../story-data.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
+  const D = window.BIRYEONG_QUESTS
+  const { ITEMS } = await import('../systems/vault/modules/game/items.js')
+  const { STORY_ITEMS, STORY_RECIPES, NEW_RECIPES } = await import('../systems/biryeong/reskin.data.js')
+  const { RECIPES } = await import('../systems/vault/modules/game/crafting.js')
+  const { COOK_RECIPES } = await import('../systems/vault/modules/game/cooking.js')
+  const ids = new Set([...ITEMS, ...STORY_ITEMS].map((i) => i.id))
+  const weapons = ITEMS.filter((i) => i.kind === 'gear' && i.slot === 'weapon').map((i) => i.id).sort()
+  // 유품 10종이 게임의 무구 10종과 하나씩 맞고, 다섯 계통에 둘씩
+  assert10.equal(D.heirlooms.length, 10)
+  assert10.deepEqual(D.heirlooms.map((h) => h.weapon).sort(), weapons)
+  for (const k of ['bell', 'fan', 'mirror', 'blade', 'cloth']) assert10.equal(D.heirlooms.filter((h) => h.key === k).length, 2, k)
+  const b11 = D.scenes.find((s) => s.id === '1-01').lines.find((l) => l.id === 'B1-1')
+  assert10.equal(b11.o.length, 10)
+  for (const h of D.heirlooms) assert10.ok(b11.o.some((o) => o.includes(h.name)), h.name)
+  // 무구를 실제로 주는 단계와 장착 단계가 있다
+  const s103 = D.scenes.find((s) => s.id === '1-03')
+  assert10.ok(s103.steps.some((st) => st.heir), '1-03 무구 지급')
+  assert10.ok(s103.steps.some((st) => (st.n ?? []).includes('equip:heir')), '1-03 장착')
+  // 퀘스트가 쓰는 아이템 · 제작법이 모두 있다
+  const madeBy = new Set([...RECIPES, ...COOK_RECIPES, ...NEW_RECIPES.W, ...NEW_RECIPES.K, ...STORY_RECIPES].map((r) => r.result))
+  for (const s of D.scenes) for (const st of s.steps) {
+    const needs = [...(st.n ?? []), ...Object.values(st.alt ?? {}).flatMap((by) => Object.values(by).flat())]
+    for (const n of needs) {
+      const m = /^(make|have|use):([^*×]+)/.exec(n)
+      if (!m) continue
+      assert10.ok(ids.has(m[2]), `${s.id} ${n} — 없는 아이템`)
+      if (m[1] === 'make') assert10.ok(madeBy.has(m[2]), `${s.id} ${n} — 만드는 제작법이 없다`)
+    }
+    for (const id of Object.keys({ ...(st.give ?? {}), ...(st.kit ?? {}) })) assert10.ok(ids.has(id), `${s.id} give/kit ${id}`)
+    for (const id of st.learn ?? []) assert10.ok(STORY_RECIPES.some((r) => r.id === id && r.unlock === 'quest'), `${s.id} learn ${id}`)
+  }
+  // 퀘스트로 배우는 제작법은 모두 어느 단계가 가르친다
+  for (const r of STORY_RECIPES.filter((x) => x.unlock === 'quest')) assert10.ok(D.scenes.some((s) => s.steps.some((st) => (st.learn ?? []).includes(r.id))), `${r.id} 를 가르치는 단계`)
+  // 격파로 열리는 제작법의 상대는 본편 상대다
+  for (const r of STORY_RECIPES.filter((x) => x.unlock.startsWith('boss:'))) assert10.ok(D.foes[r.unlock.slice(5)], r.id)
+  assert10.equal(Object.keys(D.recipeResult).length, STORY_RECIPES.length)
 })

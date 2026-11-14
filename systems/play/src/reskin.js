@@ -30,6 +30,14 @@ const withNote = (r) => ({ ...r, note: `${TIER_NOTE[r.tier]}${r.yield > 1 ? ` ·
 RECIPES.push(...NEW_RECIPES.W.map(withNote))
 COOK_RECIPES.push(...NEW_RECIPES.K.map(withNote))
 
+// ── v1.3 본편 제작법 16개 — 처음엔 잠겨 있다(unlock). 퀘스트가 가르쳐 주거나 그 상대를 이기면 열린다(usePlayHost · patches.mjs). ──
+import { STORY_RECIPES } from '../../biryeong/reskin.data.js'
+const OPEN_NOTE = (u) => (u === 'quest' ? '본편 · 퀘스트에서 배운 제작법' : '본편 · 이야기 전투의 전리품으로 만든다')
+for (const r of STORY_RECIPES) {
+  const { place, ...rest } = r
+  ;(place === 'K' ? COOK_RECIPES : RECIPES).push({ ...rest, note: `${OPEN_NOTE(r.unlock)} · ${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
+}
+
 // ── v1.0 추가전투는 퇴마 실습장으로 옮겼다: 뒷산 둘레길(교외 옆)의 [추가전투] 칸을 뺀다. ──
 const dropExtra = (node) => {
   for (const key of ['choices', 'areas', 'rooms', 'spots', 'branches']) {

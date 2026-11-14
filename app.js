@@ -74,6 +74,7 @@
   const readStored = () => { try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return raw && typeof raw === 'object' ? raw : {}; } catch (_) { return {}; } };
   let save = Object.assign(blankSave(), readStored());
   save.story = Object.assign({ done: {}, heirloom: null }, save.story);
+  { const OLD = { bell: 'w-bell', fan: 'w-fan', mirror: 'w-spear', blade: 'w-sword', cloth: 'w-dagger' }; if (OLD[save.story.heirloom]) { const was = save.story.heirloom; save.story.heirloom = OLD[was]; const q = save.story.q; if (q?.flags?.['B1-1']) q.flags['B1-1'] = { bell: 1, fan: 3, mirror: 6, blade: 7, cloth: 9 }[was]; } } // v1.3: 다섯 유품 → 무구 10종 id
   // 예전 판(v0.7~0.8)의 업적 · 칭호 기록 가운데 지금 없는 것은 지운다.
   const achIds = new Set(ACHIEVEMENTS.map((a) => a.id)), titleIds = new Set(TITLES.map((t) => t.id));
   for (const id of Object.keys(save.achievements)) if (!achIds.has(id)) delete save.achievements[id];
@@ -192,7 +193,7 @@
     if (!zone) { go('#/'); return; }
     openPage(ZONE_META[key].eyebrow, zone.title, 'zone');
     mark(`zone:${key}`); addTo('zones', key);
-    if (zone.story) { renderStory(); return; }
+    if (zone.story) { if (window.BiryeongQuest) window.BiryeongQuest.renderBoard(tabId, sectionId); else panelBody.append(para('이야기를 불러오는 중이다.')); return; } // 산문 = 산문 너머(본편 퀘스트 · quest.js)
     if (!zone.tabs.length) { panelBody.append(emptyBox(ZONE_META[key].hanja, '아직 비어 있는 곳.', '금줄 너머로 바람 소리만 들린다.')); return; }
     const tab = zone.tabs.find((t) => t.id === tabId) ?? zone.tabs[0];
     const open = (s) => !s.unlock || (s.unlock === 'shrine' && !!game()?.shrineSignRead); // 사당 탐사는 표지판을 읽은 뒤에 열린다
@@ -503,6 +504,8 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   const UPDATE_NOTES = [
+    { v: 'v1.3', date: '2026-11-15', lines: ['유품이 10종이 되었다 — 게임의 무구 10종(공명 방울 · 충격 철퇴 · 위상 부채 · 육환 석장 · 전자 각궁 · 관측창 · 신칼 · 절단 낫 · 회로 단검 · 장단 변조기)과 하나씩 짝지어진다. 둘씩 다섯 계통.', '입소식 뒤 무구보관소에서 고른 유품을 실제 무구로 받는다(부모의 손길 — 강화 1). 장착까지가 튜토리얼.', '본편 보스 14종에 고유 패턴이 붙었다 — 이름 부르기 · 진정 · 뿌리 · 모습 · 되감기 · 눈 · 두 머리 · 목소리 · 번갈아 오는 신탁 · 안개 · 부모들의 자리 · 형태 변화. 전투 아래 [이야기 전투] 칸에서 계기판과 전용 행동을 쓴다.', '보스를 이기면 전리품이 나오고, 그 전리품으로 만드는 장비 · 부적 제작법이 열린다. 이야기 전투는 져도 쇠약이 남지 않는다.', '본편 새 아이템 36종 · 새 제작법 16종. 302호의 방울 · 흐린 영정 조각 · 기도 쪽지 묶음 · 귤 · 가곡면 감자가 소지품에 들어오고, 미역국 · 관측 차단 봉투 · 결계 말뚝 · 거점 기둥은 퀘스트가 가르쳐 준 대로 직접 만든다.', '장면을 마치면 완료 띠가, 장을 마치면 장 완료 카드가 뜬다. 산문 너머 › 나의 기록에 본편 도감(퇴마한 신탁 · 본편 물건 · 본편 제작법)이 생겼다.'] },
+    { v: 'v1.2', date: '2026-11-14', lines: ['본편 이야기 3권 15장이 열렸다. 산문 › 산문 너머에서 장면 퀘스트 97개를 차례로 진행한다.', '퀘스트는 한 페이지에서 끝나지 않는다 — 단계마다 실제 장소로 가서 탐사 · 전투 · 개척 · 제작 · 수업을 해야 다음으로 넘어간다. 오른쪽 상태 창에 지금 할 일과 [그곳으로] 단추가 뜬다.', '산문 너머의 바깥 지역(서울 · 청암리 · 물치항 · 관측 밖)과 거대한 문 너머 · 경계가 이야기를 따라 열린다.', '대사 창에 인물 칸이 생겼다. 지금은 머리색 인장이고, 초상 그림을 넣을 자리다.', '이야기를 따라 칭호 18개를 얻는다. 엔딩은 다섯 가지.', '서버(Supabase)를 연결하면 모든 학생의 선택이 「세계」 탭에 모인다. 연결 전에는 이 브라우저의 값만 쓴다.'] },
     { v: 'v1.1', date: '2026-11-14', lines: ['아이템 도트를 전부 새로 짰다. 312개 아이템이 저마다 다른 도트를 가진다(틀 109개 · 색 30가지, 겹치는 것 없음).'] },
     { v: 'v1.0', date: '2026-11-14', lines: ['로그인(명부 등록)이 생겼다. 계정마다 기록이 따로 남는다. 계정과 기록은 아직 이 브라우저에만 보관된다.', '오방 지도: 가운데에 사당이 생겼다. [내부 지도]로 본관 · 별관 · 뒷산 · 사당의 안쪽을 볼 수 있다.', '구역 얼개를 바꿨다. 그 자리에 가면 그 자리의 기능이 나온다 — 별관 탐사에서 공작소 · 조리실 · 동아리 부실(가입), 본관 탐사에서 물품보관소 · 양호실, 산 탐사에서 무구보관소 · 텃밭 · 도깨비 놀이.', '추가전투를 퇴마 실습장으로 옮겼다.', '접속을 끊은 동안에도 영력이 차오른다(수련 · 잠 · 휴식도 흐른다).', '칭호 50개 추가(모두 114개). 모든 칭호에 소소한 기능이 붙었다 — 달고 있는 칭호 하나의 기능만 듣는다.', '제작법 113개 추가(모두 247개). 1단계 바탕 → 2단계 완성품 → 3단계 상급 공정.', '관리자 도구(로그인 화면의 「비령」을 다섯 번 누르면 관리자 코드 칸이 나온다).'] },
     { v: 'v0.9', date: '2026-11-12', lines: ['창이 뜨던 화면을 모두 페이지로 바꿈. 어느 페이지든 머리글 · 배너 · 나의 상태는 그대로, [뒤로가기] 로 돌아온다.', '전투 · 개척 · 제작 · 수업 · 매점 등이 구역 페이지 안에서 바로 열린다. 화면 색을 비령에 맞춤.', '나의 상태에서 육조 스탯을 바로 올릴 수 있다.', '아이템 312종 · 상대 57종 · 영능력 13종의 이름과 설명을 2046년 비령 세계관으로 고치고, 아이템에 도트 아이콘을 붙임.', '업적 60개 · 칭호 64개로 다시 짬(둘러보기 · 하루 · 며칠 · 꾸준히 · 한 달 · 극).', '산문에 스토리 퀘스트 제1장 「사라진 자들의 아이들」.'] },
@@ -688,11 +691,10 @@
       return c;
     }));
     $('#statusMoney').textContent = `${Math.floor(g?.money ?? p?.money ?? 0)}냥`;
-    const si = storyIndex();
-    $('#statusQuest').textContent = si < 0 ? '완료' : `${si} / ${STORY.steps.length}`;
+    $('#statusQuest').textContent = window.BiryeongQuest ? window.BiryeongQuest.progressText() : '';
   }
   /** 실행 화면이 바꾼 값(game · counts · playLog)을 다시 읽는다. */
-  function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); if (/^#\/zone\/north/.test(location.hash)) refreshStoryGoal(); }
+  function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); }
   function refreshStoryGoal() { const i = storyIndex(); if (i < 0) return; const ok = met(STORY.steps[i].goal.when); const b = $('.story-step.is-now .solid-btn'); if (b && b.disabled === ok) route(); }
 
   /* ───────── 업적 / 도감 ───────── */
@@ -723,7 +725,7 @@
         const side = h('div', 'codex-side');
         if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); renderStatus(); route(); }));
         else side.append(h('span', 'codex-state', got ? '보유' : '미획득'));
-        const r = row(got, got ? t.name : '???', got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : '아직 얻을 방법이 알려지지 않았다.', side);
+        const r = row(got, got ? t.name : '???', got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : t.from === 'story' ? '본편 이야기에서 얻는다.' : '아직 얻을 방법이 알려지지 않았다.', side);
         if (t.perkText) r.querySelector('.codex-text').append(h('p', 'perk-line', `기능 — ${t.perkText}`));
         listEl.append(r);
       });
@@ -744,7 +746,9 @@
     else if (head === 'case') renderCase();
     else if (head === 'money') renderMoney();
     else if (head === 'admin' && Auth.isAdmin()) renderAdmin();
+    else if (head === 'out' && window.BiryeongQuest) window.BiryeongQuest.renderPlace(rest[0], rest[1]); // 산문 너머의 바깥 지역 · 새 층
     else { location.replace('#/'); return; }
+    window.dispatchEvent(new CustomEvent('biryeong:route', { detail: { hash: location.hash, parts } }));
     if (head) { const top = pageView.getBoundingClientRect().top; if (top < 70 || top > window.innerHeight * 0.45) window.scrollTo({ top: window.scrollY + top - 84, behavior: 'smooth' }); }
   }
   window.addEventListener('hashchange', route);
@@ -816,6 +820,14 @@
   window.addEventListener('storage', (event) => { if (event.key === SAVE_KEY) refreshFromPlay(); });
   function mountPlay() { const P = Play(); if (!P) return; P.mount($('#playRoot')); route(); }
   if (Play()) mountPlay(); else window.addEventListener('biryeong:play-ready', mountPlay, { once: true });
+
+  /* 본편 퀘스트(quest.js)가 쓰는 창구 */
+  window.BiryeongApp = {
+    h, btn, para, go, back, route, openPage, setTabs, toast, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
+    get save() { return save; }, get body() { return panelBody; }, get tabs() { return panelTabs; }, get chips() { return panelChips; },
+    profile, game, zones: DATA.zones, heirloomNames: Object.fromEntries(Object.entries(HEIRLOOM).map(([k, v]) => [k, v.name])),
+    grantTitle(id) { if (!titleById[id] || save.titles[id]) return false; save.titles[id] = Date.now(); persist(); toast('칭호', `「${titleById[id].name}」을(를) 얻었다.`); checkAchievements(); return true; },
+  };
 
   let storedFont = DEFAULT_FONT;
   try { storedFont = localStorage.getItem(FONT_STORAGE_KEY) || DEFAULT_FONT; } catch (_) { /* 기본 글꼴 */ }

@@ -157,6 +157,10 @@ export default function App() {
         <HuntBattleModal key={encounter.enemy?.id ?? 'enc'} encounter={encounter.enemy} {...battleProps} onFinish={H.finishHuntBattle} />
       )}
 
+      {host.storyFight && createPortal(
+        <HuntBattleModal key={`story-${host.storyFight.key}-${host.storyFight.enemy.id}`} encounter={host.storyFight.enemy} {...battleProps} onFinish={host.finishStoryBattle} />
+      , document.getElementById('playPortal') ?? document.body)}
+
       {/* 소지품 창은 어느 페이지에서나 떠야 하므로(실행 화면 칸이 감춰져 있어도) 바깥의 #playPortal 에 그린다. */}
       {host.invOpen && createPortal(
         <InventoryModal player={player} inBattle={host.battleActive} reviveOn={host.reviveOn} boostOn={host.boostOn} usedItems={host.battleUsedItems}

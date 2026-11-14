@@ -11,6 +11,8 @@ export const bridge = {
   nav(path) { window.dispatchEvent(new CustomEvent('biryeong:nav', { detail: { path } })) },
   back() { window.dispatchEvent(new CustomEvent('biryeong:nav', { detail: { back: true } })) },
   saved() { window.dispatchEvent(new CustomEvent('biryeong:saved')) },
+  /** 퀘스트가 듣는 일(탐사 지점 · 전투 승리 · 제작 …). quest.js 가 받는다. */
+  quest(type, id) { window.dispatchEvent(new CustomEvent('biryeong:quest', { detail: { type, id } })) },
   toast(head, text) { window.dispatchEvent(new CustomEvent('biryeong:toast', { detail: { head, text } })) },
   /** usePlayHost 가 채운다: { upgradeStat, openInventory, grant, player } */
   api: null,

@@ -27,7 +27,8 @@ import { playHoljjak as playHoljjakGame } from '@vault/game/holjjak.js'
 import { GOBLIN_GAMES } from '@vault/game/hike.js'
 import { clubOf } from '@vault/game/clubs.js'
 import { ITEMS } from '@vault/game/items.js'
-import { PSYCHICS } from '@vault/game/battle.js'
+import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
+import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
 import { sellItem } from '@vault/game/sell.js'
 import { benchCraft, knownCraft, markMade, PLACE_RECIPES } from '@vault/game/freeCraft.js'
@@ -39,8 +40,14 @@ import {
 } from '@vault/game/progress.js'
 import { readSave, writeHost } from './store.js'
 import { bridge } from './bridge.js'
+import { makeStoryEnemy, dropOf, bossRecipes, STORY_FOES } from './storyBoss.js'
+import { STORY_ITEMS, STORY_RECIPES } from '../../biryeong/reskin.data.js'
+import { baseIdOf } from '@vault/game/items.js'
 
 const LOG_MAX = 80
+const COOK_IDS = { has: (id) => COOKS_ALL.some((r) => r.id === id) }
+/** 제작법 id → 만들어지는 아이템 id (공작소 · 조리실) */
+const resultOf = (recipeId) => [...PLACE_RECIPES.workshop, ...PLACE_RECIPES.kitchen].find((r) => r.id === recipeId)?.result ?? null
 /** 지금 단 칭호의 기능(메인 화면 app.js 가 알려 준다): { type, v, key? } 또는 null */
 const perkOf = () => { try { return window.BiryeongPerk?.() ?? null } catch { return null } }
 const perkV = (type) => { const p = perkOf(); return p && p.type === type ? p.v : 0 }
@@ -71,6 +78,8 @@ export function usePlayHost() {
     return { ...restored, name: profile.name, greeting: profile.intro ?? '' }
   })
   const playerRef = useRef(player)
+  // v1.3 본편 제작법 잠금: 보관고 제작 칸 · 제작법 목록(patches.mjs)이 이걸 본다. 관리자는 모두 열린다.
+  globalThis.__BRY_OPEN = { has: (id) => !!admin || !!playerRef.current?.storyRecipes?.[id] }
   playerRef.current = player
   const countsRef = useRef({ ...(first.counts ?? {}) })
   const [logs, setLogs] = useState(() => (Array.isArray(first.playLog) ? first.playLog.slice(-LOG_MAX) : []))
@@ -242,7 +251,7 @@ export function usePlayHost() {
   // ───── 수업 ─────
   const lessonActions = useMemo(() => ({
     spendAttempt: (id) => { const next = spendAttempt(playerRef.current, id); if (!next) return false; commit(next); return true },
-    complete: (id) => { const r = completeLesson(playerRef.current, id); if (!r.logs.length) return; const ls = perkV('lessonSpirit'); commit(bumpDaily(bumpWeekly(ls ? { ...r.player, spirit: (r.player.spirit || 0) + ls } : r.player, 'lesson'), 'lesson')); if (ls) addLog(`칭호의 기능: 수업 보상으로 영력 +${ls}.`); r.logs.forEach(addLog); bump('lessons'); collect('courses', id) },
+    complete: (id) => { const r = completeLesson(playerRef.current, id); bridge.quest('lesson', id); if (!r.logs.length) return; const ls = perkV('lessonSpirit'); commit(bumpDaily(bumpWeekly(ls ? { ...r.player, spirit: (r.player.spirit || 0) + ls } : r.player, 'lesson'), 'lesson')); if (ls) addLog(`칭호의 기능: 수업 보상으로 영력 +${ls}.`); r.logs.forEach(addLog); bump('lessons'); collect('courses', id) },
     wait: (id) => { const next = startWait(playerRef.current, id); if (!next) return; commit(next); addLog(`${courseTitle(id)}: 수업을 기다리기 시작했다. (${LESSON_WAIT_MINUTES}분)`) },
     pickStat: (key) => { const next = pickFortuneStat(playerRef.current, key); if (!next) return; commit(next); addLog(`점복학 보너스: ${STAT_META[key].label}이(가) 1 올랐다.`) },
   }), [commit, addLog, bump])
@@ -279,14 +288,14 @@ export function usePlayHost() {
     if (r.tier === 3) bump('crafts3', qty)
     return extra ? { ...p, inventory: { ...p.inventory, [r.result]: (p.inventory?.[r.result] || 0) + extra } } : p
   }
-  const madeOne = (p, recipeId) => { bump('crafts'); collect('recipes', recipeId); return markMade(bumpDaily(bumpWeekly(p, 'craft'), 'craft'), recipeId) }
+  const madeOne = (p, recipeId, qty = 1) => { bridge.quest(COOK_IDS.has(recipeId) ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty }); bump('crafts'); collect('recipes', recipeId); return markMade(bumpDaily(bumpWeekly(p, 'craft'), 'craft'), recipeId) }
   const craftItem = (recipeId, qty = 1) => {
     if (battleRef.current) return { error: '전투 중이다.' }
     const cur = playerRef.current
     if (cur.crafting) return { error: '이미 제작 중이다.' }
     const r = startCraft(cur, recipeId, qty, admin)
     if (r.error) return r
-    const done = commit(madeOne(afterMake(r.player, 'workshop', recipeId, r.qty), recipeId))
+    const done = commit(madeOne(afterMake(r.player, 'workshop', recipeId, r.qty), recipeId, r.qty))
     addLog(`공작소에서 ${r.item?.name ?? itemOf(recipeOf(recipeId)?.result)?.name ?? ''} ${r.qty}개를 제작했다.`)
     return { ...r, player: done }
   }
@@ -308,7 +317,7 @@ export function usePlayHost() {
     if (r.error) return r
     if (!r.failed && place === 'kitchen') bump('cooks')
     if (r.failed) bump('craftFails')
-    const done = commit(r.failed ? r.player : madeOne(afterMake(r.player, place, r.recipe?.id, r.qty), r.recipe?.id))
+    const done = commit(r.failed ? r.player : madeOne(afterMake(r.player, place, r.recipe?.id, r.qty), r.recipe?.id, r.qty))
     const where = place === 'kitchen' ? '조리실' : '공작소'
     addLog(r.failed ? `${where}에서 제작법에 없는 조합을 시도했다. 재료가 엉망이 되어 ${josa(r.item.name, ['이', '가'])} 남았다.` : `${where}에서 ${r.qty > 1 ? `${r.item.name} ${r.qty}개를` : josa(r.item.name, ['을', '를'])} 만들었다.`)
     return { ...r, player: done }
@@ -319,15 +328,15 @@ export function usePlayHost() {
     if (place === 'workshop' && cur.crafting) return { error: '이미 제작 중이다.' }
     const r = knownCraft(cur, place, recipeId, qty, admin)
     if (r.error) return r
-    bump('crafts'); collect('recipes', recipeId); if (place === 'kitchen') bump('cooks')
+    bridge.quest(place === 'kitchen' ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty: r.qty }); bump('crafts'); collect('recipes', recipeId); if (place === 'kitchen') bump('cooks')
     const done = commit(bumpDaily(bumpWeekly(afterMake(r.player, place, recipeId, r.qty), 'craft'), 'craft'))
     addLog(`${place === 'kitchen' ? '조리실' : '공작소'}에서 ${r.item.name} ${r.qty}개를 만들었다.`)
     return { ...r, player: done }
   }
 
   // ───── 무구 ─────
-  const enhance = (weaponId, stat) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = enhanceWeapon(playerRef.current, weaponId, stat, admin); if (r.error) return r; bump('enhances'); const done = commit(bumpWeekly(r.player, 'enhance')); addLog(`${itemOf(weaponId).name}을(를) 강화했다. (${STAT_META[stat].label} +${r.to})`); return { ...r, player: done } }
-  const specialEnhance = (weaponId, specialId) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = specialEnhanceWeapon(playerRef.current, weaponId, specialId, admin); if (r.error) return r; commit(r.player); addLog(`${r.special.title}${itemOf(weaponId).name}에 특수 강화가 붙었다.`); return r }
+  const enhance = (weaponId, stat) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = enhanceWeapon(playerRef.current, weaponId, stat, admin); if (r.error) return r; bump('enhances'); bridge.quest('enhance', baseIdOf(weaponId)); const done = commit(bumpWeekly(r.player, 'enhance')); addLog(`${itemOf(weaponId).name}을(를) 강화했다. (${STAT_META[stat].label} +${r.to})`); return { ...r, player: done } }
+  const specialEnhance = (weaponId, specialId) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = specialEnhanceWeapon(playerRef.current, weaponId, specialId, admin); if (r.error) return r; commit(r.player); bridge.quest('enhance', baseIdOf(weaponId)); addLog(`${r.special.title}${itemOf(weaponId).name}에 특수 강화가 붙었다.`); return r }
   const tokenExchange = (baseId) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = exchangeGoblinTokens(playerRef.current, baseId, admin); if (r.error) return r; commit(r.player); addLog(`도깨비 증표를 ${r.weapon.name}(으)로 바꿨다.`); return r }
   const removeSpecial = (weaponId) => { if (battleRef.current) return { error: '전투 중이다.' }; const r = removeWeaponSpecial(playerRef.current, weaponId, admin); if (r.error) return r; commit(r.player); addLog(`${itemOf(weaponId)?.name}의 특수 강화를 해제했다.`); return r }
 
@@ -370,8 +379,8 @@ export function usePlayHost() {
                   : null
         if (!result) return
         if (result.error) { addLog(result.error); notify(result.error); return }
-        if (action.type === 'enter') { bump('pioneers'); collect('sites', action.siteId) }
-        if (action.type === 'attempt') bump('gathers')
+        if (action.type === 'enter') { bump('pioneers'); collect('sites', action.siteId); bridge.quest('site', action.siteId) }
+        if (action.type === 'attempt') { bump('gathers'); bridge.quest('gather', action.nodeId) }
         const counted = action.type === 'enter' ? bumpDaily(bumpWeekly(result.player, 'pioneer', 1, now), 'pioneer', 1, now) : action.type === 'attempt' ? bonusGain(cur, result.player, perkV('gatherBonus'), '개척') : result.player
         const next = commit(syncCodex(counted))
         if (result.logs?.length) addLogs(result.logs)
@@ -429,7 +438,7 @@ export function usePlayHost() {
     }
     if (!win) bump('losses')
     commit(p)
-    if (win) { countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다. (오늘의 보상은 모두 받았다)`) }
+    if (win) { bridge.quest('win', enemy?.id); countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다. (오늘의 보상은 모두 받았다)`) }
     else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); notify('쓰러졌다. 양호실에서 쉬는 게 좋겠다.') }
   }
   const startSlowFightAction = (enemyId) => guard(() => {
@@ -477,7 +486,7 @@ export function usePlayHost() {
   }
 
   // ───── 소지품 ─────
-  const equip = (id) => { if (battleRef.current) return { error: '전투 중에는 장비를 바꿀 수 없다.' }; const r = equipItem(playerRef.current, id); if (r.error) return r; if (!canAddInventory(r.player.inventory)) return { error: '소지품이 가득 찼다. 공간을 확보한 뒤 바꿔 주세요.' }; commit(r.player); addLog(`[${itemOf(id).name}]을(를) 착용했다.`); return {} }
+  const equip = (id) => { if (battleRef.current) return { error: '전투 중에는 장비를 바꿀 수 없다.' }; const r = equipItem(playerRef.current, id); if (r.error) return r; if (!canAddInventory(r.player.inventory)) return { error: '소지품이 가득 찼다. 공간을 확보한 뒤 바꿔 주세요.' }; commit(r.player); addLog(`[${itemOf(id).name}]을(를) 착용했다.`); bridge.quest('equip', baseIdOf(id)); return {} }
   const unequip = (slot) => { if (battleRef.current) return { error: '전투 중에는 장비를 바꿀 수 없다.' }; const cur = playerRef.current; const was = equipOf(cur)[slot]; const r = unequipSlot(cur, slot); if (r.error) return r; if (!canAddInventory(r.player.inventory)) return { error: '소지품이 가득 찼다. 공간을 확보한 뒤 벗어 주세요.' }; commit(r.player); addLog(`[${itemOf(was).name}]을(를) 벗었다.`); return {} }
   const discardItem = (itemId, qty) => { if (battleRef.current) return { error: '전투 중에는 버릴 수 없다.' }; const r = discardInventoryItem(playerRef.current, itemId, qty); if (r.error) return r; commit(r.player); addLog(`${r.name} ${r.amount}개를 버렸다.`); return r }
   const claimInventoryPending = (id, amount) => { const r = claimPending(playerRef.current, id, amount); if (r.error) { notify(r.error); return r }; commit(r.player); addLog(`수령 대기 물품 ${itemOf(id)?.name ?? id} ${amount}개를 소지품에 넣었다.`); return r }
@@ -563,7 +572,7 @@ export function usePlayHost() {
   // ───── 탐사(본관 · 별관 · 뒷산 · 사당) — 초록동색과 같은 처리. 퀘스트만 뺐다. ─────
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
-  const visitSpot = (key) => { collect('spots', key); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
+  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
   const lockerMove = (mode, grade, id, n) => {
     const cur = playerRef.current
     const r = mode === 'in' ? deposit(cur, grade, id, n) : withdraw(cur, grade, id, n)
@@ -599,6 +608,7 @@ export function usePlayHost() {
     if (kind === 'goblinPlay') { bump('goblinPlays'); if (r.win) bump('goblinWins'); addLog(`도깨비들과 ${GOBLIN_GAMES.find((g) => g.id === payload.game)?.name ?? '놀이'} — ${r.win ? '승리' : '패배'}. (${r.notice})`) }
     if (kind === 'ricePouch') addLog(ricePouchText(r.pouches, r.grains))
     if (kind === 'lockerSneak') addLog(`${payload.grade ?? '다른'}학년 물품보관소를 몰래 열어 [${itemOf('someones-bag')?.name ?? '누군가의 가방'}]을 챙겼다. 열쇠는 부러져 사라졌다.`)
+    if (kind === 'shrineSign') bridge.quest('shrineSign', 1)
     if (kind === 'shrineSign' && r.first) { bump('shrineSign'); addLog('사당 표지판 아래의 글자를 읽었다. [사당 탐사]가 열렸다.') }
     return r
   }
@@ -643,6 +653,62 @@ export function usePlayHost() {
     return true
   }
 
+  // ───── 이야기 전투(퀘스트): 메인 화면의 quest.js 가 상대를 정해 부른다. 어느 페이지에서나 뜬다. ─────
+  // 바탕은 추가전투 도감의 같은 단계 '혼자 상대'의 수치. 그 위에 보스 고유 패턴(storyBoss.js)을 얹는다.
+  // 이기면 전리품을 받고 그 전리품으로 만드는 제작법이 열린다. 져도 쇠약은 남지 않는다. 끝나면 biryeong:quest(storyBattle) 로 알린다.
+  const [storyFight, setStoryFight] = useState(null)
+  const storyBattle = ({ key, tier, i = 0, name, blurb, ctx = {} }) => {
+    if (battleRef.current || playerRef.current.sleeping || playerRef.current.training) { notify('지금은 싸울 수 없다. (잠 · 수련 · 다른 전투 중)'); return false }
+    const pool = BESTIARY_ENEMIES.filter((e) => e.tier === tier && !e.boss && (e.partySize ?? 1) <= 1)
+    const base = pool[Math.min(i, pool.length - 1)] ?? BESTIARY_ENEMIES.find((e) => e.tier === tier)
+    if (!base) return false
+    const inv = playerRef.current.inventory ?? {}
+    const has = Object.fromEntries(STORY_ITEMS.filter((it) => inv[it.id] > 0).map((it) => [it.id, true]))
+    setStoryFight({ key, enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }) })
+    return true
+  }
+  /** 본편 제작법을 연다. 새로 연 것의 [{ id, name }] */
+  const unlockRecipes = (ids = []) => {
+    const cur = playerRef.current
+    const fresh = ids.filter((id) => STORY_RECIPES.some((r) => r.id === id) && !cur.storyRecipes?.[id])
+    if (!fresh.length) return []
+    commit({ ...cur, storyRecipes: { ...(cur.storyRecipes ?? {}), ...Object.fromEntries(fresh.map((id) => [id, Date.now()])) } })
+    const out = fresh.map((id) => ({ id, name: itemOf(STORY_RECIPES.find((r) => r.id === id).result)?.name ?? id }))
+    out.forEach((r) => addLog(`새 제작법 「${r.name}」을(를) 배웠다. (${STORY_RECIPES.find((x) => x.id === r.id).place === 'K' ? '조리실' : '공작소'})`))
+    return out
+  }
+  const finishStoryBattle = (result) => {
+    const fight = storyFight
+    setStoryFight(null)
+    if (!fight) return
+    const enemy = result.enemy ?? fight.enemy
+    const calm = !!enemy?.calmed
+    let drop = null, recipes = []
+    if (result.win) {
+      finishBattle({ ...result, enemy })
+      const d = dropOf(fight.key)
+      if (d && itemOf(d[0])) {
+        const cur = playerRef.current
+        commit({ ...cur, inventory: { ...cur.inventory, [d[0]]: (cur.inventory?.[d[0]] || 0) + d[1] } })
+        drop = { id: d[0], n: d[1], name: itemOf(d[0]).name }
+        addLog(`전리품: ${drop.name}${d[1] > 1 ? ` ×${d[1]}` : ''}을(를) 얻었다.`)
+      }
+      recipes = unlockRecipes(bossRecipes(fight.key).map((r) => r.id))
+      if (STORY_FOES[fight.key]?.pattern) bump('storyBossWins')
+    } else if (result.fled) {
+      addLog(`${enemy.name}에게서 물러났다. (이야기 전투는 언제든 다시 할 수 있다)`)
+    } else {
+      // 이야기 전투는 져도 쇠약 · 영력 손실이 없다. 체력만 바닥에서 조금 추스른다.
+      const cur = playerRef.current
+      commit({ ...cur, hp: Math.max(Math.ceil(cur.hpMax * 0.3), Math.ceil(result.hp || 0), 1) })
+      bump('losses')
+      addLog(`${enemy.name}에게 쓰러졌다. 이야기 전투라 쇠약은 남지 않았다. 몸을 추스르고 다시 도전하자.`)
+    }
+    persist()
+    bridge.quest('storyBattle', { key: fight.key, win: !!result.win, fled: !!result.fled, calm, drop, recipes, name: enemy?.name })
+  }
+  const spendMp = (amount) => { const cur = playerRef.current; if ((cur.mp || 0) < amount) return false; commit({ ...cur, mp: cur.mp - amount }); return true }
+
   /** Battle · HuntBattleModal 에 그대로 넘기는 props */
   const battleProps = player && {
     stats: effStats, baseAggression: player.stats?.aggression, mp: player.mp, hp: player.hp, hpMax: player.hpMax,
@@ -668,14 +734,42 @@ export function usePlayHost() {
     persist()
     return true
   }
+  /** 본편 유품 무구를 실제로 준다(한 벌, 부모의 손길 = 강화 1). 반환: 무구 이름 */
+  const giveHeirloom = (weaponId, enhStat) => {
+    if (!itemOf(weaponId)) return null
+    const cur = playerRef.current
+    const r = giveWeapon(cur, weaponId, enhStat ? { [enhStat]: 1 } : undefined)
+    commit(syncCodex({ ...r.player, heirloomWeapon: r.id }))
+    addLog(`유품이 무구가 되었다 — [${itemOf(weaponId).name}]을(를) 받았다.${enhStat ? ` (부모의 손길: ${STAT_META[enhStat]?.label ?? enhStat} +1)` : ''}`)
+    persist()
+    return itemOf(weaponId).name
+  }
+  const countOfId = (id) => Object.entries(playerRef.current?.inventory ?? {}).reduce((s, [k, n]) => s + (baseIdOf(k) === id ? n : 0), 0) + (baseIdOf(equipOf(playerRef.current ?? {}).weapon ?? '') === id ? 1 : 0)
+  /** 퀘스트에서 아이템을 써서 없앤다(무구는 안 받는다). 모자라면 false */
+  const take = (items) => {
+    const cur = playerRef.current
+    const inv = { ...cur.inventory }
+    for (const [id, n] of Object.entries(items)) if ((inv[id] || 0) < n) return false
+    for (const [id, n] of Object.entries(items)) { inv[id] -= n; if (inv[id] <= 0) delete inv[id] }
+    commit({ ...cur, inventory: inv })
+    persist()
+    return true
+  }
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist,
+    save: persist, storyBattle, spendMp,
+    // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
+    itemName: (id) => itemOf(id)?.name ?? id, count: countOfId, equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
+    take, giveHeirloom, unlockRecipes, equip, heirloomWeapon: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id && (cur.inventory?.[id] || equipOf(cur).weapon === id) ? id : null }, knows: (id) => !!playerRef.current?.storyRecipes?.[id],
+    storyDex: () => ({
+      items: STORY_ITEMS.map((it) => ({ id: it.id, name: it.name, kind: it.kind, tags: it.tags ?? [], text: it.effectText || '', desc: it.desc, have: countOfId(it.id) })),
+      recipes: STORY_RECIPES.map((r) => ({ id: r.id, name: itemOf(r.result)?.name ?? r.result, place: r.place, unlock: r.unlock, open: !!playerRef.current?.storyRecipes?.[r.id] })),
+    }),
     admin: admin ? { apply: adminApply, give: adminGive, psychics: PSYCHICS.map((p) => ({ id: p.id, label: p.label })), items: ITEMS.map((i) => ({ id: i.id, name: i.name })), spiritMax: SPIRIT_MAX } : null,
   } : null
 
   return {
-    profile, player, admin, club, effStats, logs, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
+    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
     reviveOn, boostOn, battleUsedItems, notify, addLog,
     handlers: {
       beginTraining, endTraining, beginSleep, endSleep, beginRest, endRest, upgradeStat,

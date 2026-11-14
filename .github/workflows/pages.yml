@@ -29,7 +29,7 @@ jobs:
       - name: 화면 파일 모으기
         run: |
           mkdir -p _site
-          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js .nojekyll _site/
+          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js .nojekyll _site/
           cp -r assets fonts play _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

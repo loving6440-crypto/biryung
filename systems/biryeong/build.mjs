@@ -36,7 +36,7 @@ const textSwaps = [
 // pixel-templates.txt · pixel-templates-2.txt : 12×12 도트 틀 108개 (k 외곽선 · a 바탕 · b 그늘 · c 빛 · d 포인트)
 // pixels.txt : 아이템 id|틀|색 — 312개 모두 손으로 정했다. 같은 (틀 · 색) 조합을 두 아이템이 쓰면 빌드가 멈춘다.
 const templates = {}
-for (const f of ['pixel-templates.txt', 'pixel-templates-2.txt']) {
+for (const f of ['pixel-templates.txt', 'pixel-templates-2.txt', 'pixel-templates-story.txt']) {
   for (const block of readFileSync(join(HERE, f), 'utf8').trim().split('#').slice(1)) {
     const [name, ...grid] = block.trim().split('\n')
     if (grid.length !== 12 || grid.some((r) => r.length !== 12)) throw new Error('도트 틀 크기 오류: ' + name)
@@ -69,6 +69,29 @@ for (const [id, t, p] of rows('pixels.txt')) {
   pixels[id] = { t, p }
 }
 for (const i of ITEMS) if (!pixels[i.id]) throw new Error('도트 누락: ' + i.id)
+
+// ── v1.3 본편 새 아이템(story-items.txt) — 보관고 목록 뒤에 붙는다(실행 화면 빌드가 items.js 에 끼운다) ──
+const lines = (f) => readFileSync(join(HERE, f), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+const KINDS = new Set(['food', 'drink', 'material', 'tool', 'craft', 'gear'])
+const STATS6 = new Set(['insight', 'aggression', 'endurance', 'control', 'agility', 'comprehension'])
+const storyItems = []
+for (const l of lines('story-items.txt')) {
+  const [id, kind, name, price, t, p, effectText, effectJson, extraJson, desc] = l.split('|')
+  if (!/^st-[a-z0-9-]+$/.test(id)) throw new Error('본편 아이템 id 는 st- 로 시작한다: ' + id)
+  if (items[id] || storyItems.some((x) => x.id === id)) throw new Error('본편 아이템 id 가 겹친다: ' + id)
+  if (!KINDS.has(kind)) throw new Error(`본편 아이템 종류 오류: ${kind} (${id})`)
+  if (!templates[t] || !PALETTES[p]) throw new Error(`본편 아이템 도트 오류: ${t}:${p} (${id})`)
+  const key = t + ':' + p
+  if (comboOwner.has(key)) throw new Error(`도트가 겹친다: ${id} ↔ ${comboOwner.get(key)} (${key})`)
+  comboOwner.set(key, id)
+  const extra = JSON.parse(extraJson || '{}')
+  if (extra.bonus) for (const k of Object.keys(extra.bonus)) if (!STATS6.has(k)) throw new Error('본편 장비 육조 오류: ' + k)
+  if (kind === 'gear' && !['trinket', 'body'].includes(extra.slot)) throw new Error('본편 장비 자리 오류: ' + id)
+  storyItems.push({ id, kind, name, price: price ? Number(price) : null, desc, effectText: effectText || undefined, effect: JSON.parse(effectJson || '{}'), battle: false, ...extra })
+  pixels[id] = { t, p }
+}
+const storyIds = new Set(storyItems.map((i) => i.id))
+
 const used = {}
 for (const p of Object.values(pixels)) used[p.t] = (used[p.t] || 0) + 1
 
@@ -77,7 +100,7 @@ for (const p of Object.values(pixels)) used[p.t] = (used[p.t] || 0) + 1
 //   1단계 = 바탕(다른 제작의 재료가 되는 것) · 2단계 = 바탕으로 만드는 완성품 · 3단계 = 완성품 · 바탕을 겹쳐 쓰는 상급품 · 대량 공정
 const { RECIPES } = await import('../vault/modules/game/crafting.js')
 const { COOK_RECIPES } = await import('../vault/modules/game/cooking.js')
-const itemById = Object.fromEntries(ITEMS.map((i) => [i.id, i]))
+const itemById = Object.fromEntries([...ITEMS, ...storyItems].map((i) => [i.id, i]))
 const gcd = (a, b) => (b ? gcd(b, a % b) : a)
 const sig = (inputs) => { const g = inputs.map((x) => x[1]).reduce(gcd); return inputs.map(([id, n]) => id + '*' + n / g).sort().join('+') }
 const seen = { W: new Map(RECIPES.map((r) => [sig(r.inputs), r.id])), K: new Map(COOK_RECIPES.map((r) => [sig(r.inputs), r.id])) }
@@ -99,6 +122,21 @@ const tierOf = (r) => (isMaterial(r.result) ? 1 : r.inputs.some(([id]) => !isMat
 const recipeTiers = Object.fromEntries([...RECIPES, ...COOK_RECIPES].map((r) => [r.id, tierOf(r)]))
 for (const r of [...newRecipes.W, ...newRecipes.K]) recipeTiers[r.id] = r.tier
 
+// ── v1.3 본편 제작법(story-recipes.txt) — 처음엔 잠겨 있고, 퀘스트나 격파로 열린다 ──
+const storyRecipes = []
+for (const l of lines('story-recipes.txt')) {
+  const [id, place, tier, result, ins, yieldN, unlock] = l.split('|')
+  const inputs = ins.split('+').map((p) => { const [i, n] = p.split('*'); return [i, Number(n || 1)] })
+  for (const [i] of [[result], ...inputs]) if (!itemById[i]) throw new Error('본편 제작법: 없는 아이템 ' + i)
+  if (!storyIds.has(result)) throw new Error('본편 제작법의 결과는 본편 아이템이어야 한다: ' + result)
+  const s = sig(inputs)
+  if (seen[place].has(s)) throw new Error('본편 제작법: 재료 조합이 겹친다 ' + id + ' ↔ ' + seen[place].get(s))
+  seen[place].set(s, id)
+  if (!/^(quest|boss:[a-z]+)$/.test(unlock)) throw new Error('본편 제작법 열리는 때 오류: ' + id)
+  storyRecipes.push({ id, place, result, inputs, tier: Number(tier), ...(yieldN ? { yield: Number(yieldN) } : {}), unlock })
+}
+
+
 const out = `/* 직접 고치지 말 것 — npm run reskin:build 가 systems/biryeong/*.txt 에서 만든다. */
 export const ITEM_RESKIN = ${JSON.stringify(items)}
 export const ENEMY_RESKIN = ${JSON.stringify(enemies)}
@@ -109,6 +147,8 @@ export const PIXEL_PALETTES = ${JSON.stringify(PALETTES)}
 export const ITEM_PIXELS = ${JSON.stringify(pixels)}
 export const NEW_RECIPES = ${JSON.stringify(newRecipes)}
 export const RECIPE_TIERS = ${JSON.stringify(recipeTiers)}
+export const STORY_ITEMS = ${JSON.stringify(storyItems)}
+export const STORY_RECIPES = ${JSON.stringify(storyRecipes)}
 `
 writeFileSync(join(HERE, 'reskin.data.js'), out)
 console.log(`아이템 ${Object.keys(items).length} · 적 ${Object.keys(enemies).length} · 영능력 ${Object.keys(psychics).length} · 도트 틀 ${Object.keys(templates).length}`)

@@ -130,3 +130,28 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 | 아이템 도트(v1.1) | `systems/biryeong/pixels.txt`(아이템 id|틀|색) · `pixel-templates.txt` · `pixel-templates-2.txt` — 같은 도트를 두 아이템이 쓰면 빌드가 멈춘다 |
 
 임시 관리자 코드는 `biryeong-admin-2046` 이다(`config.js`). 서버에 `ADMIN_CODE` 를 넣은 뒤에는 `adminCodeHash` 를 비워 임시 코드를 없앤다.
+
+## v1.3 (2026-11-15) — 유품 10종 · 보스 고유 패턴 · 본편 아이템 · 제작법
+
+| 무엇 | 어디 |
+|---|---|
+| 유품 10종 = 무구 10종(계통 5 × 2) · 부모 대사 10종(1장 회상 · 8장 데이터 부모 · 14장 재회) | `systems/story/script_vol*.txt` · `export_game.py`(HEIRLOOMS) |
+| 1-03 무구보관소 튜토리얼 — 무구 실제 지급(강화 1) → 장착 | `quest.js`(heir · equip:heir) · `usePlayHost.js`(giveHeirloom · equip) |
+| 보스 고유 패턴(14종 + 형태 변화) — 전투 화면에 계기판 · 이야기 행동 | `systems/play/src/storyBoss.js` · `systems/play/patches.mjs`(Battle.jsx 에 훅) |
+| 격파 → 전리품 · 전리품 제작법 열기 · 이야기 전투 패배는 쇠약 없음 | `usePlayHost.js`(finishStoryBattle · unlockRecipes) |
+| 본편 아이템 36종 · 본편 제작법 16종(처음엔 잠김) | `systems/biryeong/story-items.txt` · `story-recipes.txt` · `pixel-templates-story.txt` |
+| 새 퀘스트 조건 make · have · use · equip · enhance / 덤 give · learn · kit · heir · alt | `export_game.py`(O 표) · `quest.js` |
+| 성취 카드 · 장면 완료 띠 · 장 완료 카드 · 엔딩 카드 · 본편 도감 | `quest.js` · `styles.css`(v1.3 구역) |
+
+제작법 잠금은 보관고 파일을 고치지 않고 빌드할 때 끼운다(`patches.mjs` — freeCraft · Workshop · Cooking · materialLevels). 열린 제작법은 플레이어 저장의 `storyRecipes` 에 남는다.
+
+## v1.2 (2026-11-14) — 본편 퀘스트
+
+| 무엇 | 어디 |
+|---|---|
+| 퀘스트 엔진 · 대사 창 · 산문 너머 화면 · 바깥 지역 | `quest.js` (머리말에 구조 설명) |
+| 스토리 데이터 | `story-data.js` ← `systems/story` 원고 (`npm run story:build`) |
+| 게임에서 생긴 일 알리기 | `systems/play/src/bridge.js` 의 `quest(type, id)` → `biryeong:quest` 이벤트 (탐사 지점 · 전투 승리 · 개척 · 제작 · 조리 · 수업 · 표지판) |
+| 이야기 전투 | `usePlayHost.js` 의 `storyBattle` — 추가전투 도감의 같은 단계 상대에 이름 · 소개만 바꿔 싸운다 |
+| 인물 칸(초상 자리) | `quest.js` 의 `portrait` · `CAST`(머리색) / 그림 넣기: `assets/portraits/README.md` |
+| 서버(Supabase) 준비 | `sync.js` · `supabase/schema.sql` · `supabase/README.md` · `config.js` 의 `supabaseUrl` · `supabaseAnonKey` |

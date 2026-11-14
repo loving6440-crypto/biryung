@@ -18,7 +18,10 @@
   <script src="titles2.js" defer></script>
   <script src="story.js" defer></script>
   <script src="play/play.js" defer></script>
+  <script src="story-data.js" defer></script>
+  <script src="sync.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="quest.js" defer></script>
   <script src="community.js" defer></script>
   <link rel="stylesheet" href="community.css">
 </head>
@@ -189,10 +192,11 @@
         <div class="status-bars" id="statusBars"></div>
         <div class="action-heading"><span>육조 스탯</span><span>SIX ROOTS</span></div>
         <div class="status-stats" id="statusStats"></div>
+        <div class="quest-tracker" id="questTracker" aria-label="본편 퀘스트 진행" aria-live="polite"></div>
         <div class="status-spacer"></div>
         <div class="status-menu" role="group" aria-label="내 메뉴">
           <button type="button" data-menu="inventory"><i>囊</i><span>소지품</span></button>
-          <button type="button" data-menu="quest"><i>導</i><span>적응 퀘스트</span><b id="statusQuest"></b></button>
+          <button type="button" data-menu="quest"><i>導</i><span>본편 퀘스트</span><b id="statusQuest"></b></button>
           <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
           <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>
           <div class="status-admin-slot" data-admin-slot></div>

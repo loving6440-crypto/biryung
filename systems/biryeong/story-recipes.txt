@@ -1,0 +1,18 @@
+# 본편(v1.3) 제작법 — 처음엔 잠겨 있다. 퀘스트가 가르쳐 주거나(배움) 그 상대를 이기면(격파) 공작소 · 조리실 제작법 목록에 들어온다.
+# 제작법 id|곳(W 공작소 · K 조리실)|단계|결과|재료(a*2+b)|한 번에 나오는 수|열리는 때(quest = 퀘스트 · boss:<상대>)
+s-seaweed-soup|K|2|st-seaweed-soup|st-seaweed*2+soybean-oil+lake-water||quest
+s-envelope|W|2|st-envelope|hanji*3+cinnabar||quest
+s-stake|W|1|st-stake|fine-woodchip*3+twine+hanji|4|quest
+s-pillar|W|2|st-pillar|twine*2+plain-cloth+brick*3||quest
+s-name-charm|W|3|st-name-charm|st-roll+hanji*2+talisman-ink||boss:myeongbugwi
+s-nametag-pin|W|3|st-nametag-pin|st-nametag+twine*2||boss:heard
+s-dangsan-charm|W|3|st-dangsan-charm|st-dangsan-twig+five-color-thread*2||boss:dangsan
+s-bead-bracelet|W|3|st-bead-bracelet|st-waiting-bead+twine+crystal-bead||boss:waiting
+s-watch-charm|W|3|st-watch-charm|st-stopwatch+polishing-stone||boss:error
+s-lens|W|3|st-lens|st-eyelid+crystal-bead*2||boss:baekmok
+s-scale-vest|W|3|st-scale-vest|st-twin-scale*2+cloth-scrap*3||boss:ssang
+s-voice-bell|W|3|st-voice-bell|st-voice-thread+five-color-thread*2+brick||boss:cheonseong
+s-oracle-talisman|W|3|st-oracle-talisman|st-oracle-shard+hanji*2|2|boss:collision
+s-fog-lantern|W|3|st-fog-lantern|st-fog-jar+alcohol-lamp|2|boss:eraser
+s-godslayer-edge|W|3|st-godslayer-edge|st-godslayer+polishing-stone*2||boss:raid
+s-light-locket|W|3|st-light-locket|st-unborn-light+five-knot||boss:unrealized

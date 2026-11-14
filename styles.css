@@ -390,3 +390,119 @@ body.is-gated > :not(#gate){display:none !important}
 
 @media (max-width:1300px){.zone-grid.obang{grid-template-rows:repeat(3,150px)}.obang .zone-text strong{font-size:18px}}
 @media (max-width:790px){.zone-grid.obang{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:128px}.obang-wall{display:none}.pxfloor{grid-template-columns:1fr}.admin-give{grid-template-columns:1fr 1fr}.gate-logo{font-size:52px}.page-map{display:inline-block}}
+
+/* ═════════ v1.2 본편 퀘스트 ═════════ */
+/* ── 인물 칸: 금색 동양풍 액자 + 머리색 단색 인장(초상 그림이 들어갈 자리) ── */
+.pt-frame{position:relative;flex:none;width:86px;height:86px;display:grid;place-items:center;background:#0b1522;border:2px solid #c9a961;box-shadow:inset 0 0 0 3px #0b1522,inset 0 0 0 4px #8d7147,0 0 0 1px #3a2f1c,3px 3px 0 #05080f}
+.pt-corner{position:absolute;width:13px;height:13px;border:2px solid #e9cf8c;background:#0b1522;z-index:2}
+.pt-corner::after{content:'';position:absolute;inset:2px;background:#c9a961}
+.pt-tl{top:-5px;left:-5px}.pt-tr{top:-5px;right:-5px}.pt-bl{bottom:-5px;left:-5px}.pt-br{bottom:-5px;right:-5px}
+.pt-frame::before,.pt-frame::after{content:'';position:absolute;left:14px;right:14px;height:2px;background:repeating-linear-gradient(90deg,#c9a961 0 6px,transparent 6px 9px);opacity:.75}
+.pt-frame::before{top:5px}.pt-frame::after{bottom:5px}
+.pt-seal{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--hair) 78%,#fff) 0,var(--hair) 58%,color-mix(in srgb,var(--hair) 72%,#000) 100%);color:var(--ink);font:400 26px/1 'Galmuri9','KoPub Batang',serif;box-shadow:0 0 0 2px #0b1522,0 0 0 3px #c9a961,inset 0 -3px 0 #0003}
+.pt-img{width:70px;height:70px;object-fit:cover;display:block}
+
+/* ── 대사 창 ── */
+body.is-scene{overflow:hidden}
+.scene-layer{position:fixed;inset:0;z-index:900;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:linear-gradient(180deg,#03091466 0,#030914d9 62%,#030914f2 100%)}
+.scene-layer[hidden]{display:none}
+.scene-win{width:min(860px,100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;background:#0e1928;border:2px solid #806e50;box-shadow:inset 0 0 0 4px #080f1c,inset 0 0 0 5px #455465,8px 8px 0 #030914}
+.scene-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:11px 18px 9px;border-bottom:1px solid #33455a;font-size:12px;letter-spacing:.08em;color:#d8c59a}
+.scene-head small{font-size:10px;color:#7f9193;text-align:right}
+.scene-body{padding:18px 20px 8px;overflow:auto;min-height:150px}
+.scene-line{display:flex;gap:18px;align-items:flex-start}
+.scene-text{flex:1;min-width:0}
+.scene-name{display:inline-block;margin-bottom:7px;padding:3px 10px;font-size:12px;font-weight:700;background:#22364a;border:1px solid #806e50;color:#f3dfb2}
+.scene-text p{margin:0;font-size:15px;line-height:1.95;color:#efe6ce;word-break:keep-all;white-space:pre-wrap}
+.scene-line.is-n .scene-text p{color:#b9c6c2;font-style:italic}
+.scene-line.is-r{filter:sepia(.45)}
+.scene-line.is-i .scene-text p,.scene-line.is-s .scene-text p{font-size:13px;color:#cdd8d2}
+.scene-term{font-family:'Galmuri9','Courier New',monospace;color:#9fe9ee !important;background:#071a22;border:1px solid #1f7a80;padding:10px 12px}
+.scene-direction{margin:12px 0 0;font-size:11px;line-height:1.7;color:#71848a}
+.scene-direction::before{content:'— '}
+.scene-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 18px 14px}
+.scene-count{font-size:10px;color:#71848a}
+.scene-question{margin:0 0 12px;font-size:15px;line-height:1.8;color:#f3dfb2}
+.scene-options{display:flex;flex-direction:column;gap:8px}
+.scene-option{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;text-align:left;font-size:14px;line-height:1.6;background:#132335;border:1px solid #455769;color:#efe6ce}
+.scene-option:hover:not(:disabled),.scene-option:focus-visible{background:#22364a;border-color:#d4b078}
+.scene-option:disabled{opacity:.45}
+.scene-option i{font-style:normal;color:#d4b078}
+.scene-chosen{margin:0;font-size:13px;color:#9fd8c8}
+.scene-name-form{display:flex;gap:8px;flex-wrap:wrap}
+.scene-name-form input{flex:1;min-width:150px;padding:10px 11px;font:14px var(--ui-font-family,sans-serif);background:#08111d;border:1px solid #806e50;color:#efe6ce}
+
+/* ── 진행 추적 · 퀘스트 보드 ── */
+.quest-tracker{margin:12px 0 4px}
+.quest-box{padding:11px 12px;background:#101e2e;border:1px solid #806e50;box-shadow:inset 0 0 0 2px #0a1420}
+.quest-box-title{margin:0 0 6px;font-size:12px;font-weight:700;color:#f3dfb2}
+.quest-box-step{margin:0;font-size:12px;line-height:1.7;color:#e3dcc6;word-break:keep-all}
+.quest-box-place{margin:5px 0 0;font-size:10.5px;line-height:1.6;color:#8fa3a6;word-break:keep-all}
+.quest-box-needs{margin:7px 0 0;padding:0;list-style:none;font-size:11px;line-height:1.8;color:#b9c6c2}
+.quest-box-needs .is-done{color:#9fd8c8}
+.quest-box-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.quest-box-acts button{padding:7px 10px;font-size:11.5px}
+.quest-inline{margin-bottom:6px}
+.quest-inline .quest-box-step{font-size:13.5px}.quest-inline .quest-box-title{font-size:13.5px}.quest-inline .quest-box-place{font-size:11.5px}
+.quest-vol{margin:0 0 16px}
+.quest-vol-title{margin:0 0 3px;font-size:16px;letter-spacing:.06em;color:#f3dfb2}
+.quest-vol-q{margin:0 0 9px;font-size:11.5px;color:#8fa3a6}
+.quest-vol.is-locked{opacity:.5}
+.quest-chapter{margin:0 0 6px;border:1px solid #33455a;background:#0f1b2a}
+.quest-chapter summary{padding:9px 12px;cursor:pointer;font-size:13px;color:#d9cdb0}
+.quest-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 12px;border-top:1px solid #223142}
+.quest-row strong{font-size:13px;color:#efe6ce}.quest-row p{margin:3px 0 0;font-size:11.5px;line-height:1.6;color:#9fb0ae}
+.quest-row.is-now{background:#1a2b3d}.quest-row.is-now strong{color:#f3dfb2}
+.quest-row.is-locked strong,.quest-row.is-locked p{color:#5d6f74}
+.quest-region{display:flex;flex-direction:column;gap:4px;width:100%;margin:0 0 8px;padding:13px 14px;text-align:left;background:#132335;border:1px solid #6d7aab;color:#efe6ce}
+.quest-region:hover{border-color:#f2d24a;background:#1b2f47}.quest-region strong{font-size:15px}.quest-region small{font-size:11px;color:#9fb0ae}
+.quest-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.quest-meta span{padding:5px 9px;font-size:11.5px;background:#132335;border:1px solid #455769;color:#d9cdb0}
+.quest-trust{display:grid;grid-template-columns:44px 92px minmax(0,1fr) 30px;gap:10px;align-items:center;margin-bottom:8px;font-size:12px}
+.quest-trust .pt-frame{width:44px;height:44px;border-width:1px;box-shadow:inset 0 0 0 2px #0b1522,inset 0 0 0 3px #8d7147}
+.quest-trust .pt-frame::before,.quest-trust .pt-frame::after{display:none}
+.quest-trust .pt-corner{width:7px;height:7px;border-width:1px;top:auto;left:auto}.quest-trust .pt-tl{top:-3px;left:-3px}.quest-trust .pt-tr{top:-3px;right:-3px}.quest-trust .pt-bl{bottom:-3px;left:-3px}.quest-trust .pt-br{bottom:-3px;right:-3px}
+.quest-trust .pt-seal{width:30px;height:30px;font-size:14px;box-shadow:0 0 0 1px #c9a961}.quest-trust .pt-img{width:36px;height:36px}
+.quest-trust-bar{height:8px;background:#0a1420;border:1px solid #455769}.quest-trust-bar i{display:block;height:100%;background:#d4b078}
+.quest-world{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px;margin-bottom:12px}
+.quest-world div{padding:9px 10px;background:#132335;border:1px solid #455769}.quest-world small{display:block;font-size:10.5px;color:#9fb0ae}.quest-world b{font-size:17px;color:#f3dfb2}
+.quest-tally-row{margin-bottom:10px;padding:9px 11px;background:#0f1b2a;border:1px solid #33455a}
+.quest-tally-row strong{font-size:12.5px;color:#f3dfb2}.quest-tally-row p{margin:4px 0 0;font-size:12px;color:#bdc7c1}.quest-tally-row p.is-mine{color:#9fd8c8}
+.pxroom.is-here{box-shadow:inset 0 0 0 2px #f2d24a;background:#18214a}
+@media (max-width:790px){.scene-layer{padding:8px}.scene-line{gap:11px}.pt-frame{width:64px;height:64px}.pt-seal{width:42px;height:42px;font-size:19px}.pt-img{width:50px;height:50px}.scene-text p{font-size:14px}.quest-trust{grid-template-columns:44px 70px minmax(0,1fr) 26px}}
+
+/* ── v1.3 유품 10종 선택 · 성취 카드 · 완료 띠 · 본편 도감 ── */
+.scene-options:has(.is-heir){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.scene-option.is-heir{flex-wrap:wrap;padding:9px 11px}
+.scene-option.is-heir span{font-weight:700}
+.scene-option-note{flex-basis:100%;margin-left:22px;font-size:11px;line-height:1.55;color:#8fa3a6}
+@media (max-width:640px){.scene-options:has(.is-heir){grid-template-columns:1fr}}
+.quest-act.is-short{opacity:.6}
+body.is-ach{overflow:hidden}
+.ach-layer{position:fixed;inset:0;z-index:950;display:grid;place-items:center;padding:18px;background:radial-gradient(circle at 50% 45%,#2a213066 0,#030914e6 70%)}
+.ach-layer[hidden]{display:none}
+.ach-card{position:relative;width:min(440px,100%);padding:30px 26px 20px;text-align:center;background:linear-gradient(180deg,#152437 0,#0e1928 100%);border:2px solid #c9a961;box-shadow:inset 0 0 0 4px #0b1522,inset 0 0 0 5px #8d7147,0 0 0 1px #3a2f1c,10px 10px 0 #030914;animation:ach-in .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes ach-in{from{transform:translateY(14px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.ach-mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 10px;border-radius:50%;font:400 30px/1 'Galmuri9','KoPub Batang',serif;color:#2a1d08;background:radial-gradient(circle at 34% 30%,#fff1c2 0,#e2bf6e 55%,#a07c34 100%);box-shadow:0 0 0 3px #0b1522,0 0 0 4px #c9a961,0 0 26px #e9cf8c55}
+.ach-card.is-boss .ach-mark{background:radial-gradient(circle at 34% 30%,#ffd2c2 0,#d0654d 55%,#7f2a1c 100%);color:#fff3e8}
+.ach-card.is-chapter .ach-mark,.ach-card.is-ending .ach-mark{width:76px;height:76px;font-size:36px}
+.ach-card.is-lose .ach-mark{background:radial-gradient(circle at 34% 30%,#d9e4ea 0,#7f93a0 55%,#3b4a55 100%);color:#0b1522;box-shadow:0 0 0 3px #0b1522,0 0 0 4px #7f93a0}
+.ach-head{margin:0;font-size:11px;letter-spacing:.32em;color:#d4b078}
+.ach-title{margin:6px 0 2px;font:400 22px/1.4 'KoPub Batang',serif;color:#f6e7bf;word-break:keep-all}
+.ach-sub{margin:0 0 4px;font-size:11.5px;color:#8fa3a6}
+.ach-lines{margin:12px 0 0;padding:12px 0 0;list-style:none;border-top:1px dashed #5b5040;text-align:left}
+.ach-lines li{position:relative;padding:3px 0 3px 16px;font-size:12.5px;line-height:1.7;color:#e3dcc6;word-break:keep-all}
+.ach-lines li::before{content:'◆';position:absolute;left:0;top:4px;font-size:9px;color:#c9a961}
+.ach-acts{display:flex;justify-content:center;gap:8px;margin-top:16px}
+.quest-banner{position:fixed;left:50%;top:14px;z-index:940;min-width:min(380px,92vw);padding:10px 18px 11px;text-align:center;background:#101e2e;border:2px solid #c9a961;box-shadow:inset 0 0 0 3px #0b1522,6px 6px 0 #030914;transform:translate(-50%,-130%);transition:transform .5s cubic-bezier(.2,1.2,.4,1);pointer-events:none}
+.quest-banner.is-in{transform:translate(-50%,0)}
+.quest-banner small{display:block;font-size:10px;letter-spacing:.25em;color:#d4b078}
+.quest-banner b{display:block;margin:2px 0 6px;font:400 16px/1.4 'KoPub Batang',serif;color:#f6e7bf}
+.quest-banner-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}
+.quest-banner-chips span{padding:2px 8px;font-size:11px;background:#22364a;border:1px solid #806e50;color:#f3dfb2}
+.dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:0 0 14px}
+.dex-cell{padding:8px 10px;background:#0f1b2a;border:1px dashed #33455a;min-height:52px}
+.dex-cell b{display:block;font-size:12.5px;color:#5d6f74}
+.dex-cell small{display:block;margin-top:3px;font-size:10.5px;line-height:1.5;color:#55666b;word-break:keep-all}
+.dex-cell.is-on{background:#132335;border:1px solid #806e50;box-shadow:inset 0 0 0 1px #0b1522}
+.dex-cell.is-on b{color:#f3dfb2}.dex-cell.is-on small{color:#9fb0ae}

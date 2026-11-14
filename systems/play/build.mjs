@@ -9,6 +9,7 @@
  *  - 글자 바꾸기           : 영능력 · 학교 이름(systems/biryeong 의 TEXT_SWAPS), 초록동색 색상값 → 비령 색상값
  *  - '/bgm.mp3' 같은 주소  → 'play/bgm.mp3'
  *  - document.body 포털    → #playPortal (스타일 범위 안)
+ *  - 보관고 조각(patches.mjs): v1.3 본편 아이템을 아이템 목록에 붙이고, 전투 화면에 보스 패턴 훅을 끼운다
  *  - 스타일               : Tailwind 로 컴파일한 뒤 전부 `.play-scope` 안쪽으로 가둔다 → 메인 화면 스타일과 섞이지 않는다.
  * 필요한 패키지: esbuild, react, react-dom, tailwindcss (npm install). node_modules 가 없으면 BIRYEONG_NODE_PATH 에서도 찾는다.
  */
@@ -17,6 +18,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { TEXT_SWAPS } from '../biryeong/reskin.data.js'
+import { applyPatches } from './patches.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -40,7 +42,7 @@ const assetRe = new RegExp(`(['"\`(])/(${publicFiles.map((n) => n.replace(/[.*+?
 const COLOUR_SWAPS = [['#ffd426', '#d5b579'], ['#ffe14a', '#e6cf9c'], ['#b8960f', '#806e50'], ['#050b1f', '#0b1522'], ['#0a1633', '#101e2e'], ['#0f1e44', '#172a3a'], ['#030817', '#07111b'], ['#f26b5e', '#d56b69'], ['#e5483c', '#c66a6c'], ['#2aa6b8', '#68a9b9'], ['#f7ecd0', '#efe6ce'], ['#f1cf68', '#d0af73'], ['#65c9c5', '#4f948d'], ['#e9554f', '#d56b69']]
 const swapColours = (t) => COLOUR_SWAPS.reduce((s, [a, b]) => s.replace(new RegExp(a, 'gi'), b), t)
 const swapText = (t) => TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), t)
-const vaultSource = (path) => swapColours(swapText(readFileSync(path, 'utf8')))
+const vaultSource = (path) => swapColours(swapText(applyPatches(path, readFileSync(path, 'utf8'))))
   .replace(assetRe, '$1play/$2')
   .replace(/document\.body(?=\s*[,)])/g, "(document.getElementById('playPortal') || document.body)")
 
@@ -49,6 +51,8 @@ const vaultPlugin = {
   name: 'biryeong-vault',
   setup(b) {
     b.onResolve({ filter: /^@vault\// }, (a) => ({ path: join(VAULT, a.path.slice(7)) }))
+    b.onResolve({ filter: /^@story\// }, (a) => ({ path: join(HERE, 'src', a.path.slice(7)) }))
+    b.onResolve({ filter: /^@biryeong\// }, (a) => ({ path: join(ROOT, 'systems/biryeong', a.path.slice(10)) }))
     b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: join(HERE, 'src/shims/lucide-react.jsx') }))
     b.onResolve({ filter: /^(react|react-dom)(\/.*)?$/ }, (a) => ({ path: createRequire(join(findPkg(a.path.split('/')[0]), 'package.json')).resolve(a.path) }))
     b.onLoad({ filter: /systems[\\/]vault[\\/]modules[\\/]ui[\\/]components[\\/]ItemIcon\.jsx$/ }, () => ({ contents: readFileSync(join(HERE, 'src/PixelItemIcon.jsx'), 'utf8'), loader: 'jsx', resolveDir: join(HERE, 'src') }))

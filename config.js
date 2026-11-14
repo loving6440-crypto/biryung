@@ -7,5 +7,12 @@
 window.BIRYEONG_CONFIG = {
   api: '',
   sameOrigin: false,
+  // 본편 퀘스트의 서버 부분(Supabase). 비워 두면 이 브라우저의 값만 쓴다. 연결 순서: supabase/README.md
+  supabaseUrl: '',
+  supabaseAnonKey: '',
   adminCodeHash: 'e910fb815e02e1eb5530b7a19c60a25585e832fa30b18947c5c9c32d086a4f73',
+};
+
+/* 초상(포트레잇): 화자 이름 → 그림 주소. 비어 있으면 머리색 인장으로 나온다. 넣는 법: assets/portraits/README.md */
+window.BIRYEONG_PORTRAITS = {
 };
