@@ -12,7 +12,10 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="play/play.css">
   <script src="game-data.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="auth.js" defer></script>
   <script src="titles.js" defer></script>
+  <script src="titles2.js" defer></script>
   <script src="story.js" defer></script>
   <script src="play/play.js" defer></script>
   <script src="app.js" defer></script>
@@ -34,6 +37,7 @@
       <nav class="top-buttons" aria-label="게임 메뉴">
         <button class="chip-button" id="storyBtn" type="button">사건 기록 <span>↗</span></button>
         <button class="chip-button chip-gold" id="journalBtn" type="button" title="내 프로필 열기">나의 기록 <span id="journalCount">人</span></button>
+        <button class="chip-button" id="accountBtn" type="button" title="로그아웃">로그아웃 <span id="accountName"></span></button>
         <div class="font-control" id="fontControl">
           <button class="chip-button font-toggle" id="fontToggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="fontMenu" title="글꼴 선택">가 <span>글꼴 ▾</span></button>
           <div class="font-menu" id="fontMenu" hidden role="group" aria-label="글꼴 선택">
@@ -109,16 +113,32 @@
 
       <section class="map-section" aria-labelledby="mapHeading">
         <header class="map-heading">
-          <div><div class="map-kicker">DESTINATION SELECT / 四方</div><h2 id="mapHeading">사방의 구역 <span>四方</span></h2></div>
-          <p><span class="blinking-square">■</span> 들어갈 장소를 누르세요</p>
+          <div><div class="map-kicker">DESTINATION SELECT / 五方</div><h2 id="mapHeading">오방 지도 <span>五方</span></h2></div>
+          <p><span class="blinking-square">■</span> 들어갈 장소를 누르세요 <button type="button" class="map-open" data-open-map>내부 지도</button></p>
         </header>
-        <div class="zone-grid" role="group" aria-label="학당의 네 구역">
+        <div class="zone-grid obang" role="group" aria-label="학당의 오방 지도">
+          <span class="pxwall obang-wall w-nw" aria-hidden="true"><i>乾</i></span>
           <button class="zone-card north" data-zone="north" type="button">
             <img src="assets/north_scene.png" alt="별빛 아래 금줄을 두른 산문과 등롱" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
             <span class="zone-number">01 <b>北</b> / NORTH</span>
             <span class="zone-status"><i></i> 진입 가능</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">GATE OF THE MOUNTAIN</span><strong>산문</strong><small>금줄 밖으로는 나가지 마라</small></span><span class="enter-icon">↗</span></span>
+          </button>
+          <span class="pxwall obang-wall w-ne" aria-hidden="true"><i>艮</i></span>
+          <button class="zone-card west" data-zone="west" type="button">
+            <img src="assets/west_scene.png" alt="꽃나무와 등불이 있는 전통 생활관" class="zone-art">
+            <span class="zone-tint"></span><span class="inner-line"></span>
+            <span class="zone-number">03 <b>西</b> / WEST</span>
+            <span class="zone-status"><i></i> 진입 가능</span>
+            <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HOUSE OF THE LEFT BEHIND</span><strong>생활관</strong><small>남겨진 자들이 잠드는 곳</small></span><span class="enter-icon">↗</span></span>
+          </button>
+          <button class="zone-card center" data-zone="center" type="button">
+            <span class="shrine-pixel" aria-hidden="true"></span>
+            <span class="inner-line"></span>
+            <span class="zone-number">00 <b>黃</b> / CENTER</span>
+            <span class="zone-status caution"><i></i> 출입 금지</span>
+            <span class="zone-bottom"><span class="zone-text"><span class="zone-english">THE YELLOW SHRINE</span><strong>사당</strong><small>노란 기와 아래, 누가 모셔져 있는가</small></span><span class="enter-icon">↗</span></span>
           </button>
           <button class="zone-card east" data-zone="east" type="button">
             <img src="assets/east_scene.png" alt="별빛 아래 강학당과 계단, 불 밝힌 창" class="zone-art">
@@ -127,13 +147,7 @@
             <span class="zone-status"><i></i> 진입 가능</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HALL OF TALISMANS</span><strong>강학당</strong><small>부적과 주문을 배우는 곳</small></span><span class="enter-icon">↗</span></span>
           </button>
-          <button class="zone-card west" data-zone="west" type="button">
-            <img src="assets/west_scene.png" alt="꽃나무와 등불이 있는 전통 생활관" class="zone-art">
-            <span class="zone-tint"></span><span class="inner-line"></span>
-            <span class="zone-number">03 <b>西</b> / WEST</span>
-            <span class="zone-status"><i></i> 진입 가능</span>
-            <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HOUSE OF THE LEFT BEHIND</span><strong>생활관</strong><small>남겨진 자들이 잠드는 곳</small></span><span class="enter-icon">↗</span></span>
-          </button>
+          <span class="pxwall obang-wall w-sw" aria-hidden="true"><i>坤</i></span>
           <button class="zone-card south" data-zone="south" type="button">
             <img src="assets/south_scene.png" alt="붉은 봉인과 안개에 잠긴 비령산 금지된 동굴" class="zone-art">
             <span class="zone-tint"></span><span class="inner-line"></span>
@@ -141,7 +155,7 @@
             <span class="zone-status danger"><i></i> 위험 구역</span>
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">THE FORBIDDEN PEAK</span><strong>비령산 금역</strong><small>그날의 진실이 묻힌 곳</small></span><span class="enter-icon">↗</span></span>
           </button>
-          <div class="central-sigil" aria-hidden="true"></div>
+          <span class="pxwall obang-wall w-se" aria-hidden="true"><i>巽</i></span>
         </div>
         <div class="map-legend" aria-label="오방색 범례"><span>● 청 · 동</span><span>● 적 · 남</span><span>● 황 · 중앙</span><span>● 백 · 서</span><span>● 흑 · 북</span></div>
         <nav class="community-shortcuts" aria-label="비령의 소통 공간">
@@ -158,6 +172,7 @@
           <button type="button" class="page-back" id="pageBack">◂ 뒤로가기</button>
           <div class="page-head-text"><span class="panel-eyebrow" id="panelEyebrow"></span><h2 id="panelTitle"></h2></div>
           <a class="page-home" href="#/">사방 지도</a>
+          <button type="button" class="page-home page-map" id="innerMapBtn" data-open-map>내부 지도</button>
         </header>
         <nav class="panel-tabs" id="panelTabs" hidden></nav>
         <nav class="panel-chips" id="panelChips" hidden></nav>
@@ -180,7 +195,7 @@
           <button type="button" data-menu="quest"><i>導</i><span>적응 퀘스트</span><b id="statusQuest"></b></button>
           <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
           <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>
-          <div class="status-admin-slot" data-admin-slot aria-hidden="true"></div>
+          <div class="status-admin-slot" data-admin-slot></div>
           <button type="button" data-menu="notes"><i>報</i><span>업데이트 노트</span></button>
         </div>
       </aside>
@@ -193,6 +208,14 @@
   </div>
 
   <div class="play-scope" id="playPortal"></div>
+  <dialog class="map-dialog" id="mapDialog" aria-labelledby="mapDialogTitle">
+    <div class="map-window">
+      <header class="map-window-head"><div><span class="community-overline">秘靈 / FLOOR MAP</span><h2 id="mapDialogTitle">내부 지도</h2></div><button type="button" class="community-close" id="mapClose" aria-label="내부 지도 닫기">✕</button></header>
+      <nav class="map-tabs" id="mapTabs" aria-label="건물 고르기"></nav>
+      <div class="map-body" id="mapBody"></div>
+      <p class="map-foot">■ 벽 · 방을 누르면 그 건물의 탐사로 간다. 기숙사와 산문에는 내부 지도가 없다.</p>
+    </div>
+  </dialog>
   <div class="toast-stack" id="toastStack" popover="manual" aria-live="polite"></div>
   <dialog class="community-dialog" id="communityDialog" aria-labelledby="communityTitle">
     <div class="community-window">

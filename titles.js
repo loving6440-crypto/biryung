@@ -5,7 +5,8 @@
  *   { set, n }          메인 화면이 모은 서로 다른 것의 수 — zones · scenes · banner · community · pages · days
  *   { count, n }        실행 화면이 센 횟수/최고값 — battleWins · bossWins · tierMax · lessons · crafts · cooks · pioneers · gathers · buys · sells
  *                       · statUps · statMax · statMin · statSum · enhances · harvests · itemsUsed · trainings · sleeps · moneyPeak · spiritPeak
- *   { pset, n }         실행 화면이 모은 서로 다른 것의 수 — courses · beaten · bosses · recipes · sites · tutorials
+ *   { pset, n }         실행 화면이 모은 서로 다른 것의 수 — courses · beaten · bosses · recipes · sites · tutorials · spots(탐사한 곳)
+ *   { titles: n }       가진 칭호 수
  *   { streak: n }       n일 연속 접속
  *   { all: [조건…] }     모두 만족
  * 칭호 from: 'start'(처음부터) | 'achievement'(업적 보상 — 업적 하나에 칭호 하나)
@@ -16,7 +17,7 @@ window.BIRYEONG_TITLES = [
   { id: 'left-behind', name: '남겨진 아이', desc: '사라진 이들이 남기고 간 것.', from: 'start' },
   { id: 'first-term', name: '제1기 후손', desc: '산문 명부의 첫 장에 오른 이름.', from: 'start' },
   { id: 'heir', name: '유품을 든 자', desc: '쓰임을 모르는 물건 하나.', from: 'start' },
-  { id: 't-r-zones', name: '사방을 디딘 자', desc: '북 · 동 · 서 · 남을 모두 밟았다.', from: 'achievement' },
+  { id: 't-r-zones', name: '사방을 디딘 자', desc: '북 · 동 · 서 · 남, 그리고 가운데를 모두 밟았다.', from: 'achievement' },
   { id: 't-r-archive', name: '기밀 열람자', desc: '봐도 되는 것과 보면 안 되는 것을 전부 봤다.', from: 'achievement' },
   { id: 't-r-scenes', name: '복도의 방랑자', desc: '문이 있으면 연다.', from: 'achievement' },
   { id: 't-r-doors', name: '소식을 묻는 자', desc: '거기 누구 있어요.', from: 'achievement' },
@@ -78,9 +79,9 @@ window.BIRYEONG_TITLES = [
   { id: 't-p-money', name: '금돼지', desc: '굴 하나를 살 수 있다.', from: 'achievement' },
 ];
 window.BIRYEONG_ACHIEVEMENTS = [
-  { id: 'r-zones', group: 'roam', name: '사방 답사', desc: '네 방위를 모두 디뎠다.', hint: '네 구역에 모두 들어가고, 탐사에서 서로 다른 곳 10군데를 살핀다.', when: { all: [{ set: 'zones', n: 4 }, { set: 'scenes', n: 10 }] }, title: 't-r-zones' },
+  { id: 'r-zones', group: 'roam', name: '사방 답사', desc: '오방을 모두 디뎠다.', hint: '다섯 구역에 모두 들어가고, 탐사에서 서로 다른 곳 5군데를 살핀다.', when: { all: [{ set: 'zones', n: 5 }, { pset: 'spots', n: 5 }] }, title: 't-r-zones' },
   { id: 'r-archive', group: 'roam', name: '기록 열람', desc: '다섯 빛깔과 그날의 문서를 모두 보았다.', hint: '메인 배너 다섯 쪽을 모두 넘기고, 사건 기록을 읽는다.', when: { all: [{ set: 'banner', n: 5 }, { flag: 'caseRead' }] }, title: 't-r-archive' },
-  { id: 'r-scenes', group: 'roam', name: '복도의 끝', desc: '갈 수 있는 곳은 일단 가 본다.', hint: '탐사에서 서로 다른 곳 30군데를 살핀다.', when: { set: 'scenes', n: 30 }, title: 't-r-scenes' },
+  { id: 'r-scenes', group: 'roam', name: '복도의 끝', desc: '갈 수 있는 곳은 일단 가 본다.', hint: '탐사에서 서로 다른 곳 15군데를 살핀다.', when: { pset: 'spots', n: 15 }, title: 't-r-scenes' },
   { id: 'r-doors', group: 'roam', name: '세 개의 문', desc: '지신성과 두 터의 문을 모두 두드렸다.', hint: '지신성 · 낮새들의 터 · 밤쥐들의 터를 모두 열어 본다.', when: { set: 'community', n: 3 }, title: 't-r-doors' },
   { id: 'r-pages', group: 'roam', name: '살림 파악', desc: '학당의 살림이 어디에 있는지 안다.', hint: '서로 다른 화면 25곳을 열어 본다.', when: { set: 'pages', n: 25 }, title: 't-r-pages' },
   { id: 'd-wins', group: 'day', name: '하루치 실습', desc: '하루에 다섯 번 물리쳤다.', hint: '전투에서 5번 이긴다.', when: { count: 'battleWins', n: 5 }, title: 't-d-wins' },
@@ -94,7 +95,7 @@ window.BIRYEONG_ACHIEVEMENTS = [
   { id: 'w-lessons20', group: 'days', name: '출석부', desc: '스무 번의 수업.', hint: '수업을 20번 마친다.', when: { count: 'lessons', n: 20 }, title: 't-w-lessons20' },
   { id: 'w-crafts30', group: 'days', name: '작업대의 주인', desc: '서른 번 만들었다.', hint: '제작 · 조리를 30번 한다.', when: { count: 'crafts', n: 30 }, title: 't-w-crafts30' },
   { id: 'w-pioneer15', group: 'days', name: '발자국이 길이 된다', desc: '열다섯 번의 개척.', hint: '개척을 15번 나간다.', when: { count: 'pioneers', n: 15 }, title: 't-w-pioneer15' },
-  { id: 'w-scenes90', group: 'days', name: '손바닥 안', desc: '학당의 지도를 다시 그려도 되겠다.', hint: '탐사에서 서로 다른 곳 90군데를 살핀다.', when: { set: 'scenes', n: 90 }, title: 't-w-scenes90' },
+  { id: 'w-scenes90', group: 'days', name: '손바닥 안', desc: '학당의 지도를 다시 그려도 되겠다.', hint: '탐사에서 서로 다른 곳 40군데를 살핀다.', when: { pset: 'spots', n: 40 }, title: 't-w-scenes90' },
   { id: 'w-beaten10', group: 'days', name: '열 개의 이름', desc: '이름 있는 것 열을 쓰러뜨렸다.', hint: '서로 다른 상대 10종을 이긴다.', when: { pset: 'beaten', n: 10 }, title: 't-w-beaten10' },
   { id: 'w-tutorial', group: 'days', name: '교범 완독', desc: '전투 교범을 끝까지 익히고 실전에 나섰다.', hint: '전투 튜토리얼 4개를 모두 마치고, 2단계 상대를 이긴다.', when: { all: [{ pset: 'tutorials', n: 4 }, { count: 'tierMax', n: 2 }] }, title: 't-w-tutorial' },
   { id: 'w-money500', group: 'days', name: '주머니가 무겁다', desc: '오백 냥을 쥐어 봤다.', hint: '소지금 500냥을 모은다.', when: { count: 'moneyPeak', n: 500 }, title: 't-w-money500' },
@@ -131,7 +132,7 @@ window.BIRYEONG_ACHIEVEMENTS = [
   { id: 'p-tier10', group: 'peak', name: '십 단계', desc: '열 번째 단계의 상대를 쓰러뜨렸다.', hint: '추가전투 10단계 상대를 이긴다.', when: { count: 'tierMax', n: 10 }, title: 't-p-tier10' },
   { id: 'p-bosses', group: 'peak', name: '열 우두머리', desc: '모든 단계의 우두머리를 꺾었다.', hint: '서로 다른 보스 10종을 모두 이긴다.', when: { pset: 'bosses', n: 10 }, title: 't-p-bosses' },
   { id: 'p-beaten', group: 'peak', name: '전부', desc: '나타난 모든 것을 한 번씩 쓰러뜨렸다.', hint: '모든 상대 57종을 이긴다.', when: { pset: 'beaten', n: 57 }, title: 't-p-beaten' },
-  { id: 'p-stat60', group: 'peak', name: '한 갈래의 끝', desc: '한 가지 기질을 끝까지 밀었다.', hint: '육조 스탯 하나를 60까지 올린다.', when: { count: 'statMax', n: 60 }, title: 't-p-stat60' },
+  { id: 'p-stat60', group: 'peak', name: '한 갈래의 끝', desc: '한 가지 기질을 끝까지 밀었다.', hint: '육조 스탯 하나를 50(끝)까지 올린다.', when: { count: 'statMax', n: 50 }, title: 't-p-stat60' },
   { id: 'p-statall30', group: 'peak', name: '치우침 없음', desc: '여섯 갈래가 모두 서른을 넘었다.', hint: '육조 스탯을 모두 30 이상으로 올린다.', when: { count: 'statMin', n: 30 }, title: 't-p-statall30' },
   { id: 'p-statsum', group: 'peak', name: '삼백', desc: '여섯 갈래의 합이 삼백.', hint: '육조 스탯의 합을 300까지 올린다.', when: { count: 'statSum', n: 300 }, title: 't-p-statsum' },
   { id: 'p-recipes', group: 'peak', name: '모든 조합', desc: '거의 모든 것을 만들 줄 안다.', hint: '서로 다른 제작법 120가지로 만든다.', when: { pset: 'recipes', n: 120 }, title: 't-p-recipes' },

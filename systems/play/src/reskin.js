@@ -17,3 +17,24 @@ for (const e of ALL_ENEMIES) {
   if (r.special2 && e.special2) e.special2.label = r.special2
 }
 for (const p of PSYCHICS) { const r = PSYCHIC_RESKIN[p.id]; if (r) p.note = r.note } // 이름(label)은 빌드할 때 글자째로 바꾼다
+
+// ── v1.0 새 제작법 113개(공작소 63 · 조리실 50) — 보관고의 제작법 목록 뒤에 붙인다. 표: systems/biryeong/recipes-new.txt ──
+// tier: 1 바탕 · 2 바탕으로 만드는 완성품 · 3 상급 공정 / yield: 한 번에 나오는 수(usePlayHost 의 afterMake 가 더해 준다)
+import { RECIPES } from '@vault/game/crafting.js'
+import { COOK_RECIPES } from '@vault/game/cooking.js'
+import { HIKE_PATHS } from '@vault/game/hike.js'
+import { NEW_RECIPES, RECIPE_TIERS } from '../../biryeong/reskin.data.js'
+const TIER_NOTE = { 1: '1단계 · 바탕', 2: '2단계 · 바탕으로 만든다', 3: '3단계 · 상급 공정' }
+for (const r of [...RECIPES, ...COOK_RECIPES]) if (r.tier == null) r.tier = RECIPE_TIERS[r.id] ?? 2
+const withNote = (r) => ({ ...r, note: `${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
+RECIPES.push(...NEW_RECIPES.W.map(withNote))
+COOK_RECIPES.push(...NEW_RECIPES.K.map(withNote))
+
+// ── v1.0 추가전투는 퇴마 실습장으로 옮겼다: 뒷산 둘레길(교외 옆)의 [추가전투] 칸을 뺀다. ──
+const dropExtra = (node) => {
+  for (const key of ['choices', 'areas', 'rooms', 'spots', 'branches']) {
+    if (!Array.isArray(node?.[key])) continue
+    for (let i = node[key].length - 1; i >= 0; i--) { if (node[key][i].widget === 'extraBattle') node[key].splice(i, 1); else dropExtra(node[key][i]) }
+  }
+}
+HIKE_PATHS.forEach(dropExtra)

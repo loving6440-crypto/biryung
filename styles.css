@@ -292,3 +292,101 @@ body,button,dialog{font-family:var(--ui-font-family)}
 #playPortal{position:static}
 @media (max-width:1080px){.page-view{grid-column:1}}
 @media (max-width:790px){.page-view{grid-column:1 / -1;min-height:0}.status-panel{position:static}.page-head{flex-wrap:wrap;gap:9px;padding:11px 12px 10px}.page-home{display:none}.page-view .panel-body{padding:13px 12px 4px}.play-host{padding:10px 10px 16px}}
+
+/* ═════════ v1.0 ═════════ */
+/* ── 도트 지도 공통: 짙은 남색 바탕 · 둥글고 두툼한 청회색 벽돌 벽 · 작은 색 표식 ── */
+.pxwall{background-color:#56628f;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' shape-rendering='crispEdges'%3E%3Crect width='24' height='16' fill='%2356628f'/%3E%3Cpath d='M0 0h24v2H0zM0 8h24v2H0zM10 2h2v6h-2zM22 10h2v6h-2z' fill='%233f4973'/%3E%3Cpath d='M0 2h10v1H0zM12 2h12v1H12zM0 10h22v1H0z' fill='%236d7aab'/%3E%3C/svg%3E");background-size:24px 16px;image-rendering:pixelated;border-radius:16px;box-shadow:inset 0 0 0 3px #7683b4,inset 0 0 0 6px #3f4973,0 4px 0 #05091a}
+.px-ico{width:21px;height:21px;flex:none;image-rendering:pixelated}
+
+/* ── 오방 지도(처음 화면): 가운데 사당(황), 둘레에 산문(북) · 강학당(동) · 생활관(서) · 금역(남) ── */
+.zone-grid.obang{grid-template-columns:minmax(0,1fr) minmax(0,1.12fr) minmax(0,1fr);grid-template-rows:repeat(3,166px);gap:10px;padding:10px;background:#0a0f22;border:2px solid #2c3660;box-shadow:inset 0 0 0 3px #060a18}
+.obang .zone-card{border-radius:10px}
+.obang .zone-art{border-radius:8px}
+.obang .zone-number{top:11px;left:11px;padding:4px 7px;font-size:9px}
+.obang .zone-status{top:14px;right:10px}
+.obang .zone-bottom{left:12px;right:10px;bottom:9px}
+.obang .zone-text strong{font-size:20px}
+.obang .zone-text small{font-size:10px}
+.obang .zone-english{font-size:8px}
+.obang .enter-icon{display:none}
+.obang-wall{display:grid;place-items:center;min-height:0}
+.obang-wall i{font-style:normal;font-size:26px;color:#aab4dc;text-shadow:2px 2px 0 #2b335a;opacity:.75}
+.zone-card.center{--accent:#f2d24a;border-color:#b79a36;background:#141a12}
+.zone-card.center .zone-number b{color:#f2d24a}
+.zone-status.caution{color:#f6e7a6}.zone-status.caution i{background:#f2d24a;box-shadow:0 0 5px #f2d24a}
+.shrine-pixel{position:absolute;inset:0;z-index:-3;border-radius:8px;image-rendering:pixelated;background:#0d1322 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 26' shape-rendering='crispEdges'%3E%3Crect width='40' height='26' fill='%230d1322'/%3E%3Cpath d='M4 3h1v1H4zM31 5h1v1h-1zM36 2h1v1h-1zM9 8h1v1H9zM24 2h1v1h-1z' fill='%23f6eeb0'/%3E%3Cpath d='M19 6h2v1h-2zM16 7h8v1h-8zM13 8h14v1H13zM10 9h20v1H10zM7 10h26v1H7zM6 11h28v1H6z' fill='%23f2d24a'/%3E%3Cpath d='M5 12h2v1H5zM33 12h2v1h-2zM8 12h24v1H8z' fill='%23b8922c'/%3E%3Cpath d='M11 13h18v8H11z' fill='%235b2a2a'/%3E%3Cpath d='M11 13h2v8h-2zM27 13h2v8h-2zM19 13h2v8h-2z' fill='%23c0504a'/%3E%3Cpath d='M14 15h4v6h-4zM22 15h4v6h-4z' fill='%231a1014'/%3E%3Cpath d='M15 16h2v2h-2zM23 16h2v2h-2z' fill='%23f2d24a'/%3E%3Cpath d='M8 21h24v1H8zM6 22h28v1H6z' fill='%238d8a7a'/%3E%3Cpath d='M0 23h40v3H0z' fill='%23202a22'/%3E%3C/svg%3E") center/cover no-repeat}
+.zone-card.center::after{content:'';position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,rgba(5,12,22,.2),transparent 30%,rgba(3,9,20,.82) 78%,rgba(3,9,20,.96))}
+.map-open{margin-left:10px;padding:5px 10px;font-size:10px;background:#1b2550;border:1px solid #6d7aab;color:#dfe5ff}
+.map-open:hover{background:#2b3870;border-color:#f2d24a}
+button.page-home{cursor:pointer;font-family:inherit}
+.page-map{border-color:#6d7aab;color:#dfe5ff;background:#1b2550}
+
+/* ── 내부 지도 창 ── */
+.map-dialog{border:2px solid #6d7aab;background:#080c1d;color:#e8ecff;padding:0;width:min(900px,calc(100vw - 20px));max-height:calc(100dvh - 26px);box-shadow:0 0 0 5px #05081a,0 20px 70px #030711f0}
+.map-dialog::backdrop{background:#030914d9;backdrop-filter:blur(3px)}
+.map-window{display:flex;flex-direction:column;max-height:calc(100dvh - 30px)}
+.map-window-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 17px;border-bottom:1px solid #2c3660}
+.map-window-head h2{margin:2px 0 0;font-size:19px;letter-spacing:.08em}
+.map-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 15px 0}
+.map-tabs button{padding:7px 12px;font-size:12px;background:#121a3a;border:1px solid #3f4973;color:#c9d2ee}
+.map-tabs button.is-on{background:#56628f;border-color:#aab4dc;color:#fff}
+.map-body{overflow:auto;padding:13px 15px 6px}
+.map-foot{margin:0;padding:8px 17px 13px;font-size:10px;color:#8f9cc8}
+.pxmap{background:#0a0f22;padding:14px;border:2px solid #1c2448;font-family:'Galmuri9','Noto Sans KR',sans-serif}
+.pxmap-title{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:15px;letter-spacing:.06em}
+.pxmap-title b{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;background:#f2d24a;color:#0a0f22;font-size:17px}
+.pxmap-blue .pxmap-title b{background:#6fb5e8}.pxmap-white .pxmap-title b{background:#eef0f6}.pxmap-red .pxmap-title b{background:#e8706c}
+.pxmap-title span{color:#f2e68a}.pxmap-title i{font-style:normal;color:#eef0f6}.pxmap-title em{font-style:normal;color:#f37fb1}
+.pxlevels{display:flex;flex-direction:column;gap:12px}
+.pxlevels.is-paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:start}
+.pxfloor{display:grid;grid-template-columns:62px minmax(0,1fr);gap:9px;align-items:stretch}
+.is-paths .pxfloor{grid-template-columns:1fr}
+.pxfloor-name{margin:0;display:grid;place-items:center;font-size:13px;font-weight:400;color:#0a0f22;background:#aab4dc;border-radius:8px;box-shadow:0 3px 0 #05091a;text-align:center;padding:6px 4px;word-break:keep-all}
+.is-paths .pxfloor-name{background:#7fe0a0}
+.pxplan{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;padding:12px}
+.is-paths .pxplan{grid-template-columns:1fr}
+.pxroom{display:flex;align-items:center;gap:7px;min-height:46px;padding:7px 9px;text-align:left;background:#0a0f22;border:0;border-radius:8px;color:#eef0f6;font:12px/1.35 'Galmuri9','Noto Sans KR',sans-serif;box-shadow:inset 0 0 0 2px #05091a;cursor:pointer;word-break:keep-all}
+.pxroom:hover,.pxroom:focus-visible{background:#18214a;box-shadow:inset 0 0 0 2px #f2d24a}
+.pxroom.is-club span{color:#f9b3d2}.pxroom.is-path{background:#101a2c}.pxroom.is-path span{color:#a8ecc0}
+.pxhall{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px;padding:3px 10px;background:#0a0f22;border-radius:8px;box-shadow:inset 0 0 0 2px #05091a;color:#8f9cc8;font-size:10px;letter-spacing:.2em}
+.pxhall .px-ico{width:14px;height:14px}
+
+/* ── 로그인 화면 ── */
+body.is-gated{overflow:hidden}
+body.is-gated > :not(#gate){display:none !important}
+.gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:#060b15 radial-gradient(ellipse at 50% 30%,#13233a 0,#060b15 70%);overflow:auto}
+.gate-box{width:min(380px,100%);padding:30px 26px 22px;background:#0e1928;border:2px solid #806e50;box-shadow:inset 0 0 0 4px #080f1c,inset 0 0 0 5px #455465,10px 10px 0 #030914;text-align:center}
+.gate-logo{display:block;margin:0 auto;padding:4px 14px;background:none;border:0;color:#efe6ce;font:400 64px/1.1 'Galmuri9','Courier New',monospace;letter-spacing:.14em;text-indent:.14em;text-shadow:4px 4px 0 #2a3d52;cursor:default;user-select:none;-webkit-tap-highlight-color:transparent}
+.gate-logo.is-tapped{animation:gate-tap .18s steps(2)}
+.gate-logo.is-open{color:#d4b078;text-shadow:4px 4px 0 #5b3030}
+@keyframes gate-tap{50%{transform:translateY(2px)}}
+.gate-sub{margin:6px 0 20px;font-size:11px;letter-spacing:.3em;color:#9aa5a3}
+.gate-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.gate-tabs button{padding:9px 4px;font-size:12px;background:#101e2e;border:1px solid #455769;color:#a0b2b3}
+.gate-tabs button[aria-pressed='true']{background:#22364a;border-color:#d4b078;color:#f3dfb2}
+.gate-form{display:flex;flex-direction:column;gap:10px;text-align:left}
+.gate-field{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#b9c6c2}
+.gate-field[hidden]{display:none}
+.gate-field input{padding:10px 11px;font:13px var(--ui-font-family,'Galmuri9',sans-serif);background:#08111d;border:1px solid #455769;color:#efe6ce}
+.gate-field input:focus{outline:2px solid #d4b078;outline-offset:1px}
+.gate-admin span{color:#e8a5a0}.gate-admin input{border-color:#8c525e}
+.gate-error{margin:0;font-size:11px;color:#f0a9a4}
+.gate-submit{margin-top:4px;padding:11px;font-size:13px;font-weight:700;background:#d5b579;border:1px solid #eccf9e;color:#121b24}
+.gate-submit:hover{background:#f0d295}.gate-submit:disabled{opacity:.6}
+.gate-note{display:block;margin-top:16px;font-size:10px;line-height:1.7;color:#7f9193}
+
+/* ── 관리자 · 칭호 기능 ── */
+.perk-line{margin:3px 0 0;font-size:10.5px;color:#9fd8c8}
+.profile-field .perk-line{display:block}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:10px}
+.admin-num{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#b9c6c2}
+.admin-num input,.admin-num select,.admin-give input,.admin-give select{padding:8px 9px;font:12px var(--ui-font-family,sans-serif);background:#08111d;border:1px solid #455769;color:#efe6ce;min-width:0}
+.admin-check{display:flex;align-items:center;gap:7px;margin:4px 0 10px;font-size:12px;color:#d9cdb0}
+.admin-give{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 74px auto;gap:7px}
+.admin-list{margin:0 0 4px;padding-left:18px;font-size:12px;line-height:1.9;color:#bdc7c1}
+.admin-list.is-later{color:#7f9193}
+.admin-side{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.status-menu button[data-menu='admin']{border-color:#8c525e}.status-menu button[data-menu='admin'] i{color:#e8a5a0}
+
+@media (max-width:1300px){.zone-grid.obang{grid-template-rows:repeat(3,150px)}.obang .zone-text strong{font-size:18px}}
+@media (max-width:790px){.zone-grid.obang{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:128px}.obang-wall{display:none}.pxfloor{grid-template-columns:1fr}.admin-give{grid-template-columns:1fr 1fr}.gate-logo{font-size:52px}.page-map{display:inline-block}}

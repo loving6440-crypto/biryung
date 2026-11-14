@@ -79,55 +79,37 @@ const siteLine = (s) => {
 
 // kind: 'play' = 그 자리에서 바로 실행되는 화면(systems/play). 주소는 App.jsx 의 화면 이름.
 const play = (id, title, to, intro) => ({ id, title, kind: 'play', to, ...(intro ? { intro } : {}) })
+// v1.0: 구역 → 곳 → 할 일. 초록동색의 장소 · 활동과 같은 얼개다(그 자리에 가면 그 자리의 기능이 나온다).
+// 할 일의 실행 주소는 at/<곳>/<할 일> — systems/play/src/App.jsx 가 그 장소 화면을 그대로 그린다.
+const act = (loc, id, title, extra = {}) => ({ id, title, kind: 'play', to: `at/${loc}/${id}`, ...extra })
+const place = (id, name, hanja, acts) => ({ id, name, hanja, sections: acts })
 const zones = {
   north: { title: '산문', story: true, tabs: [] }, // 산문 = 스토리 퀘스트(story.js)
-  east: {
-    title: '강학당',
-    tabs: [
-      { id: 'mainHall', name: '본관', hanja: '靑', sections: [
-        text('intro', '둘러보기', LI.mainHall),
-        play('lessons', '수업', 'lesson', `몇 번이든 들을 수 있고, 보상(영력)은 하루 한 번. 최소 점수를 넘긴 뒤 ${courseInfo.LESSON_WAIT_MINUTES}분을 기다리면 받는다.`),
-        scene('explore', '본관 탐사', '본관', explore.FLOORS),
-        play('infirmary', '양호실', 'rest', LI.infirmary.join('\n\n')),
-      ] },
-      { id: 'annex', name: '별관', hanja: '白', sections: [
-        text('intro', '둘러보기', LI.annex),
-        play('workshop', '공작소', 'workshop'),
-        play('kitchen', '조리실', 'kitchen'),
-        scene('explore', '별관 탐사', '별관', annex.ANNEX_FLOORS),
-        list('clubs', '동아리', clubs.CLUBS.map((c) => ({ name: c.name, sub: `${c.floor} · ${c.room}`, desc: (c.desc ?? []).join(' '), lines: [] }))),
-      ] },
-    ],
-  },
-  west: {
-    title: '생활관',
-    tabs: [
-      { id: 'dorm', name: '기숙사', hanja: '黑', sections: [
-        text('intro', '둘러보기', LI.dorm),
-        play('train', '수련', 'train'),
-        play('sleep', '잠', 'sleep'),
-        play('store', '매점', 'store'),
-        list('cafeteria', '급식실', meals.MEAL_SLOTS.map((m) => ({ name: m.label, sub: m.time, desc: '', lines: [] })), meals.CAFETERIA.oneLine),
-      ] },
-    ],
-  },
-  south: {
-    title: '비령산 금역',
-    tabs: [
-      { id: 'gym', name: '뒷산', hanja: '赤', sections: [
-        text('intro', '둘러보기', LI.gym),
-        play('practice', '퇴마 실습', 'battle', `영력을 얻는 승리는 하루 ${progress.GYM_DAILY_REWARDS}회. 전투 튜토리얼도 여기서 연다.`),
-        play('extra', '추가전투', 'extra/1', '금역 깊은 곳의 상대 50종. 一~十단계, 단계마다 단독 3 · 파티 1 · 보스 1.'),
-        play('pioneer', '개척', 'pioneer'),
-        scene('hike', '산 탐사', '뒷산', hike.HIKE_PATHS),
-        play('armory', '무구보관소', 'armory', armory.ARMORY.desc),
-        play('garden', '텃밭', 'garden'),
-        list('goblin', '도깨비 놀이', hike.GOBLIN_GAMES.map((g) => ({ name: g.name, sub: `겨루는 스탯: ${STAT[g.stat] ?? g.stat}`, desc: g.result, lines: [] }))),
-      ] },
-    ],
-  },
+  center: { title: '사당', tabs: [
+    place('shrine', '사당', '黃', [act('shrine', 'intro', '둘러보기'), act('shrine', 'sign', '표지판'), act('shrine', 'explore', '사당 탐사', { unlock: 'shrine' })]),
+  ] },
+  east: { title: '강학당', tabs: [
+    place('mainHall', '본관', '靑', [act('mainHall', 'intro', '둘러보기'), act('mainHall', 'class', '수업'), act('mainHall', 'explore', '본관 탐사')]),
+    place('annex', '별관', '白', [act('annex', 'intro', '둘러보기'), act('annex', 'explore', '별관 탐사')]),
+    { ...place('infirmary', '양호실', '癒', [act('infirmary', 'intro', '둘러보기'), act('infirmary', 'rest', '휴식 · 상담')]), hidden: true }, // 본관 탐사(2층 양호실)로 들어간다
+  ] },
+  west: { title: '생활관', tabs: [
+    place('dorm', '기숙사', '黑', [act('dorm', 'intro', '둘러보기'), act('dorm', 'my-room', '내 기숙사'), act('dorm', 'store', '매점'), act('dorm', 'cafeteria', '급식실')]),
+  ] },
+  south: { title: '비령산 금역', tabs: [
+    place('gym', '뒷산', '赤', [act('gym', 'intro', '둘러보기'), act('gym', 'battle', '퇴마 실습'), act('gym', 'hike', '산 탐사'), act('gym', 'pioneer', '개척')]),
+  ] },
 }
 
+// ── 내부 지도(v1.0): 탐사할 수 있는 곳을 층 · 길 단위로 정리한다. app.js 가 도트 지도로 그린다. ──
+const shrineX = cat('shrineExplore')
+const roomsOf = (n) => [...(n.areas ?? []), ...(n.rooms ?? []), ...(n.spots ?? []), ...(n.branches ?? []), ...(n.choices ?? [])].filter((c) => c.widget !== 'extraBattle').map((c) => ({ id: c.id, name: c.name, ...(c.club ? { club: true } : {}) }))
+const maps = [
+  { id: 'mainHall', name: '본관', hanja: '靑', color: 'blue', levels: explore.FLOORS.map((f) => ({ id: f.id, name: f.name, rooms: roomsOf(f) })) },
+  { id: 'annex', name: '별관', hanja: '白', color: 'white', levels: annex.ANNEX_FLOORS.map((f) => ({ id: f.id, name: f.name, rooms: roomsOf(f) })) },
+  { id: 'gym', name: '뒷산', hanja: '赤', color: 'red', levels: hike.HIKE_PATHS.map((p) => ({ id: p.id, name: p.name, rooms: (p.branches?.length ? p.branches.flatMap((b) => [{ id: b.id, name: b.name, path: true }, ...roomsOf(b)]) : roomsOf(p)) })) },
+  { id: 'shrine', name: '사당', hanja: '黃', color: 'yellow', levels: [{ id: 'shrine', name: '사당 경내', rooms: (shrineX.SHRINE_AREAS ?? []).map((a) => ({ id: a.id, name: a.name })) }] },
+]
 
 const { TEXT_SWAPS } = await import('../biryeong/reskin.data.js')
 const swapText = (v) => typeof v === 'string' ? TEXT_SWAPS.reduce((t, [x, y]) => t.split(x).join(y), v) : Array.isArray(v) ? v.map(swapText) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapText(x)])) : v
@@ -141,11 +123,13 @@ const data = swapText(npcFill({
     nameMax: C.NAME_MAX_LENGTH, introMax: C.GREETING_MAX_LENGTH,
   },
   zones,
+  maps,
 }))
 const left = JSON.stringify(data).match(/\{\{npc:[^}]*\}\}/g)
 if (left) throw new Error('채워지지 않은 NPC 자리표: ' + [...new Set(left)].join(' '))
 const body = `/* 秘靈 · 비령 — 구역 화면 데이터. 직접 고치지 말 것: npm run site:data 로 systems/vault 에서 다시 만든다. */\nwindow.BIRYEONG_DATA = ${JSON.stringify(data)};\n`
 writeFileSync(join(ROOT, 'game-data.js'), body)
 const count = (n) => 1 + (n.choices ?? []).reduce((a, c) => a + count(c), 0)
-for (const [k, z] of Object.entries(zones)) console.log(k, z.title, z.tabs.map((t) => `${t.name}: ${t.sections.map((s) => `${s.title}(${s.kind === 'scene' ? count(s.root) - 1 + '장면' : s.kind === 'list' ? s.items.length : s.kind === 'play' ? '실행' : s.paras.length})`).join(', ')}`).join(' | ') || '(비어 있음)')
+for (const [k, z] of Object.entries(zones)) console.log(k, z.title, z.tabs.map((t) => `${t.name}: ${t.sections.map((s) => s.title).join(', ')}`).join(' | ') || '(스토리)')
+for (const m of maps) console.log('지도', m.name, m.levels.map((l) => `${l.name}(${l.rooms.length})`).join(' '))
 console.log('game-data.js', Math.round(Buffer.byteLength(body) / 1024) + 'KB')

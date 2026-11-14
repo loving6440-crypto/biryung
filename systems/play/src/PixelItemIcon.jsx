@@ -1,5 +1,5 @@
 // 비령 play — 아이템 도트 아이콘. 보관고의 ItemIcon(원형 플랫 배지)을 이 파일로 바꿔 끼운다(build.mjs).
-// item.pixel = { t: 틀, p: 팔레트 } 를 12×12 도트로 그린다.
+// item.pixel = { t: 틀, p: 색 } 를 12×12 도트로 그린다. v1.1: 아이템마다 하나씩(systems/biryeong/pixels.txt), 겹치는 도트 없음.
 import { itemOf } from '@vault/game/items.js'
 import { PIXEL_TEMPLATES, PIXEL_PALETTES, ITEM_PIXELS } from '../../biryeong/reskin.data.js'
 

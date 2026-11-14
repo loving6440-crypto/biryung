@@ -104,7 +104,9 @@ test('Site: 구역 · 칭호 · 업적 · 스토리 데이터가 맞게 들어 �
   const load = (f) => { const w = {}; new Function('window', readFileSync(join(ROOT, f), 'utf8'))(w); return w; };
   const d = load('game-data.js').BIRYEONG_DATA;
   assert.equal(d.zones.north.story, true);
-  assert.deepEqual(d.zones.east.tabs.map((x) => x.name), ['본관', '별관']);
+  assert.deepEqual(d.zones.east.tabs.map((x) => x.name), ['본관', '별관', '양호실']);
+  assert.deepEqual(d.zones.center.tabs.map((x) => x.name), ['사당']);
+  assert.deepEqual(d.maps.map((m) => m.id), ['mainHall', 'annex', 'gym', 'shrine']);
   assert.deepEqual(d.zones.west.tabs.map((x) => x.name), ['기숙사']);
   assert.deepEqual(d.zones.south.tabs.map((x) => x.name), ['뒷산']);
   assert.equal(d.rules.statMin, 1); assert.equal(d.rules.startPoints, 10);
@@ -151,3 +153,41 @@ test('Reskin: 아이템 312 · 상대 57 · 영능력 13 이 모두 비령판 �
   for (const grid of Object.values(r.PIXEL_TEMPLATES)) { assert.equal(grid.length, 12); for (const row of grid) assert.match(row, /^[.kabcd]{12}$/); }
   assert.equal(new Set(Object.values(r.ITEM_RESKIN).map((x) => x.name)).size, ITEMS.length, '아이템 이름이 겹친다');
 });
+
+// ── v1.0: 새 제작법 · 칭호 기능 ──
+import { test as t10 } from 'node:test'
+import assert10 from 'node:assert/strict'
+import { readFileSync as read10 } from 'node:fs'
+t10('v1.0 새 제작법은 재료 조합이 서로 겹치지 않고, 올려 두면 그 제작법으로 잡힌다', async () => {
+  const base = new URL('../systems/', import.meta.url)
+  const { RECIPES } = await import(new URL('vault/modules/game/crafting.js', base))
+  const { COOK_RECIPES } = await import(new URL('vault/modules/game/cooking.js', base))
+  const { matchRecipe, benchCraft } = await import(new URL('vault/modules/game/freeCraft.js', base))
+  const { NEW_RECIPES, RECIPE_TIERS } = await import(new URL('biryeong/reskin.data.js', base))
+  const w0 = RECIPES.length, k0 = COOK_RECIPES.length
+  RECIPES.push(...NEW_RECIPES.W); COOK_RECIPES.push(...NEW_RECIPES.K)
+  try {
+    assert10.ok(NEW_RECIPES.W.length + NEW_RECIPES.K.length >= 100)
+    for (const [place, list] of [['workshop', NEW_RECIPES.W], ['kitchen', NEW_RECIPES.K]]) {
+      for (const r of list) {
+        const slots = r.inputs.map(([id, n]) => ({ id, n: n * 2 }))
+        const m = matchRecipe(slots, place)
+        assert10.equal(m?.recipe.id, r.id, `${r.id} 가 ${m?.recipe.id} 로 잡혔다`)
+        assert10.equal(m.k, 2)
+        assert10.ok([1, 2, 3].includes(RECIPE_TIERS[r.id]))
+      }
+    }
+    const r = NEW_RECIPES.W[0]
+    const player = { inventory: Object.fromEntries(r.inputs), money: 0 }
+    const done = benchCraft(player, r.inputs.map(([id, n]) => ({ id, n })), 'workshop', false)
+    assert10.equal(done.failed, false); assert10.equal(done.player.inventory[r.result], 1)
+  } finally { RECIPES.length = w0; COOK_RECIPES.length = k0 }
+})
+t10('v1.0 칭호 114개 모두에 기능이 있고, 업적 하나에 칭호 하나', () => {
+  const window = {}
+  for (const f of ['../titles.js', '../titles2.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
+  const T = window.BIRYEONG_TITLES, A = window.BIRYEONG_ACHIEVEMENTS
+  assert10.equal(T.length, 114); assert10.equal(A.length, 110)
+  assert10.equal(new Set(T.map((t) => t.name)).size, T.length)
+  for (const t of T) { assert10.ok(t.perk?.type && t.perk.v > 0 && t.perkText, t.id); if (t.from !== 'start') assert10.equal(A.filter((a) => a.title === t.id).length, 1, t.id) }
+})

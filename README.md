@@ -112,3 +112,21 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 `npm run check` — 기존 C.01 복사본 데이터·격리 테스트, 인증 단위 테스트, 보관고 검사, C.01 테스트(보관고 경로판).
 `npm run vault -- help` — 보관고 꺼내기 도구 사용법. `npm run vault:verify` — 보관고 파일 무결성 확인.
 `npm run rebuild:data` — 비령 복사본 데이터 재생성. 현재 작업에서는 실행하지 않았습니다.
+
+## v1.0 (2026-11-14)
+
+| 무엇 | 어디 |
+|---|---|
+| 로그인(이 브라우저에만 저장) · 로그인 화면 · 관리자 코드 | `auth.js`, `config.js` — 로고 자리의 「비령」을 다섯 번 누르면 관리자 코드 칸이 나온다 |
+| 관리자 코드 확인(서버) | `server/index.mjs` 의 `POST /api/admin/verify` — Render 환경변수 `ADMIN_CODE` 와 비교. 서버를 붙이면 `config.js` 의 `api`(또는 `sameOrigin: true`)를 채우고 `adminCodeHash` 는 비운다 |
+| 관리자 도구 | `#/admin` (app.js `renderAdmin`) · 실행 화면의 `admin` 값(usePlayHost) |
+| 접속을 끊은 동안의 영력 회복 | usePlayHost 가 저장할 때 `game.savedAt` 을 남기고, 다시 열면 그 사이를 한꺼번에 계산 |
+| 구역 → 곳 → 할 일 | `systems/site-data/build.mjs`(zones) · 실행 주소 `at/<곳>/<할 일>` (systems/play/src/App.jsx) — 초록동색의 장소 화면을 그대로 쓴다 |
+| 추가전투 | 퇴마 실습장(`at/gym/battle`)의 [추가전투] 단추. 둘레길의 칸은 뺐다(systems/play/src/reskin.js) |
+| 오방 지도 · 내부 지도 | index.html `.zone-grid.obang` · app.js `renderMap` · 자료는 game-data.js 의 `maps` |
+| 칭호 50개 추가 · 모든 칭호의 기능 | `titles2.js` (표와 설명이 파일 머리에 있다) · 처리: usePlayHost 의 `perkV` |
+| 제작법 113개 추가 · 1~3단계 | `systems/biryeong/recipes-new.txt` → `npm run reskin:build` (재료 조합이 겹치면 빌드가 멈춘다) |
+| 표(엑셀) | `npm run sheets` → `biryeong_tables.xlsx` (systems/sheets) — 아이템 도트 그림 포함 |
+| 아이템 도트(v1.1) | `systems/biryeong/pixels.txt`(아이템 id|틀|색) · `pixel-templates.txt` · `pixel-templates-2.txt` — 같은 도트를 두 아이템이 쓰면 빌드가 멈춘다 |
+
+임시 관리자 코드는 `biryeong-admin-2046` 이다(`config.js`). 서버에 `ADMIN_CODE` 를 넣은 뒤에는 `adminCodeHash` 를 비워 임시 코드를 없앤다.
