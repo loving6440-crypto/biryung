@@ -29,22 +29,29 @@ jobs:
       - name: 화면 파일 모으기
         run: |
           mkdir -p _site
-          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js .nojekyll _site/
+          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js opening.js .nojekyll _site/
           cp -r assets fonts play _site/
-      # 관리자 코드: 저장소 Settings → Environments → github-pages → Environment secrets 에 ADMIN_CODE 를 넣는다.
-      # 코드 자체는 올리지 않고 SHA-256 만 config.js 에 적는다. 비어 있으면 config.js 의 임시 코드 그대로 둔다.
+      # 관리자 코드: 저장소 Settings → Secrets and variables → Actions (또는 Environments → github-pages) 에 ADMIN_CODE 를 넣는다.
+      # Secret 으로 넣어도, Variable 로 넣어도 읽는다. 코드 자체는 올리지 않고 SHA-256 만 config.js 에 적는다.
+      # 비어 있으면 config.js 의 임시 코드 그대로 둔다(로그인 화면에서 틀리면 '임시 코드를 쓰는 중'이라고 알려 준다).
       - name: 관리자 코드 넣기
         env:
-          ADMIN_CODE: ${{ secrets.ADMIN_CODE }}
+          ADMIN_CODE: ${{ secrets.ADMIN_CODE || vars.ADMIN_CODE }}
         run: |
           if [ -n "$ADMIN_CODE" ]; then
             CODE=$(printf '%s' "$ADMIN_CODE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             HASH=$(printf '%s' "$CODE" | sha256sum | cut -d' ' -f1)
-            sed -i -E "s/adminCodeHash: '[0-9a-f]*'/adminCodeHash: '$HASH'/" _site/config.js
-            grep -q "adminCodeHash: '$HASH'" _site/config.js && echo "관리자 코드를 넣었다."
+            sed -i -E "s/adminCodeHash: '[0-9a-f]*'/adminCodeHash: '$HASH'/; s/adminCodeFrom: '[a-z]*'/adminCodeFrom: 'github'/" _site/config.js
+            grep -q "adminCodeHash: '$HASH'" _site/config.js || { echo "::error::config.js 에 관리자 코드를 넣지 못했다"; exit 1; }
+            echo "관리자 코드를 넣었다. (SHA-256 앞 8자리: ${HASH:0:8} · 코드 길이 ${#CODE}자)"
           else
-            echo "ADMIN_CODE 가 없어 임시 관리자 코드를 그대로 쓴다."
+            echo "::warning::ADMIN_CODE 가 비어 있다 — Secret/Variable 이름이 ADMIN_CODE 인지 확인. 지금은 임시 관리자 코드를 쓴다."
           fi
+      # 브라우저가 옛 config.js · auth.js 를 붙들고 있지 않게, 올릴 때마다 주소 끝에 판 번호를 붙인다.
+      - name: 설정 파일 새로 읽게 하기
+        run: |
+          sed -i -E "s/src=\"(config|auth)\.js\"/src=\"\1.js?v=${GITHUB_SHA::8}\"/g" _site/index.html
+          grep -o 'src="[a-z]*\.js?v=[0-9a-f]*"' _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

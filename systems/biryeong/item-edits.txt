@@ -1,0 +1,7 @@
+# v1.6 아이템 시트(비령_아이템 시트_v3)에서 고친 것 — 초록동색 원본(보관고)은 그대로 두고 실행 화면에서 덮는다.
+# id|칸|값      칸: desc(해설) · effectText(효과 글) · effect(효과 JSON) · party(true 면 일행 상태에서만)
+oyster-mushroom-hotpot|desc|느타리버섯을 청화 육수에 끓인 전골. 버섯끼리 모여 사는 모습이 정겹다. 콩가루 같다고? 설마.
+hawk-cheollik|desc|매 깃털을 어깨에 덧댄 철릭. 입으면 등이 저절로 펴진다. 3000만원을 아꼈다. ⋯요즘 물가로는 얼만지 모르겠다.
+red-fox-charm|effectText|전투 중: 파티 상태에서만 사용 가능하다. 자신이 아닌 다른 파티원이 가진 영능력을 단 1회 빌려 쓸 수 있다. 의지력은 똑같이 소모한다.
+red-fox-charm|effect|{"borrowPsychic":1,"onlyBattle":true,"oncePerBattle":true}
+red-fox-charm|party|true

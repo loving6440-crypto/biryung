@@ -31,13 +31,13 @@ st-final-knot|tool|마지막 매듭||knot|gold|최종 신탁을 넘기고 얻는
 # ── 전리품으로 만드는 것(격파하면 제작법이 열린다) ──
 st-name-charm|craft|이름 부적||talisman|bone|전투 중: 적에게 막을 수 없는 피해 2d10+5|{"enemyHit":{"n":2,"sides":10,"plus":5}}|{"tags":["본편","전투 중 사용 가능","#턴소모無"],"battle":true,"only":"battle"}|찢긴 출석부 위에 이름을 다시 적어 접은 부적. 부르는 순간 상대가 움찔한다.
 st-nametag-pin|gear|이름표 브로치||earring|gold|착용 시 이해 +2 · 인내 +1|{}|{"tags":["본편"],"slot":"trinket","bonus":{"comprehension":2,"endurance":1}}|받아 적은 이름을 접어 넣은 작은 브로치. 달고 있으면 이름을 잘 잊지 않는다.
-st-dangsan-charm|gear|당산 금줄 팔찌||knot|green|착용 시 인내 +3|{}|{"tags":["본편"],"slot":"trinket","bonus":{"endurance":3}}|당산나무 가지를 오방 광섬유로 감아 만든 팔찌. 마을 하나만큼 무겁다.
+st-dangsan-charm|gear|당산 금줄 팔찌||knot|green|착용 시 인내 +3|{}|{"tags":["본편"],"slot":"trinket","bonus":{"endurance":3}}|당산나무 가지를 오색실로 감아 만든 팔찌. 마을 하나만큼 무겁다.
 st-bead-bracelet|gear|기다림 염주||ring|grape|착용 시 절제 +3|{}|{"tags":["본편"],"slot":"trinket","bonus":{"control":3}}|염주알 하나를 꿴 손목 염주. 서두르려 할 때마다 손목이 무거워진다.
 st-watch-charm|gear|23시 17분 시계추||clock|gold|착용 시 신속 +3|{}|{"tags":["본편"],"slot":"trinket","bonus":{"agility":3}}|멈춘 시계를 연마석으로 다듬은 시계추. 흔들면 한 박자 먼저 움직이게 된다.
 st-lens|gear|감찰 렌즈||gem|gold|착용 시 안목 +4|{}|{"tags":["본편"],"slot":"trinket","bonus":{"insight":4}}|감긴 눈 렌즈를 수정에 끼운 외눈 렌즈. 서창현의 것과 닮았다.
-st-scale-vest|gear|쌍응 비늘 조끼||robe|jade|착용 시 인내 +3 · 호전 +2|{}|{"tags":["본편"],"slot":"body","bonus":{"endurance":3,"aggression":2}}|쌍응수의 비늘을 자투리 천에 엮은 조끼. 산과 바다가 서로를 막아 준다.
+st-scale-vest|gear|쌍응 비늘 조끼||robe|jade|착용 시 인내 +3 · 호전 +2|{}|{"tags":["본편"],"slot":"body","bonus":{"endurance":3,"aggression":2}}|쌍응수의 비늘을 자투리 천조각에 엮은 조끼. 산과 바다가 서로를 막아 준다.
 st-voice-bell|gear|목소리 방울||bell|purple|착용 시 이해 +4|{}|{"tags":["본편"],"slot":"trinket","bonus":{"comprehension":4}}|목소리 실타래를 감은 방울. 울릴 때마다 누군가의 이름이 섞여 나온다.
 st-oracle-talisman|craft|어긋난 신탁부||talisman|white|전투 중: 적의 행동 6개 간파 · 적의 영력 -10|{"reveal":6,"drainSpirit":10}|{"tags":["본편","전투 중 사용 가능","#턴소모無"],"battle":true,"only":"battle"}|갈라진 신탁문을 한지에 눌러 찍은 부적. 상대의 다음 수가 거꾸로 읽힌다.
 st-fog-lantern|craft|안개 등롱||lantern|white|전투 중: 나쁜 상태를 모두 걷어 내고 부적 +1|{"cleanse":true,"charms":1}|{"tags":["본편","전투 중 사용 가능","#턴소모無"],"battle":true,"only":"battle"}|병에 담은 안개를 등롱에 부어 불을 붙였다. 지워지던 것들이 한 번 더 보인다.
 st-godslayer-edge|gear|신살 각인||blade|crimson|착용 시 호전 +4 · 안목 +2|{}|{"tags":["본편"],"slot":"trinket","bonus":{"aggression":4,"insight":2}}|신살 강철을 연마석으로 갈아 낸 작은 날. 무구에 묶어 두면 신의 이름이 베인다.
-st-light-locket|gear|미래 노리개||necklace|gold|착용 시 인내 · 이해 · 절제 +2|{}|{"tags":["본편"],"slot":"trinket","bonus":{"endurance":2,"comprehension":2,"control":2}}|실현되지 못한 빛을 오방 매듭에 담은 노리개. 아직 오지 않은 날의 온기가 있다.
+st-light-locket|gear|미래 노리개||necklace|gold|착용 시 인내 · 이해 · 절제 +2|{}|{"tags":["본편"],"slot":"trinket","bonus":{"endurance":2,"comprehension":2,"control":2}}|실현되지 못한 빛을 오색 매듭에 담은 노리개. 아직 오지 않은 날의 온기가 있다.

@@ -10,6 +10,7 @@ window.BIRYEONG_CONFIG = {
   // 본편 퀘스트의 서버 부분(Supabase). 비워 두면 이 브라우저의 값만 쓴다. 연결 순서: supabase/README.md
   supabaseUrl: '',
   supabaseAnonKey: '',
+  adminCodeFrom: 'temp', // GitHub 배포가 ADMIN_CODE 를 넣으면 'github' 로 바뀐다
   adminCodeHash: 'e910fb815e02e1eb5530b7a19c60a25585e832fa30b18947c5c9c32d086a4f73',
 };
 

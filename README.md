@@ -131,6 +131,31 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 
 임시 관리자 코드는 `biryeong-admin-2046` 이다(`config.js`). 서버에 `ADMIN_CODE` 를 넣은 뒤에는 `adminCodeHash` 를 비워 임시 코드를 없앤다.
 
+## v1.6 (2026-11-16)
+
+- 오프닝(`opening.js`): 명부 등록 직후 · 프로필이 없는 계정에 한 번, 화면 전체 연출 8컷 → 「내 프로필 만들기」. 프로필 화면에서 다시 보기.
+- 지도: 지금 있는 곳의 지도만(본관 · 별관 · 뒷산 · 사당), 눌러서 옮겨 가기 없음, 마지막으로 들른 곳(`counts.lastSpot`)이 「지금 여기」.
+- 오방 지도 사당 그림: `assets/center_scene.png` (`systems/art/center_scene.py` 로 그린다).
+- 관리자 코드: 배포가 `secrets.ADMIN_CODE || vars.ADMIN_CODE` 를 읽고, config.js · auth.js 를 판 번호로 새로 읽게 한다. `config.js` 의 `adminCodeFrom` 이 'github' 이면 GitHub 코드가 들어간 것.
+- 아이템 시트 v3 반영: `systems/biryeong/item-edits.txt`(보관고 아이템 위에 덮는 해설 · 효과) — 붉은여우 부적은 `party` + `effect.borrowPsychic`(다인 전투 규칙 `game/mbattle.js` 패치). 칭호 이름 40개 · 업적 이름 1개는 titles.js · titles2.js 에 바로 고쳤다.
+
+## v1.5 (2026-11-15) — 아이템마다 제작법 하나
+
+- 결과가 같은 제작법이 둘 이상이던 79종(초록동색 원래 제작법 + v1.0 새 제작법)을 원래 제작법 하나로 정리했다.
+- 겹치던 v1.0 제작법 81개는 같은 재료 · 단계 · 나오는 수로 **새 아이템 81종**을 만든다 — `systems/biryeong/items-new.txt` (id 는 `nw-`).
+  닮은 원래 아이템에서 종류 · 자리 · 태그 · 전투 규칙을 빌리고 이름 · 설명 · 효과 · 육조는 새로 쓴다. 팔지 않는다.
+- 1단계 새 바탕 17종은 2 · 3단계 새 아이템의 재료로 바꿔 끼워, 쓰는 곳 없는 재료가 없다.
+- 도트: 아이템마다 따로(틀 · 색 조합이 겹치면 빌드가 멈춘다). 새 틀 10개 — `pixel-templates-new.txt`.
+- 만든 스크립트: `systems/biryeong/make_new_items.py` (한 번만 돌린다 — recipes-new.txt 결과를 바꾸고 items-new.txt 를 쓴다).
+- 시험: 모든 아이템의 제작법이 하나인지, 새 아이템마다 제작법 · 도트가 있는지, 새 재료가 어딘가 쓰이는지 본다.
+
+## v1.4 (2026-11-15) — 초록동색 원래 아이템 · 사이버펑크 걷어 내기
+
+- 아이템 · 요괴 · 영능력의 이름과 해설은 초록동색 원래 것을 그대로 쓴다(`systems/biryeong/build.mjs` 가 개변표를 쓰지 않는다. 학교 이름만 `TEXT_SWAPS`).
+- 예전 사이버펑크 개변표는 `systems/biryeong/archive-v1.3/` 에 기록으로만 남겼다.
+- 별전 칭호(`titles2.js`) · 본편 아이템(`story-items.txt`) · 원고(`systems/story/`)의 사이버펑크 말을 전통 · 근미래 말로 바꿨다. 아이콘 팔레트에서 네온 색을 뺐다.
+- 테스트: 개변표가 비어 있는지, 칭호 · 본편 아이템 · 원고에 사이버펑크 말이 없는지 본다(`tests/vault.test.mjs`).
+
 ## v1.3 (2026-11-15) — 유품 10종 · 보스 고유 패턴 · 본편 아이템 · 제작법
 
 | 무엇 | 어디 |

@@ -286,6 +286,7 @@ export function usePlayHost() {
     if (extra) addLog(`공정 수율: ${itemOf(r.result)?.name} ${extra}개가 더 나왔다.`)
     if (roll(perkV(place === 'kitchen' ? 'cookBonus' : 'craftBonus'))) { extra += 1; addLog(`칭호의 기능: ${itemOf(r.result)?.name} 하나가 덤으로 나왔다.`) }
     if (r.tier === 3) bump('crafts3', qty)
+    if (r.result.startsWith('nw-')) collect('newItems', r.result) // v1.5 새 아이템 — 업적 「새 장부」 · 「장부를 다 채웠다」
     return extra ? { ...p, inventory: { ...p.inventory, [r.result]: (p.inventory?.[r.result] || 0) + extra } } : p
   }
   const madeOne = (p, recipeId, qty = 1) => { bridge.quest(COOK_IDS.has(recipeId) ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty }); bump('crafts'); collect('recipes', recipeId); return markMade(bumpDaily(bumpWeekly(p, 'craft'), 'craft'), recipeId) }
@@ -572,7 +573,7 @@ export function usePlayHost() {
   // ───── 탐사(본관 · 별관 · 뒷산 · 사당) — 초록동색과 같은 처리. 퀘스트만 뺐다. ─────
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
-  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
+  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
   const lockerMove = (mode, grade, id, n) => {
     const cur = playerRef.current
     const r = mode === 'in' ? deposit(cur, grade, id, n) : withdraw(cur, grade, id, n)

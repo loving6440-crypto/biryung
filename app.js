@@ -112,11 +112,11 @@
     for (const d = new Date(); days[dayKey(d)]; d.setDate(d.getDate() - 1)) n += 1;
     return n;
   }
-  const valueOf = (w) => (w.titles ? ownedTitles().length : w.set ? Object.keys(save.sets[w.set] || {}).length : w.pset ? Object.keys(counts().sets?.[w.pset] || {}).length : w.count ? Math.floor(counts()[w.count] || 0) : w.streak ? streakNow() : 0);
+  const valueOf = (w) => (w.vault ? (game()?.achievements?.[w.vault] ? 1 : 0) : w.titles ? ownedTitles().length : w.set ? Object.keys(save.sets[w.set] || {}).length : w.pset ? Object.keys(counts().sets?.[w.pset] || {}).length : w.count ? Math.floor(counts()[w.count] || 0) : w.streak ? streakNow() : 0);
   const targetOf = (w) => w.n ?? w.streak ?? w.titles ?? 1;
   const met = (w) => (w.all ? w.all.every(met) : w.flag ? !!save.flags[w.flag] : valueOf(w) >= targetOf(w));
   /** 진행도 [지금, 목표] — 여러 조건이면 채운 조건 수 */
-  const progressOf = (w) => (w.all ? [w.all.filter(met).length, w.all.length] : w.flag ? null : [Math.min(valueOf(w), targetOf(w)), targetOf(w)]);
+  const progressOf = (w) => (w.all ? [w.all.filter(met).length, w.all.length] : w.flag || w.vault ? null : [Math.min(valueOf(w), targetOf(w)), targetOf(w)]);
   function checkAchievements() {
     let changed = false;
     for (const a of ACHIEVEMENTS) {
@@ -160,7 +160,7 @@
     pageView.dataset.kind = kind || '';
     panelTabs.hidden = true; panelTabs.replaceChildren(); panelChips.hidden = true; panelChips.replaceChildren(); panelBody.replaceChildren();
     homeView.hidden = true; pageView.hidden = false;
-    $('#innerMapBtn').dataset.map = '';
+    $('#innerMapBtn').dataset.map = ''; $('#innerMapBtn').hidden = true;
     showPlay(null);
   }
   function showHome() { pageView.hidden = true; homeView.hidden = false; showPlay(null); }
@@ -203,7 +203,7 @@
     const tabs = zone.tabs.filter((t) => !t.hidden || t.id === tab.id); // 양호실처럼 탐사로만 들어가는 곳은 들어와 있을 때만 보인다
     if (tabs.length > 1) setTabs(panelTabs, tabs.map((t) => ({ id: t.id, label: `${t.hanja} ${t.name}` })), tab.id, (id) => go(zoneHash(key, id)));
     setTabs(panelChips, sections.map((s) => ({ id: s.id, label: s.title })), section.id, (id) => go(zoneHash(key, tab.id, id)));
-    $('#innerMapBtn').dataset.map = tab.id;
+    $('#innerMapBtn').dataset.map = tab.id; $('#innerMapBtn').hidden = !MAP_OF[tab.id];
     if (section.kind === 'text') section.paras.forEach((t) => panelBody.append(para(t)));
     else if (section.kind === 'list') renderList(section);
     else if (section.kind === 'play') { if (section.intro) panelBody.append(para(section.intro, 'panel-intro')); showPlay(section.to); }
@@ -321,26 +321,38 @@
     return svg;
   }
   const iconFor = (name) => { const rule = PIX_RULES.find(([re]) => re.test(name)); return rule ? pix(rule[1], rule[2]) : pix('star', '#c9d2ee'); };
-  const MAP_GO = { mainHall: 'explore', annex: 'explore', gym: 'hike', shrine: 'explore' };
-  function renderMap(id) {
-    const maps = DATA.maps || [];
-    const m = maps.find((x) => x.id === id) ?? maps[0];
-    if (!m) return;
-    setTabs(mapTabs, maps.map((x) => ({ id: x.id, label: `${x.hanja} ${x.name}` })), m.id, renderMap);
-    const goPlace = () => { mapDialog.close(); go(placeHash(m.id, MAP_GO[m.id])); };
+  // v1.6 — 지도는 지금 있는 곳의 것만 보인다(본관에선 본관, 뒷산에선 뒷산). 눌러서 옮겨 가지 않고, 어디쯤인지 보기만 한다.
+  const MAP_OF = { mainHall: 'mainHall', infirmary: 'mainHall', annex: 'annex', gym: 'gym', shrine: 'shrine' };
+  /** 마지막으로 들른 탐사 지점(실행 화면이 counts.lastSpot 에 적는다 — 'mainHall:f1:lobby' 꼴)에서 지금 있는 층 · 방을 찾는다. */
+  function hereOf(m) {
+    const parts = String(counts().lastSpot || '').split(':');
+    if (parts[0] !== m.id) return {};
+    const lv = m.levels.find((l) => l.rooms.some((r) => parts.includes(r.id))) ?? m.levels.find((l) => parts.includes(l.id));
+    const room = lv?.rooms.find((r) => parts.includes(r.id));
+    return { level: lv?.id, room: room?.id };
+  }
+  function renderMap(tabId) {
+    const m = (DATA.maps || []).find((x) => x.id === MAP_OF[tabId]);
+    mapTabs.hidden = true; mapTabs.replaceChildren();
+    if (!m) { mapBody.replaceChildren(emptyBox('圖', '이곳에는 지도가 없다.', '발밑만 보고 걷는 수밖에.')); return; }
+    $('#mapDialogTitle').textContent = `${m.name} 지도`;
+    const here = hereOf(m);
     const board = h('div', `pxmap pxmap-${m.color}`);
     const title = h('div', 'pxmap-title'); title.append(h('b', '', m.hanja), h('span', '', m.name), h('i', '', 'IS'), h('em', '', m.id === 'gym' ? '금역' : m.id === 'shrine' ? '금지' : '학당'));
     board.append(title);
+    board.append(h('p', 'pxmap-note', here.level ? '■ 깜빡이는 칸이 지금 있는 곳이다. 지도는 보기만 할 수 있다 — 걸어서 가야 한다.' : '지도는 보기만 할 수 있다 — 걸어서 가야 한다.'));
     const levels = m.id === 'gym' || m.id === 'shrine' ? m.levels : m.levels.slice().reverse(); // 건물은 위층이 위에
     const wrap = h('div', `pxlevels${m.id === 'gym' ? ' is-paths' : ''}`);
     levels.forEach((lv) => {
-      const floor = h('section', 'pxfloor');
+      const floor = h('section', `pxfloor${here.level === lv.id ? ' is-here' : ''}`);
       floor.append(h('h3', 'pxfloor-name', lv.name));
       const plan = h('div', 'pxwall pxplan');
       const rooms = lv.rooms.length ? lv.rooms : [{ id: lv.id, name: m.id === 'gym' ? '퇴마 실습 · 추가전투' : lv.name }];
       rooms.forEach((r) => {
-        const cell = btn(`pxroom${r.club ? ' is-club' : ''}${r.path ? ' is-path' : ''}`, '', goPlace);
+        const isHere = here.room === r.id;
+        const cell = h('div', `pxroom${r.club ? ' is-club' : ''}${r.path ? ' is-path' : ''}${isHere ? ' is-here' : ''}`);
         cell.append(iconFor(r.club ? '동아리' : r.name), h('span', '', r.name));
+        if (isHere) { cell.append(h('i', 'pxroom-here', '지금 여기')); cell.setAttribute('aria-current', 'location'); }
         cell.title = `${m.name} ${lv.name} · ${r.name}`;
         plan.append(cell);
       });
@@ -352,7 +364,7 @@
     mapBody.replaceChildren(board);
     addTo('pages', `map/${m.id}`);
   }
-  document.querySelectorAll('[data-open-map]').forEach((b) => b.addEventListener('click', () => { renderMap(pageView.hidden ? null : b.dataset.map); mapDialog.showModal(); }));
+  document.querySelectorAll('[data-open-map]').forEach((b) => b.addEventListener('click', () => { if (pageView.hidden || !MAP_OF[b.dataset.map]) return; renderMap(b.dataset.map); mapDialog.showModal(); }));
   $('#mapClose').addEventListener('click', () => mapDialog.close());
   mapDialog.addEventListener('click', (event) => { if (event.target === mapDialog) mapDialog.close(); });
 
@@ -504,7 +516,10 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   const UPDATE_NOTES = [
-    { v: 'v1.3', date: '2026-11-15', lines: ['유품이 10종이 되었다 — 게임의 무구 10종(공명 방울 · 충격 철퇴 · 위상 부채 · 육환 석장 · 전자 각궁 · 관측창 · 신칼 · 절단 낫 · 회로 단검 · 장단 변조기)과 하나씩 짝지어진다. 둘씩 다섯 계통.', '입소식 뒤 무구보관소에서 고른 유품을 실제 무구로 받는다(부모의 손길 — 강화 1). 장착까지가 튜토리얼.', '본편 보스 14종에 고유 패턴이 붙었다 — 이름 부르기 · 진정 · 뿌리 · 모습 · 되감기 · 눈 · 두 머리 · 목소리 · 번갈아 오는 신탁 · 안개 · 부모들의 자리 · 형태 변화. 전투 아래 [이야기 전투] 칸에서 계기판과 전용 행동을 쓴다.', '보스를 이기면 전리품이 나오고, 그 전리품으로 만드는 장비 · 부적 제작법이 열린다. 이야기 전투는 져도 쇠약이 남지 않는다.', '본편 새 아이템 36종 · 새 제작법 16종. 302호의 방울 · 흐린 영정 조각 · 기도 쪽지 묶음 · 귤 · 가곡면 감자가 소지품에 들어오고, 미역국 · 관측 차단 봉투 · 결계 말뚝 · 거점 기둥은 퀘스트가 가르쳐 준 대로 직접 만든다.', '장면을 마치면 완료 띠가, 장을 마치면 장 완료 카드가 뜬다. 산문 너머 › 나의 기록에 본편 도감(퇴마한 신탁 · 본편 물건 · 본편 제작법)이 생겼다.'] },
+    { v: 'v1.6', date: '2026-11-16', lines: ['명부 등록 직후, 화면 전체를 채우는 오프닝이 흐른다(섣달그믐의 화면들 → 정확도 100% → 문틈의 손 → 제야의 종 → 빈 안방 → 괴담 → 비령산 → 산문 단말기). 끝나면 「내 프로필 만들기」로 이어진다. 프로필 화면의 [오프닝 다시 보기]로 다시 볼 수 있다.', '지도는 지금 있는 곳의 것만 보인다 — 본관에선 본관, 뒷산에선 뒷산. 지도를 눌러 옮겨 가는 기능은 없앴다. 대신 마지막으로 들른 곳이 「지금 여기」로 깜빡인다.', '오방 지도의 사당 그림을 다른 네 구역과 같은 결의 도트 그림으로 새로 그렸다.', '아이템 시트(v3) 반영 — 붉은여우 부적이 바뀌었다: 일행(파티) 상태에서만 쓰고, 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다). 느타리 전골 · 매깃 철릭 · 붉은 지네 부적의 해설이 바뀌었다.', '칭호 40개의 이름을 고쳤다(기밀 열람자 → 열람자, 공방 단골 → 망치질 단골, 운동하는 학생 → 붉은 피 …). 업적 「밥 짓는 사람」은 「늘 밥을 해줬어」가 되었다.', '관리자 코드: GitHub 의 ADMIN_CODE 를 Secret 으로도 Variable 로도 읽는다. 사이트가 아직 임시 코드를 쓰고 있으면 로그인 화면이 그렇다고 알려 준다.'] },
+    { v: 'v1.5', date: '2026-11-15', lines: ['업적이 120개가 됐다 — 새 묶음 「본교 — 학당 생활」 10개. 초록동색 원래 업적 셋(직업은 학생, 취미는 운동 · 신의 주시 · 나는야 모범생)이 도감에 올라오고, 일곱 개를 새로 더했다(유품 등록 · 망친 것도 공부 · 남의 사물함 · 가방 속 박물관 · 이름을 부른 밤 · 새 장부 · 장부를 다 채웠다). 업적마다 칭호가 하나씩 붙는다.', '한 아이템에 제작법이 둘 있던 79종을 하나로 정리했다 — 초록동색 원래 제작법만 남는다.', '빈자리(겹치던 v1.0 제작법 81개)는 새 아이템 81종이 채운다. 재료 · 단계 · 나오는 수는 그대로다(천 한지 · 주묵 · 잣기름 · 매듭 팔찌 · 오색 부적첩 · 팔물탕 · 송이 죽 …).', '1단계 새 바탕 17종은 모두 다른 새 아이템의 재료로 쓰인다(천 한지 → 천 부적 꾸러미, 주묵 → 붉은 지네 부적 …).', '새 아이템마다 도트 아이콘이 따로 있다. 횃불 · 팔찌 · 도장 · 죽 · 사탕 · 모깃불 · 전골 · 벽돌 서낭단 · 숫돌 · 부꾸미 틀 10개를 새로 찍었다.'] },
+    { v: 'v1.4', date: '2026-11-15', lines: ['아이템 이름과 해설을 초록동색 원래 것으로 되돌렸다(사과맛 피크닉 · 에너지드링크 · 부채 · 단검 …). 학교 이름만 비령 임시학당으로 바뀐다.', '요괴와 영능력도 원래 이름 · 소개로 돌아왔다(허수아비 잡귀 · 묵은 원귀 · 생존본능 · 업인과보 …).', '사이버펑크 풍을 걷어 냈다 — 별전 칭호 이름(학당 훈장 · 보부상 · 장원급제 …), 본편 아이템 해설, 아이콘의 네온 색까지. 한국 전통에 근미래(단말기 · 관측동)만 남겼다.', '유품 무구 이름도 원래대로 — 무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기.'] },
+    { v: 'v1.3', date: '2026-11-15', lines: ['유품이 10종이 되었다 — 게임의 무구 10종(무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기)과 하나씩 짝지어진다. 둘씩 다섯 계통.', '입소식 뒤 무구보관소에서 고른 유품을 실제 무구로 받는다(부모의 손길 — 강화 1). 장착까지가 튜토리얼.', '본편 보스 14종에 고유 패턴이 붙었다 — 이름 부르기 · 진정 · 뿌리 · 모습 · 되감기 · 눈 · 두 머리 · 목소리 · 번갈아 오는 신탁 · 안개 · 부모들의 자리 · 형태 변화. 전투 아래 [이야기 전투] 칸에서 계기판과 전용 행동을 쓴다.', '보스를 이기면 전리품이 나오고, 그 전리품으로 만드는 장비 · 부적 제작법이 열린다. 이야기 전투는 져도 쇠약이 남지 않는다.', '본편 새 아이템 36종 · 새 제작법 16종. 302호의 방울 · 흐린 영정 조각 · 기도 쪽지 묶음 · 귤 · 가곡면 감자가 소지품에 들어오고, 미역국 · 관측 차단 봉투 · 결계 말뚝 · 거점 기둥은 퀘스트가 가르쳐 준 대로 직접 만든다.', '장면을 마치면 완료 띠가, 장을 마치면 장 완료 카드가 뜬다. 산문 너머 › 나의 기록에 본편 도감(퇴마한 신탁 · 본편 물건 · 본편 제작법)이 생겼다.'] },
     { v: 'v1.2', date: '2026-11-14', lines: ['본편 이야기 3권 15장이 열렸다. 산문 › 산문 너머에서 장면 퀘스트 97개를 차례로 진행한다.', '퀘스트는 한 페이지에서 끝나지 않는다 — 단계마다 실제 장소로 가서 탐사 · 전투 · 개척 · 제작 · 수업을 해야 다음으로 넘어간다. 오른쪽 상태 창에 지금 할 일과 [그곳으로] 단추가 뜬다.', '산문 너머의 바깥 지역(서울 · 청암리 · 물치항 · 관측 밖)과 거대한 문 너머 · 경계가 이야기를 따라 열린다.', '대사 창에 인물 칸이 생겼다. 지금은 머리색 인장이고, 초상 그림을 넣을 자리다.', '이야기를 따라 칭호 18개를 얻는다. 엔딩은 다섯 가지.', '서버(Supabase)를 연결하면 모든 학생의 선택이 「세계」 탭에 모인다. 연결 전에는 이 브라우저의 값만 쓴다.'] },
     { v: 'v1.1', date: '2026-11-14', lines: ['아이템 도트를 전부 새로 짰다. 312개 아이템이 저마다 다른 도트를 가진다(틀 109개 · 색 30가지, 겹치는 것 없음).'] },
     { v: 'v1.0', date: '2026-11-14', lines: ['로그인(명부 등록)이 생겼다. 계정마다 기록이 따로 남는다. 계정과 기록은 아직 이 브라우저에만 보관된다.', '오방 지도: 가운데에 사당이 생겼다. [내부 지도]로 본관 · 별관 · 뒷산 · 사당의 안쪽을 볼 수 있다.', '구역 얼개를 바꿨다. 그 자리에 가면 그 자리의 기능이 나온다 — 별관 탐사에서 공작소 · 조리실 · 동아리 부실(가입), 본관 탐사에서 물품보관소 · 양호실, 산 탐사에서 무구보관소 · 텃밭 · 도깨비 놀이.', '추가전투를 퇴마 실습장으로 옮겼다.', '접속을 끊은 동안에도 영력이 차오른다(수련 · 잠 · 휴식도 흐른다).', '칭호 50개 추가(모두 114개). 모든 칭호에 소소한 기능이 붙었다 — 달고 있는 칭호 하나의 기능만 듣는다.', '제작법 113개 추가(모두 247개). 1단계 바탕 → 2단계 완성품 → 3단계 상급 공정.', '관리자 도구(로그인 화면의 「비령」을 다섯 번 누르면 관리자 코드 칸이 나온다).'] },
@@ -574,6 +589,7 @@
     panelBody.append(pick);
     const foot = h('div', 'profile-actions');
     foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => go('#/codex/titles')));
+    if (window.BiryeongOpening) foot.append(btn('ghost-btn', '오프닝 다시 보기', () => window.BiryeongOpening.play({ replay: true })));
     panelBody.append(foot, h('p', 'panel-fine', '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
   function renderProfileForm(p) {
@@ -714,6 +730,7 @@
           const side = h('div', 'codex-side');
           side.append(h('span', 'codex-state', got ? '달성' : prog ? `${prog[0].toLocaleString()} / ${prog[1].toLocaleString()}` : '미달성'));
           if (titleById[a.title]) side.append(h('small', '', `칭호 [${titleById[a.title].name}]`));
+          if (a.extra) side.append(h('small', '', `+ ${a.extra}`));
           listEl.append(row(got, a.name, got ? a.desc : a.hint, side));
         });
         panelBody.append(listEl);

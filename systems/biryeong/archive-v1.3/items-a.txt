@@ -1,0 +1,104 @@
+picnic|사과맛 뉴로팩|학당 자판기의 사과맛 신경 안정 음료. 전투 중에 빨아도 목에 걸리지 않는다.
+energy|과부하 드링크|심박을 강제로 끌어올리는 각성 음료. 캔 옆면의 경고문이 본문보다 길다.
+nutrient|합성 영양 앰플|하루치 영양을 한 병에 눌러 담았다. 맛은 눌러 담지 못했다.
+chocolate|배급 초콜릿 블록|관리국 보급 마크가 찍힌 초콜릿. 은박을 벗기면 생각보다 진하다.
+ramen|발열 컵라면|줄을 당기면 스스로 끓는다. 2046년에도 국물은 짜다.
+dumpling|진공 만두|압축 포장을 뜯으면 부풀어 오르는 만두.
+chewy|젤리 스틱|씹을수록 과일 향 합성 코드가 바뀌는 젤리. 건네기 좋은 선물.
+cone-icecream|냉각 콘|녹지 않는 대신 조금 덜 달다.
+bag-snack|질소 과자|봉지의 7할은 여전히 질소다. 전통은 지켜진다.
+slice-cake|프린트 케이크|식품 프린터가 층층이 쌓아 올린 조각 케이크.
+firecracker|소형 섬광탄|축제용이라고 적혀 있지만 잡귀도 놀란다.
+twin-pop|쌍둥이 냉각바|둘로 쪼개 나눠 먹는 빙과. 혼자 다 먹어도 아무도 모른다.
+hotbar|발열 어묵바|포장을 꺾으면 데워진다.
+ginseng-candy|홍삼 캡슐 사탕|어르신 입맛의 영력 보조제.
+rice-cake|쑥 압축떡|쑥 향 합성이 아니라 진짜 쑥이다. 요즘은 그게 더 귀하다.
+carp-soup|수조 잉어탕|양식 수조에서 건진 잉어로 끓였다. 기운이 돈다.
+snakeberry-jam|뱀딸기 겔|붉은 겔 형태의 잼. 빵 없이 짜 먹는다.
+mushroom-stew|배양 버섯전골|지하 배양실 버섯으로 끓인 전골.
+king-mushroom-stew|대왕균 전골|손바닥만 한 균사체가 통째로 들어갔다.
+poison-mushroom-stew|오염균 전골|먹으면 안 된다는 걸 알면서 끓였다.
+bibimbap|전투식 비빔밥|흔들어 비비는 야전 식량. 고추장은 별첨.
+flower-pancake|화전 칩|꽃잎을 눌러 구운 얇은 전.
+herb-salad|수경 나물무침|수경 재배 나물을 손으로 무쳤다.
+mystery-tonic|성분 미상 보약|비령의 성분 분석이 ‘불명’으로 끝난 탕약.
+pickled-raspberry|산딸기 절임 캔|금역에서 딴 산딸기를 당에 재웠다.
+barley-gaetteok|보리 개떡|투박한 옛 떡. 프린터로는 이 맛이 안 난다.
+grilled-mushroom|균 꼬치구이|숯 향을 입힌 버섯 꼬치.
+carrot-mushroom-stirfry|당근 균 볶음|기름에 빠르게 볶아 낸 반찬.
+snakeberry-punch|뱀딸기 냉침|차게 우려 낸 붉은 음료.
+dandelion-tea|민들레 추출차|쓴맛이 신경을 가라앉힌다.
+lake-mushroom-soup|청화 균국|청화호 물로 끓여 푸르스름하다.
+cabbage-soup|배추 맑은국|속이 풀리는 국.
+clover-salad|토끼풀 샐러드|네 잎이 섞여 있으면 운이 좋은 날.
+ssukbeomuri|쑥버무리|찜기에서 갓 꺼낸 쑥 버무림.
+mugwort-potato-pancake|쑥 감자전|바삭한 가장자리가 전부다.
+stirfried-fern|고사리 볶음|제사상에 오르던 그 반찬.
+greens-sujebi|나물 수제비|손으로 뜯어 넣은 반죽.
+grilled-carp|잉어 직화구이|비늘까지 바삭하다.
+loofah-namul|수세미 나물|어린 수세미를 데쳐 무쳤다.
+acorn-jelly|도토리 겔묵|탱글한 갈색 묵.
+grilled-king-mushroom|대왕균 스테이크|두툼하게 썰어 구웠다.
+dangwi-tea|당귀 추출차|몸을 덥히는 약차.
+chestnut-porridge|밤죽 파우치|짜 먹는 죽. 아픈 날의 맛.
+doraji-jeonggwa|도라지 정과|꿀에 졸인 도라지.
+licorice-taffy|감초 엿|단맛 뒤에 약 냄새가 남는다.
+wild-grape-punch|머루 냉침|검붉은 산포도 음료.
+pearl-dumpling|진주 경단|진주 가루를 입힌 사치스러운 경단.
+arrowroot-tea|칡 추출차|숙취와 피로에 듣는다.
+sipjeon-tang|십전대보 앰플|열 가지 약재를 한 앰플에.
+grilled-deodeok|더덕 구이|매콤한 양념을 발라 구웠다.
+oyster-mushroom-hotpot|느타리 전골|여럿이 둘러앉아 먹는 전골.
+clover-hwajeon|네잎 화전|행운을 구워 먹는다.
+flower-rice-cake|꽃물 떡|꽃물로 색을 들인 떡.
+omija-punch|오미자 냉침|다섯 가지 맛이 차례로 온다.
+songi-rice|송이 솥밥|뚜껑을 열면 향이 먼저 나온다.
+dragon-palace-soup|용궁탕|청화호 밑바닥의 것들로 끓였다.
+antler-tonic|녹용 농축액|기력을 강제로 채운다.
+pine-nut-porridge|잣죽 파우치|고소하고 부드럽다.
+pine-nut-gangjeong|잣 강정|한 입에 부서진다.
+golden-toad-pill|금두꺼비 환|금빛 환약. 삼키면 속이 뜨겁다.
+wild-ginseng-jeonggwa|천종삼 정과|백 년 묵은 삼을 졸였다.
+frost-bingsu|서리꽃 빙수|얼음꽃을 갈아 올렸다.
+somdari-tea|솜다리 꽃차|고산의 흰 꽃을 우렸다.
+fortune-pill|오복 환|다섯 복을 한 알에.
+elixir-of-youth|불로 혈청|늙지 않는다는 탕. 임상 결과는 비공개.
+turtle-shell-tonic|귀갑 농축액|천 년 등딱지를 달였다.
+uniform|학당 제복|관리국이 지급한 제1기 제복. 안감에 식별 칩이 박혀 있다.
+gymwear|무복 슈트|굿판의 무복을 전투용으로 재단했다.
+sunnabi-earring|순나비 수신기|나비 모양 귀걸이형 수신기. 가끔 아무도 보내지 않은 신호를 잡는다.
+w-fan|위상 부채|부칠 때마다 공기 대신 기운이 밀려난다. 무당의 유품과 같은 형식.
+w-spear|관측창|창끝에 영자 센서가 달린 장창.
+w-dagger|회로 단검|칼등에 부적 회로가 새겨진 단검.
+w-sword|신칼|굿에 쓰던 칼을 합금으로 다시 벼렸다.
+w-bow|전자 각궁|시위 없는 활. 빛줄기를 쏜다.
+w-bell|공명 방울|알이 없는데 운다. 무당방울의 주파수를 그대로 낸다.
+w-instrument|장단 변조기|장구 가락을 증폭하는 악기형 무구.
+w-sickle|절단 낫|끊어 내는 데 특화된 낫.
+w-staff|육환 석장|고리 여섯 개가 각각 다른 음으로 운다.
+w-mace|충격 철퇴|맞는 순간 한 번 더 울린다.
+headband|기합 밴드|쓰러질 순간에 한 번 버티게 해 주는 머리띠. 한 번 쓰면 끊어진다.
+berry-earring|뱀딸기 귀걸이|붉은 열매 모양 귀걸이.
+gold-crown|금관 홀로그램|머리 위에 뜨는 금빛 관. 무게는 없고 위엄만 있다.
+goblin-mask|도깨비 탈|야영지 지킴이가 쓰고 다니는 것과 같은 붉은 탈.
+straw-raincape|도롱이 스텔스|짚을 엮은 듯 보이지만 센서를 흘려 낸다.
+foxfur-coat|여우털 두루마기|인조가 아닌 진짜 털이다.
+talisman-robe|부적 도포|안팎으로 부적 회로가 인쇄되어 있다.
+bat-cape|박쥐 날개 망토|초음파를 흡수하는 막.
+marten-vest|담비털 배자|가볍고 따뜻하다.
+hawk-cheollik|매깃 철릭|깃털 섬유로 짠 무관복.
+bearfur-overcoat|곰털 방한복|금역의 밤을 버틴다.
+frost-hansam|서리꽃 한삼|소매 끝에서 냉기가 흐른다.
+weasel-galot|흰족제비 갖옷|눈 속에서 보이지 않는다.
+crane-robe|학창의|학의 깃으로 지은 겉옷. 선비의 방호복.
+clover-crown|토끼풀 화관|손으로 엮은 풀 관.
+berry-ribbon|산딸기 댕기|붉은 댕기.
+deer-tooth-necklace|고라니 이빨 목걸이|사냥의 증표.
+feather-norigae|깃털 노리개|허리에 다는 깃 장식.
+crystal-bracelet|수정 구슬 팔찌|영자 간섭을 흩는다.
+gogok-norigae|곡옥 노리개|굽은 옥 한 알.
+jujube-hairpin|벽조목 비녀|벼락 맞은 대추나무로 깎았다.
+magpie-hairpiece|흰까치 깃 머리꽂이|좋은 소식을 부른다.
+toad-ring|금두꺼비 반지|복을 물어 온다는 반지.
+dragon-hatstring|용마 갈기 갓끈|바람이 없어도 흩날린다.
+shell-necklace|조개 목걸이|청화호에서 건진 껍데기.

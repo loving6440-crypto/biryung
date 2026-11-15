@@ -22,6 +22,7 @@
   <script src="sync.js" defer></script>
   <script src="app.js" defer></script>
   <script src="quest.js" defer></script>
+  <script src="opening.js" defer></script>
   <script src="community.js" defer></script>
   <link rel="stylesheet" href="community.css">
 </head>
@@ -117,7 +118,7 @@
       <section class="map-section" aria-labelledby="mapHeading">
         <header class="map-heading">
           <div><div class="map-kicker">DESTINATION SELECT / 五方</div><h2 id="mapHeading">오방 지도 <span>五方</span></h2></div>
-          <p><span class="blinking-square">■</span> 들어갈 장소를 누르세요 <button type="button" class="map-open" data-open-map>내부 지도</button></p>
+          <p><span class="blinking-square">■</span> 들어갈 장소를 누르세요</p>
         </header>
         <div class="zone-grid obang" role="group" aria-label="학당의 오방 지도">
           <span class="pxwall obang-wall w-nw" aria-hidden="true"><i>乾</i></span>
@@ -137,7 +138,7 @@
             <span class="zone-bottom"><span class="zone-text"><span class="zone-english">HOUSE OF THE LEFT BEHIND</span><strong>생활관</strong><small>남겨진 자들이 잠드는 곳</small></span><span class="enter-icon">↗</span></span>
           </button>
           <button class="zone-card center" data-zone="center" type="button">
-            <span class="shrine-pixel" aria-hidden="true"></span>
+            <img src="assets/center_scene.png" alt="별빛 아래 노란 기와를 얹은 사당과 석등, 금줄" class="zone-art">
             <span class="inner-line"></span>
             <span class="zone-number">00 <b>黃</b> / CENTER</span>
             <span class="zone-status caution"><i></i> 출입 금지</span>

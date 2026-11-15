@@ -3,7 +3,7 @@ chocolate|bar|dbrown
 ramen|noodle|red
 dumpling|dango|cream
 chewy|bar|pink
-energy|can|neon
+energy|can|yellow
 cone-icecream|ice|cream
 bag-snack|pouch|orange
 slice-cake|cake|pink
@@ -26,7 +26,7 @@ broken-inkstick|inkstick|dgray
 split-brush|brush|dbrown
 jangseung-piece|plaque|brown
 dye|drop|purple
-five-color-thread|spool|neon
+five-color-thread|spool|red
 fine-woodchip|block|tan
 creek-orchid|flower|purple
 clover-leaf|sprout|green
@@ -46,7 +46,7 @@ carving-knife|blade|gray
 pouch|pouch|red
 clover|clover|green
 inkstick|inkstick|ink
-feather-deco|feather|neon
+feather-deco|feather|pink
 jangseung-keyring|key|brown
 green-charm|talisman|green
 clover-bookmark|tag|green

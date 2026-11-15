@@ -143,7 +143,7 @@
     if (mode === 'join' && pw !== pw2In.value) return fail('비밀번호 확인이 맞지 않습니다.');
     submit.disabled = true;
     let admin = false;
-    if (code) { admin = await verifyAdminCode(code); if (!admin) { submit.disabled = false; return fail('관리자 코드가 맞지 않습니다.'); } }
+    if (code) { admin = await verifyAdminCode(code); if (!admin) { submit.disabled = false; return fail(CONFIG.adminCodeFrom === 'github' || CONFIG.api || CONFIG.sameOrigin ? '관리자 코드가 맞지 않습니다.' : '관리자 코드가 맞지 않습니다. (이 사이트는 아직 GitHub 의 ADMIN_CODE 가 아니라 임시 코드를 쓰고 있어요 — 배포 설정을 확인해 주세요.)'); } }
     const r = mode === 'join' ? register(id, pw) : login(id, pw);
     if (r.error) { submit.disabled = false; return fail(r.error); }
     if (admin) { const acc = readAcc(); acc.users[r.id].admin = true; writeAcc(acc); }

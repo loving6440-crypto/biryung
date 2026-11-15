@@ -27,7 +27,7 @@
   /* 유품 10종 = 게임의 무구 10종. 둘씩 다섯 계통(방울 · 부채 · 거울 · 칼 · 오색천). save.story.heirloom 에는 무구 id(w-…)를 적는다. */
   const HEIRS = D.heirlooms || [];
   const OLD_HEIR = { bell: 'w-bell', fan: 'w-fan', mirror: 'w-spear', blade: 'w-sword', cloth: 'w-dagger' }; // v1.2 까지의 다섯 유품
-  const WEAPON_NAME = { 'w-bell': '공명 방울', 'w-mace': '충격 철퇴', 'w-fan': '위상 부채', 'w-staff': '육환 석장', 'w-bow': '전자 각궁', 'w-spear': '관측창', 'w-sword': '신칼', 'w-sickle': '절단 낫', 'w-dagger': '회로 단검', 'w-instrument': '장단 변조기' };
+  const WEAPON_NAME = { 'w-bell': '무당방울', 'w-mace': '철퇴', 'w-fan': '부채', 'w-staff': '석장', 'w-bow': '활', 'w-spear': '창', 'w-sword': '칼', 'w-sickle': '낫', 'w-dagger': '단검', 'w-instrument': '악기' };
   const itemName = (id) => { try { return App.playApi()?.itemName(id) || WEAPON_NAME[id] || id; } catch (_) { return WEAPON_NAME[id] || id; } };
   const heir = () => HEIRS.find((x) => x.weapon === save().story.heirloom) || null;
   const lineKey = () => heir()?.key || '';

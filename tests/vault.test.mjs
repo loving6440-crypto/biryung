@@ -143,15 +143,22 @@ test('Play: 실행 화면 부품이 빌드되어 있고, 스타일이 .play-scop
   assert.match(html, /src="play\/play\.js"/); assert.match(html, /id="playRoot"/); assert.match(html, /id="pageBack"/);
 });
 
-test('Reskin: 아이템 312 · 상대 57 · 영능력 13 이 모두 비령판 이름을 갖고, 아이템마다 도트 아이콘이 있다', async () => {
+test('v1.4: 아이템 · 상대 · 영능력은 초록동색 원래 이름 · 해설 그대로이고, 아이템마다 도트 아이콘이 있으며 사이버펑크 말이 없다', async () => {
   const r = await import('../systems/biryeong/reskin.data.js');
   const { ITEMS } = await Vault.load('game/items');
-  const { ALL_ENEMIES, PSYCHICS } = await Vault.load('game/battle');
-  for (const i of ITEMS) { assert.ok(r.ITEM_RESKIN[i.id]?.name && r.ITEM_RESKIN[i.id]?.desc, i.id); const px = r.ITEM_PIXELS[i.id]; assert.ok(r.PIXEL_TEMPLATES[px.t] && r.PIXEL_PALETTES[px.p], i.id); }
-  for (const e of ALL_ENEMIES) assert.ok(r.ENEMY_RESKIN[e.id]?.name && r.ENEMY_RESKIN[e.id]?.blurb, e.id);
-  for (const p of PSYCHICS) assert.ok(r.PSYCHIC_RESKIN[p.id]?.label, p.id);
+  // 개변표가 비어 있다 — 실행 화면은 보관고의 원래 이름 · 해설을 쓴다(학교 이름만 TEXT_SWAPS 로 바뀐다)
+  assert.deepEqual(r.ITEM_RESKIN, {}); assert.deepEqual(r.ENEMY_RESKIN, {}); assert.deepEqual(r.PSYCHIC_RESKIN, {});
+  assert.ok(r.TEXT_SWAPS.every(([a]) => /창록|초록동색|둘레길/.test(a)), '학교 이름 말고 바꾸는 글자가 있다');
+  for (const i of ITEMS) { const px = r.ITEM_PIXELS[i.id]; assert.ok(px && r.PIXEL_TEMPLATES[px.t] && r.PIXEL_PALETTES[px.p], i.id); }
+  assert.ok(!r.PIXEL_PALETTES.neon, '네온 색이 남아 있다');
   for (const grid of Object.values(r.PIXEL_TEMPLATES)) { assert.equal(grid.length, 12); for (const row of grid) assert.match(row, /^[.kabcd]{12}$/); }
-  assert.equal(new Set(Object.values(r.ITEM_RESKIN).map((x) => x.name)).size, ITEMS.length, '아이템 이름이 겹친다');
+  // 사이버펑크 말: 본편 아이템 · 칭호 · 원고에 남아 있지 않다
+  const CYBER = /사이버|네온|회로|홀로그램|해커|해킹|프로토콜|오버클럭|안드로이드|광섬유|전뇌|렌더러|코인|나노|뉴로/;
+  for (const it of r.STORY_ITEMS) assert.ok(!CYBER.test(it.name + it.desc), it.id);
+  const { readFileSync } = await import('node:fs');
+  const t2 = readFileSync(new URL('../titles2.js', import.meta.url), 'utf8').split('\n').slice(25).join('\n');
+  assert.ok(!CYBER.test(t2), '칭호에 사이버펑크 말');
+  for (const f of ['script_vol1.txt', 'script_vol2.txt', 'script_vol3.txt']) assert.ok(!CYBER.test(readFileSync(new URL('../systems/story/' + f, import.meta.url), 'utf8')), f);
 });
 
 // ── v1.0: 새 제작법 · 칭호 기능 ──
@@ -177,17 +184,17 @@ t10('v1.0 새 제작법은 재료 조합이 서로 겹치지 않고, 올려 두�
         assert10.ok([1, 2, 3].includes(RECIPE_TIERS[r.id]))
       }
     }
-    const r = NEW_RECIPES.W[0]
+    const r = NEW_RECIPES.W.find((x) => !x.result.startsWith('nw-')) // 보관고 그대로(패치 없이) 도는 시험이라, 보관고에 있는 결과로 본다
     const player = { inventory: Object.fromEntries(r.inputs), money: 0 }
     const done = benchCraft(player, r.inputs.map(([id, n]) => ({ id, n })), 'workshop', false)
     assert10.equal(done.failed, false); assert10.equal(done.player.inventory[r.result], 1)
   } finally { RECIPES.length = w0; COOK_RECIPES.length = k0 }
 })
-t10('v1.0 칭호 114개 모두에 기능이 있고, 업적 하나에 칭호 하나', () => {
+t10('v1.5 칭호 124개 모두에 기능이 있고, 업적 120개 — 업적 하나에 칭호 하나', () => {
   const window = {}
   for (const f of ['../titles.js', '../titles2.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
   const T = window.BIRYEONG_TITLES, A = window.BIRYEONG_ACHIEVEMENTS
-  assert10.equal(T.length, 114); assert10.equal(A.length, 110)
+  assert10.equal(T.length, 124); assert10.equal(A.length, 120)
   assert10.equal(new Set(T.map((t) => t.name)).size, T.length)
   for (const t of T) { assert10.ok(t.perk?.type && t.perk.v > 0 && t.perkText, t.id); if (t.from !== 'start') assert10.equal(A.filter((a) => a.title === t.id).length, 1, t.id) }
 })
@@ -258,4 +265,61 @@ t10('v1.3 본편: 유품 10종 = 무구 10종, 퀘스트가 쓰는 아이템 · 
   // 격파로 열리는 제작법의 상대는 본편 상대다
   for (const r of STORY_RECIPES.filter((x) => x.unlock.startsWith('boss:'))) assert10.ok(D.foes[r.unlock.slice(5)], r.id)
   assert10.equal(Object.keys(D.recipeResult).length, STORY_RECIPES.length)
+})
+
+test('v1.5: 아이템마다 제작법은 하나뿐이고, 겹치던 자리는 새 아이템 81종이 채운다(도트도 따로)', async () => {
+  const assert15 = (await import('node:assert/strict')).default
+  const { RECIPES } = await import('../systems/vault/modules/game/crafting.js')
+  const { COOK_RECIPES } = await import('../systems/vault/modules/game/cooking.js')
+  const R = await import('../systems/biryeong/reskin.data.js')
+  const all = [...RECIPES, ...COOK_RECIPES, ...R.NEW_RECIPES.W, ...R.NEW_RECIPES.K, ...R.STORY_RECIPES]
+  const by = new Map()
+  for (const r of all) by.set(r.result, [...(by.get(r.result) ?? []), r.id])
+  for (const [id, rs] of by) assert15.equal(rs.length, 1, `${id} 의 제작법이 둘 이상: ${rs.join(', ')}`)
+  assert15.equal(R.NEW_ITEMS.length, 81)
+  const made = new Set(all.map((r) => r.result))
+  const usedAsInput = new Set(all.flatMap((r) => r.inputs.map(([i]) => i)))
+  const combos = new Set()
+  for (const it of R.NEW_ITEMS) {
+    assert15.ok(made.has(it.id), `${it.id} 를 만드는 제작법`)
+    if (it.kind === 'material') assert15.ok(usedAsInput.has(it.id), `${it.id} 는 재료인데 쓰는 곳이 없다`)
+    const p = R.ITEM_PIXELS[it.id]; assert15.ok(p, `${it.id} 도트`)
+    const k = p.t + ':' + p.p; assert15.ok(!combos.has(k), k); combos.add(k)
+    assert15.ok(!/네온|사이버|홀로|해킹|칩셋/.test(it.name + it.desc), it.id)
+  }
+})
+
+test('v1.5: 본교 묶음 10개 — 초록동색 원래 업적 셋은 보관고 업적을 읽고, 새 업적의 셈은 실행 화면이 센다', async () => {
+  const assert15 = (await import('node:assert/strict')).default
+  const { readFileSync } = await import('node:fs')
+  const window = {}
+  for (const f of ['../titles.js', '../titles2.js']) new Function('window', readFileSync(new URL(f, import.meta.url), 'utf8'))(window)
+  const home = window.BIRYEONG_ACHIEVEMENTS.filter((a) => a.group === 'home')
+  assert15.equal(home.length, 10)
+  const { ACHIEVEMENTS } = await import('../systems/vault/modules/game/achievements.js')
+  const vaultIds = home.filter((a) => a.when.vault).map((a) => a.when.vault).sort()
+  assert15.deepEqual(vaultIds, ['gods-gaze', 'model-student', 'student-exercise'])
+  for (const id of vaultIds) assert15.equal(home.find((a) => a.when.vault === id).name, ACHIEVEMENTS.find((a) => a.id === id).name)
+  const host = readFileSync(new URL('../systems/play/src/usePlayHost.js', import.meta.url), 'utf8')
+  for (const a of home) {
+    if (a.when.count) assert15.ok(new RegExp(`(bump|peak)\\('${a.when.count}'`).test(host), a.id)
+    if (a.when.pset) assert15.ok(host.includes(`collect('${a.when.pset}'`), a.id)
+  }
+  assert15.ok(readFileSync(new URL('../app.js', import.meta.url), 'utf8').includes('w.vault ?'), 'app.js 가 when.vault 를 읽는다')
+})
+
+test('v1.6: 아이템 시트 수정 — 붉은여우 부적은 일행 전용 · 영능력 빌리기, 해설 셋이 바뀌었다', async () => {
+  const assert16 = (await import('node:assert/strict')).default
+  const R = await import('../systems/biryeong/reskin.data.js')
+  const fox = R.ITEM_EDITS['red-fox-charm']
+  assert16.equal(fox.party, true); assert16.equal(fox.effect.borrowPsychic, 1)
+  assert16.ok(fox.effectText.includes('파티 상태에서만'))
+  assert16.ok(R.ITEM_EDITS['hawk-cheollik'].desc.includes('3000만원'))
+  assert16.ok(R.ITEM_EDITS['oyster-mushroom-hotpot'].desc.endsWith('설마.'))
+  assert16.ok(R.NEW_ITEMS.find((i) => i.id === 'nw-red-centipede-charm').desc.includes('안 끔찍하고?'))
+  const { canUseItem, ITEMS } = await import('../systems/vault/modules/game/items.js')
+  const item = { ...ITEMS.find((i) => i.id === 'red-fox-charm'), ...fox }
+  assert16.equal(canUseItem(item, { inBattle: true, isParty: false, countNow: 1 }).ok, false)
+  const P = (await import('../systems/play/patches.mjs')); const list = P.default ?? P.PATCHES ?? Object.values(P).find(Array.isArray)
+  assert16.ok(list.some((x) => x.file === 'game/mbattle.js' && x.edits.some(([, b]) => b.includes('borrowPsychic'))))
 })

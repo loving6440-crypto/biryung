@@ -2,11 +2,12 @@
 // (수치는 그대로. 표는 systems/biryeong/*.txt → reskin.data.js)
 import { ITEMS } from '@vault/game/items.js'
 import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
-import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS } from '../../biryeong/reskin.data.js'
+import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS } from '../../biryeong/reskin.data.js'
 
 for (const item of ITEMS) {
   const r = ITEM_RESKIN[item.id]
   if (r) { item.name = r.name; item.desc = r.desc }
+  if (ITEM_EDITS[item.id]) Object.assign(item, ITEM_EDITS[item.id]) // v1.6 아이템 시트에서 고친 해설 · 효과
   if (ITEM_PIXELS[item.id]) item.pixel = ITEM_PIXELS[item.id] // 도트 아이콘: { t: 틀 이름, p: 팔레트 이름 }
 }
 for (const e of ALL_ENEMIES) {

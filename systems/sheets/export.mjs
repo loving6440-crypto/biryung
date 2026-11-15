@@ -13,7 +13,7 @@ const { COOK_RECIPES } = await imp('cooking.js')
 const hunt = await imp('huntSites.js')
 const garden = await imp('garden.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
-const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS] // v1.3 본편 아이템도 함께
+const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
 const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
 const name = (id) => R.ITEM_RESKIN[id]?.name ?? ITEMS.find((i) => i.id === id)?.name ?? id
 const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]))
@@ -31,7 +31,7 @@ const QD = globalThis.window.BIRYEONG_QUESTS
 // ── 습득 방법 ──
 const src = {}; const add = (id, text) => { (src[id] ??= new Set()).add(text) }
 for (const s of QD.scenes) for (const st of s.steps) for (const id of Object.keys({ ...(st.give ?? {}), ...(st.kit ?? {}) })) add(id, `본편 퀘스트 ${s.id} 「${s.title}」`)
-for (const h of QD.heirlooms) add(h.weapon, `본편 1-03 유품 등록 — 유품 「${h.name}」을 고르면(${h.line} 계통)`)
+for (const h of QD.heirlooms) add(h.weapon, `본편 1-03 유품 등록 — 유품 「${h.name}」을(를) 고르면(${h.line} 계통)`)
 const SB = readFileSync(join(ROOT, 'systems/play/src/storyBoss.js'), 'utf8')
 for (const [, key, id] of SB.matchAll(/\n  (\w+): \{ pattern:[^\n]*?drop: \['([\w-]+)'/g)) add(id, `이야기 전투 「${QD.foes[key]?.name ?? key}」 격파 전리품`)
 for (const i of ITEMS) if (i.price != null) add(i.id, i.id.startsWith('seed-') || /-seed$/.test(i.id) ? `씨앗 상점 · 매점 구매 (${i.price}냥)` : `매점 구매 (${i.price}냥)`)
@@ -50,9 +50,9 @@ const FILES = { 'explore.js': '본관 탐사', 'annex.js': '별관 탐사', 'hik
 const texts = Object.fromEntries(readdirSync(G).filter((f) => FILES[f]).map((f) => [f, readFileSync(join(G, f), 'utf8')]))
 for (const i of ITEMS) for (const [f, t] of Object.entries(texts)) if (t.includes(`'${i.id}'`)) add(i.id, FILES[f])
 for (const i of ITEMS) {
-  if (i.slot === 'weapon') { add(i.id, '전투 튜토리얼 완주 보상(택 1)'); add(i.id, '도깨비 인증 토큰 10개 교환(무구보관소)') }
+  if (i.slot === 'weapon') { add(i.id, '전투 튜토리얼 완주 보상(택 1)'); add(i.id, '도깨비 증표 10개 교환(무구보관소)') }
   if (i.id.startsWith('hwatu-')) add(i.id, '별관 패 놀이터 · 탐사')
-  if (i.tags?.includes('완성품') && i.id !== 'someones-bag') add(i.id, '주인 없는 가방(무작위)')
+  if (i.tags?.includes('완성품') && i.id !== 'someones-bag') add(i.id, '누군가의 가방(무작위)')
   if (i.id === 'charcoal') add(i.id, '조리 실패작'); if (i.id === 'trash') add(i.id, '공작소 실패작')
   if (i.id === 'crescent-flower') add(i.id, '개척 채집 — 달꽃터(오후에 캐면 초승꽃, 오전에는 그믐꽃)')
   if (i.id === 'fine-woodchip') add(i.id, '개척 채집에 실패했을 때 대신 얻는다')
@@ -80,10 +80,13 @@ const kindOf = (i) => (i.tags?.includes('재료') ? '재료' : i.slot === 'weapo
 const effectOf = (i) => (i.tags?.includes('재료') ? '제작용 재료' : swap(i.effectText) || '효과 없음')
 const items = ITEMS.map((i) => ({ id: i.id, name: name(i.id), kind: kindOf(i), tags: (i.tags ?? []).join(' · '), effect: effectOf(i), lore: swap(R.ITEM_RESKIN[i.id]?.desc ?? i.desc), use: useText(i), source: [...(src[i.id] ?? ['아직 습득처 없음 — 초록동색에서는 NPC · 퀘스트로 얻던 것. 새 NPC가 정해지면 연결(지금은 관리자 지급)'])].join(' / '), price: i.price ?? null }))
 
-const rec = recipes.map((r) => { const i = byId[r.result]; return { id: r.id, resultId: r.result, tier: r.tier, place: r.place, result: name(r.result), qty: r.yield ?? 1, kind: kindOf(i), effect: effectOf(i), lore: swap(R.ITEM_RESKIN[r.result]?.desc ?? i.desc), use: useText(i), combo: r.inputs.map(([id, n]) => `${name(id)} ×${n}`).join(' + '), parts: r.inputs.length, isNew: r.isNew === 'story' ? `v1.3 본편 — ${r.unlock === 'quest' ? '퀘스트가 가르친다' : `「${QD.foes[r.unlock.slice(5)]?.name}」 격파로 열린다`}` : r.isNew ? 'v1.0 신규' : '기존' } })
+const rec = recipes.map((r) => { const i = byId[r.result]; return { id: r.id, resultId: r.result, tier: r.tier, place: r.place, result: name(r.result), qty: r.yield ?? 1, kind: kindOf(i), effect: effectOf(i), lore: swap(R.ITEM_RESKIN[r.result]?.desc ?? i.desc), use: useText(i), combo: r.inputs.map(([id, n]) => `${name(id)} ×${n}`).join(' + '), parts: r.inputs.length, isNew: r.isNew === 'story' ? `v1.3 본편 — ${r.unlock === 'quest' ? '퀘스트가 가르친다' : `「${QD.foes[r.unlock.slice(5)]?.name}」 격파로 열린다`}` : r.isNew ? (r.result.startsWith('nw-') ? 'v1.5 새 아이템(겹치던 v1.0 제작법 자리)' : 'v1.0 신규') : '기존' } })
 
 globalThis.window = {}
 for (const f of ['titles.js', 'titles2.js', 'story-data.js']) new Function('window', readFileSync(join(ROOT, f), 'utf8'))(globalThis.window)
 const A = window.BIRYEONG_ACHIEVEMENTS, GN = Object.fromEntries(window.BIRYEONG_ACHIEVEMENT_GROUPS.map((g) => [g.id, g.name]))
-const titles = window.BIRYEONG_TITLES.map((t) => { const a = A.find((x) => x.title === t.id); return { name: t.name, desc: t.desc, tier: t.tier, group: a ? GN[a.group] : t.from === 'story' ? '본편' : '처음부터', how: a ? `업적 「${a.name}」 — ${a.hint}` : t.from === 'story' ? `본편 퀘스트 — ${t.desc}` : '처음부터 가지고 있다', perk: t.perkText, isNew: a?.group === 'neo' ? 'v1.0 신규' : t.from === 'story' ? 'v1.2 본편' : '기존' } })
-console.log(JSON.stringify({ items, recipes: rec, titles }))
+const titles = window.BIRYEONG_TITLES.map((t) => { const a = A.find((x) => x.title === t.id); return { name: t.name, desc: t.desc, tier: t.tier, group: a ? GN[a.group] : t.from === 'story' ? '본편' : '처음부터', how: a ? `업적 「${a.name}」 — ${a.hint}` : t.from === 'story' ? `본편 퀘스트 — ${t.desc}` : '처음부터 가지고 있다', perk: t.perkText, isNew: a?.group === 'neo' ? 'v1.0 신규' : a?.group === 'home' ? 'v1.5 본교' : t.from === 'story' ? 'v1.2 본편' : '기존' } })
+const TBY = Object.fromEntries(window.BIRYEONG_TITLES.map((t) => [t.id, t]))
+const ACH_NEW = { neo: 'v1.0 신규', home: 'v1.5 본교' }
+const achievements = A.map((a, i) => ({ order: i + 1, name: a.name, group: GN[a.group], tier: TBY[a.title]?.tier ?? '', how: a.hint, title: TBY[a.title]?.name ?? '', perk: TBY[a.title]?.perkText ?? '', extra: a.extra ?? '', desc: a.desc, isNew: a.origin ? '초록동색 원래' : ACH_NEW[a.group] ?? '기존' }))
+console.log(JSON.stringify({ items, recipes: rec, titles, achievements }))

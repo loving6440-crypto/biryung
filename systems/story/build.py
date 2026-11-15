@@ -349,7 +349,7 @@ ws.cell(row=r, column=4, value=f'=SUM(D{rq + 2}:D{r - 1})').font = Font(name=FON
 
 # ─────────────── v1.3 유품 10종 · 본편 아이템 · 제작법 · 보스 패턴 ───────────────
 import json as _json, os as _os, re as _re
-_WNAME = {'w-bell': '공명 방울', 'w-mace': '충격 철퇴', 'w-fan': '위상 부채', 'w-staff': '육환 석장', 'w-bow': '전자 각궁', 'w-spear': '관측창', 'w-sword': '신칼', 'w-sickle': '절단 낫', 'w-dagger': '회로 단검', 'w-instrument': '장단 변조기'}
+_WNAME = {'w-bell': '무당방울', 'w-mace': '철퇴', 'w-fan': '부채', 'w-staff': '석장', 'w-bow': '활', 'w-spear': '창', 'w-sword': '칼', 'w-sickle': '낫', 'w-dagger': '단검', 'w-instrument': '악기'}
 _STAT = {'insight': '안목', 'aggression': '호전', 'endurance': '인내', 'control': '절제', 'agility': '신속', 'comprehension': '이해'}
 _rec = {l.split('|')[0]: l for l in open(_os.path.join(_ROOT, 'systems/biryeong/story-recipes.txt'), encoding='utf8') if l.strip() and not l.startswith('#')}
 table('유품 10종', ['번호', '유품', '계통', '받는 무구(게임 무구 10종)', '무구 id', '부모의 손길(강화 1)', '한 줄', '1장 부모 회상'], [6, 14, 10, 18, 14, 14, 44, 60],

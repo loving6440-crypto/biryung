@@ -59,6 +59,11 @@ titles = sorted(d['titles'], key=lambda t: (t['tier'], t['isNew'] != '기존', t
 sheet('칭호', ['번호', '칭호', '난이도', '묶음', '기능(달고 있을 때)', '얻는 방법', '칭호 설명', '구분'], [6, 20, 7, 18, 38, 62, 44, 9],
       [[n, t['name'], t['tier'], t['group'], t['perk'], t['how'], t['desc'], t['isNew']] for n, t in enumerate(titles, 1)])
 
+ach = d['achievements']
+sheet('업적', ['번호', '업적', '묶음', '난이도', '달성 방법(얻는 경로)', '보상 칭호', '칭호 기능', '그 밖의 보상', '업적 설명(달성 후 보임)', '구분'], [6, 22, 18, 7, 52, 18, 32, 26, 52, 12],
+      [[a['order'], a['name'], a['group'], a['tier'], a['how'], a['title'], a['perk'], a['extra'], a['desc'], a['isNew']] for a in ach], tier_col=4, freeze='C2')
+NA = len(ach) + 1
+
 # ── 안내(맨 앞) ──
 ws = wb['Sheet']; ws.title = '안내'
 ws.column_dimensions['A'].width = 26; ws.column_dimensions['B'].width = 14; ws.column_dimensions['C'].width = 14; ws.column_dimensions['D'].width = 14; ws.column_dimensions['E'].width = 60
@@ -67,16 +72,16 @@ def put(r, vals, bold=False, fill=None):
         cell = ws.cell(row=r, column=c, value=v); cell.font = Font(name=FONT, size=11 if bold else 10, bold=bold, color='FFFFFF' if fill is HEAD else '000000')
         cell.alignment = Alignment(vertical='top', wrap_text=True)
         if fill: cell.fill = fill
-ws['A1'] = '秘靈 · 비령 v1.0 — 아이템 · 제작법 · 칭호 표'; ws['A1'].font = Font(name=FONT, size=14, bold=True)
+ws['A1'] = '秘靈 · 비령 v1.6 — 아이템 시트 (아이템 · 제작법 · 업적 · 칭호)'; ws['A1'].font = Font(name=FONT, size=14, bold=True)
 ws['A2'] = '게임 데이터(systems/vault · systems/biryeong · titles.js · titles2.js)에서 그대로 뽑은 표. 다시 만들려면 npm run sheets.'; ws['A2'].font = Font(name=FONT, size=10, color='555555')
 NR = len(recs) + 1; NI = len(items) + 1; NT = len(titles) + 1
 put(4, ['제작 단계', '공작소', '조리실', '합계', '뜻'], True, HEAD)
-mean = {1: '바탕 — 다른 제작의 재료가 되는 것(전도 한지 · 부적 잉크 · 약재 추출액 · 청화 육수 …). 날재료만으로 만든다.', 2: '바탕으로 만드는 완성품. 제작법의 대부분.', 3: '상급 공정 — 완성품이나 귀한 재료, 바탕 여럿을 겹쳐 쓴다. 성능이 좋거나 한 번에 여러 개가 나온다.'}
+mean = {1: '바탕 — 다른 제작의 재료가 되는 것(한지 · 부적 먹물 · 약재 달임물 · 청화 육수 …). 날재료만으로 만든다.', 2: '바탕으로 만드는 완성품. 제작법의 대부분.', 3: '상급 공정 — 완성품이나 귀한 재료, 바탕 여럿을 겹쳐 쓴다. 성능이 좋거나 한 번에 여러 개가 나온다.'}
 for k in (1, 2, 3):
     r = 4 + k
     put(r, [f'{k}단계', f'=COUNTIFS(제작법!$B$2:$B${NR},{k},제작법!$C$2:$C${NR},"공작소")', f'=COUNTIFS(제작법!$B$2:$B${NR},{k},제작법!$C$2:$C${NR},"조리실")', f'=B{r}+C{r}', mean[k]], fill=TIER[k])
 put(8, ['합계', '=SUM(B5:B7)', '=SUM(C5:C7)', '=SUM(D5:D7)', '이 가운데 v1.0 신규:'], True)
-ws['E8'] = f'="이 가운데 v1.0 신규 "&COUNTIF(제작법!$M$2:$M${NR},"v1.0 신규")&"개"'
+ws['E8'] = f'="이 가운데 v1.0 신규 "&COUNTIF(제작법!$M$2:$M${NR},"v1.0 신규")&"개 · v1.5 새 아이템 "&COUNTIF(제작법!$M$2:$M${NR},"v1.5*")&"개"'
 put(10, ['아이템', '개수', '', '', '뜻'], True, HEAD)
 put(11, ['재료', f'=COUNTIF(아이템!$D$2:$D${NI},"재료")', '', '', "효과 칸은 모두 '제작용 재료'로 통일했다."])
 put(12, ['완성품', f'=COUNTIF(아이템!$D$2:$D${NI},"완성품*")', '', '', '소모품 · 전투용 · 개척용 · 장비 · 무구 · 강화재'])
@@ -84,14 +89,26 @@ put(13, ['합계', '=B11+B12', '', '', ''], True)
 put(15, ['칭호', '개수', '', '', '뜻'], True, HEAD)
 put(16, ['기존', f'=COUNTIF(칭호!$H$2:$H${NT},"기존")', '', '', '난이도 0 처음부터 · 1 둘러보기/하루 · 2 며칠 · 3 꾸준히 · 4 한 달 · 5 극'])
 put(17, ['v1.0 신규(별전)', f'=COUNTIF(칭호!$H$2:$H${NT},"v1.0 신규")', '', '', '기능은 그 칭호를 달고 있을 때만 듣는다(한 번에 하나).'])
-put(18, ['합계', '=B16+B17', '', '', ''], True)
-put(20, ['표 읽는 법'], True)
-notes = ['아이템 — 해설: 세계관 설명 글 / 설명(쓰임새): 어디에 어떻게 쓰는지 / 습득 방법: 얻는 길을 모두 적었다( / 로 구분).',
+put(18, ['본편', f'=COUNTIF(칭호!$H$2:$H${NT},"v1.2 본편")', '', '', '본편 퀘스트(산문 너머)를 마치면 얻는다.'])
+put(19, ['v1.5 본교', f'=COUNTIF(칭호!$H$2:$H${NT},"v1.5 본교")', '', '', '본교 — 학당 생활 업적 10개의 칭호.'])
+put(20, ['합계', '=SUM(B16:B19)', '', '', ''], True)
+put(22, ['업적', '개수', '', '', '뜻'], True, HEAD)
+put(23, ['기존(둘러보기~극)', f'=COUNTIF(업적!$J$2:$J${NA},"기존")', '', '', '업적 하나에 칭호 하나. 달성하면 칭호가 바로 들어온다.'])
+put(24, ['v1.0 신규(별전)', f'=COUNTIF(업적!$J$2:$J${NA},"v1.0 신규")', '', '', ''])
+put(25, ['초록동색 원래', f'=COUNTIF(업적!$J$2:$J${NA},"초록동색 원래")', '', '', '보관고(초록동색)가 판정하고, 원래 보상(영력 · 냥 · 스킨)도 함께 나온다.'])
+put(26, ['v1.5 본교(새)', f'=COUNTIF(업적!$J$2:$J${NA},"v1.5 본교")', '', '', ''])
+put(27, ['합계', '=SUM(B23:B26)', '', '', ''], True)
+put(29, ['표 읽는 법'], True)
+notes = ['v1.4 — 아이템 이름 · 해설은 초록동색 원래 것을 그대로 썼다(학교 이름만 비령으로). id 가 st- 로 시작하는 것은 본편 퀘스트용, nw- 로 시작하는 81종은 v1.5 새 아이템이다.',
+         'v1.5 — 아이템마다 제작법은 하나다. 겹치던 v1.0 제작법 81개는 새 아이템을 만든다(제작법 표의 구분 칸 "v1.5 새 아이템").',
+         '업적 — 달성 방법이 곧 얻는 경로다. 보상 칭호와 그 기능, 초록동색 원래 업적은 원래 보상까지 적었다. 칭호 표의 "얻는 방법"에도 같은 업적이 적혀 있다.',
+         '아이템 — 해설: 세계관 설명 글 / 설명(쓰임새): 어디에 어떻게 쓰는지 / 습득 방법: 얻는 길을 모두 적었다( / 로 구분).',
          "습득 방법이 '아직 습득처 없음'인 재료 6종은 초록동색에서 NPC · 퀘스트로 얻던 것이다. 새 NPC를 정하면 연결하면 된다.",
          '제작법 — 조합: 재료 이름 ×개수. 재료를 정확히 그 비율로 올리면 여러 개를 한꺼번에 만든다.',
          "제작법 — '한 번에'가 2 이상이면 한 번 만들 때 그 수만큼 나온다(3단계 대량 공정).",
          '도트 — 게임 화면에 나오는 그 아이템의 도트 아이콘이다(12×12, 아이템마다 하나씩 · 겹치는 것 없음). 원본은 systems/biryeong/pixels.txt 와 pixel-templates*.txt.',
          '모든 표는 첫 줄의 필터 단추로 단계 · 곳 · 종류별로 걸러 볼 수 있다.']
-for i, t in enumerate(notes): ws.cell(row=21 + i, column=1, value='· ' + t).font = Font(name=FONT, size=10); ws.merge_cells(start_row=21 + i, start_column=1, end_row=21 + i, end_column=5)
+for i, t in enumerate(notes): ws.cell(row=30 + i, column=1, value='· ' + t).font = Font(name=FONT, size=10); ws.merge_cells(start_row=30 + i, start_column=1, end_row=30 + i, end_column=5)
+wb.move_sheet('업적', offset=-1)  # 아이템 · 제작법 · 업적 · 칭호 차례
 wb.save(out)
-print('저장', out, len(items), len(recs), len(titles))
+print('저장', out, len(items), len(recs), len(titles), len(ach))

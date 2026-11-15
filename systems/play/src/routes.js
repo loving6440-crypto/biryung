@@ -10,7 +10,7 @@ export const ROUTE_GROUPS = [
   { title: '전투', items: [
     { path: 'battle', label: '퇴마 실습', note: '실습 상대 7종 · 전투 튜토리얼' },
     ...ENEMIES.map((e) => ({ path: `battle/${e.id}`, label: e.name, note: `실습 · ${e.tier ?? ''}단계` })),
-    { path: 'extra', label: '추가전투', note: '전투 데이터 50종 · 단계 고르기' },
+    { path: 'extra', label: '추가전투', note: '요괴 50종 · 단계 고르기' },
     ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => ({ path: `extra/${t}`, label: `추가전투 ${t}단계`, note: BESTIARY_ENEMIES.filter((e) => e.tier === t).map((e) => e.name).join(' · ') })),
     ...BESTIARY_ENEMIES.map((e) => ({ path: `battle/${e.id}`, label: e.name, note: `${e.tier}단계 · ${e.role ?? ''}`, hidden: true })),
   ] },

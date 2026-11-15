@@ -1,11 +1,9 @@
 /**
  * 秘靈 · 비령 — 세계관 개변 데이터 만들기.   npm run reskin:build → systems/biryeong/reskin.data.js
  *
- * 초록동색에서 가져온 아이템 · 적 · 영능력의 이름과 설명을 비령(2046년, SF-조선 어반 오컬트) 판으로 바꾸는 표와
- * 아이템 도트 아이콘 데이터를 한 파일로 묶는다. 수치(가격 · 효과 · 체력 · 공격력 …)는 건드리지 않는다.
- *   items-a.txt · items-b.txt   id|새 이름|새 설명
- *   enemies.txt                 id|새 이름|새 소개|영능력 1 이름|영능력 2 이름
- *   psychics.txt                id|새 이름|새 설명
+ * v1.4: 아이템 · 요괴 · 영능력은 초록동색 원래 이름과 해설을 그대로 쓴다(개변표 없음 — 예전 표는 archive-v1.3/).
+ *       바뀌는 것은 학교 이름(창록 → 비령)뿐이고, 그건 TEXT_SWAPS 가 빌드할 때 글자째로 바꾼다.
+ * 이 파일이 묶는 것: 아이템 도트 아이콘 · 새 제작법(v1.0) · 본편 아이템과 제작법(v1.3). 수치는 건드리지 않는다.
  *   pixel-templates.txt         12×12 도트 틀 (k 외곽선 · a 바탕 · b 그늘 · c 빛 · d 포인트)
  * 보관고(systems/vault) 원본은 그대로 두고, 실행 화면이 시작할 때 이 표를 덮어씌운다(systems/play/src/reskin.js).
  */
@@ -17,18 +15,12 @@ const rows = (f) => readFileSync(join(HERE, f), 'utf8').split('\n').map((l) => l
 const { ITEMS } = await import('../vault/modules/game/items.js')
 const { ALL_ENEMIES, PSYCHICS } = await import('../vault/modules/game/battle.js')
 
-const items = {}
-for (const [id, name, desc] of [...rows('items-a.txt'), ...rows('items-b.txt')]) items[id] = { name, desc }
-const enemies = {}
-for (const [id, name, blurb, s1, s2] of rows('enemies.txt')) enemies[id] = { name, blurb, ...(s1 ? { special: s1 } : {}), ...(s2 ? { special2: s2 } : {}) }
-const psychics = {}
-for (const [id, label, note] of rows('psychics.txt')) psychics[id] = { label, note }
-for (const i of ITEMS) if (!items[i.id]) throw new Error('아이템 개변 누락: ' + i.id)
-for (const e of ALL_ENEMIES) if (!enemies[e.id]) throw new Error('적 개변 누락: ' + e.id)
-for (const p of PSYCHICS) if (!psychics[p.id]) throw new Error('영능력 개변 누락: ' + p.id)
-// 화면 코드 안에 글자로 박힌 옛 이름(영능력 · 학교 이름)은 빌드할 때 통째로 바꾼다.
+// v1.4: 개변표를 쓰지 않는다 — 초록동색 원래 이름 · 해설 그대로.
+const items = Object.fromEntries(ITEMS.map((i) => [i.id, true]))
+const enemies = {}, psychics = {}
+void ALL_ENEMIES; void PSYCHICS
+// 화면 코드 안에 글자로 박힌 학교 이름은 빌드할 때 통째로 바꾼다.
 const textSwaps = [
-  ...PSYCHICS.filter((p) => p.label !== psychics[p.id].label).map((p) => [p.label, psychics[p.id].label]),
   ['국립 창록고등학교', '비령 임시학당'], ['창록고등학교', '비령 임시학당'], ['창록고', '비령학당'], ['창록교', '비령학당'], ['창록', '비령'], ['초록동색', '비령'], ['둘레길 바깥 숲에서 진짜 요괴와 겨룬다', '실습장 결계 너머에서 금역의 요괴와 겨룬다'],
 ].sort((a, b) => b[0].length - a[0].length)
 
@@ -36,7 +28,7 @@ const textSwaps = [
 // pixel-templates.txt · pixel-templates-2.txt : 12×12 도트 틀 108개 (k 외곽선 · a 바탕 · b 그늘 · c 빛 · d 포인트)
 // pixels.txt : 아이템 id|틀|색 — 312개 모두 손으로 정했다. 같은 (틀 · 색) 조합을 두 아이템이 쓰면 빌드가 멈춘다.
 const templates = {}
-for (const f of ['pixel-templates.txt', 'pixel-templates-2.txt', 'pixel-templates-story.txt']) {
+for (const f of ['pixel-templates.txt', 'pixel-templates-2.txt', 'pixel-templates-story.txt', 'pixel-templates-new.txt']) {
   for (const block of readFileSync(join(HERE, f), 'utf8').trim().split('#').slice(1)) {
     const [name, ...grid] = block.trim().split('\n')
     if (grid.length !== 12 || grid.some((r) => r.length !== 12)) throw new Error('도트 틀 크기 오류: ' + name)
@@ -54,7 +46,7 @@ const PALETTES = {
   gold: ['#d4b078', '#8d7147', '#f6e3b5', '#c8504f'], purple: ['#8a6fb0', '#553f78', '#d6c4f0', '#7fe0d0'], grape: ['#6a4a90', '#3f2a60', '#a890d0', '#c8e080'],
   blue: ['#4a78b8', '#2b4878', '#a9c7ea', '#f0d49a'], sky: ['#7fc4e8', '#4a88a8', '#d6f1fa', '#ffffff'], cyan: ['#5fc8c0', '#358880', '#c0f4ec', '#f3a6a0'],
   jade: ['#4f948d', '#2f625f', '#a8e0d4', '#f0d49a'], white: ['#eef0f6', '#b0b6c8', '#ffffff', '#7fc4e8'], cream: ['#f3e6c0', '#c0ae80', '#fffbe8', '#c8504f'],
-  ember: ['#f07a3a', '#a8421c', '#ffc88a', '#fff1c4'], ghost: ['#7fe0a0', '#3f9a68', '#d0ffe0', '#ffffff'], neon: ['#f060c0', '#a02880', '#ffb0e8', '#60f0f0'],
+  ember: ['#f07a3a', '#a8421c', '#ffc88a', '#fff1c4'], ghost: ['#7fe0a0', '#3f9a68', '#d0ffe0', '#ffffff'], // v1.4: 네온 색은 뺐다
   ink: ['#2f3a5a', '#1a2238', '#6a78a8', '#e3dcc6'], rice: ['#f6f0dc', '#c8c0a0', '#ffffff', '#d4b078'], soy: ['#d8c070', '#9a8440', '#f6ecb0', '#6f9d5a'],
 }
 const pixels = {}
@@ -92,6 +84,37 @@ for (const l of lines('story-items.txt')) {
 }
 const storyIds = new Set(storyItems.map((i) => i.id))
 
+// ── v1.5 새 아이템(items-new.txt) — 제작법이 둘이던 아이템을 하나로 정리하며 그 자리를 채운 81종 ──
+// 닮은 원래 아이템에서 종류 · 자리 · 태그 · 전투 규칙을 빌리고, 이름 · 설명 · 효과 · 육조는 새로 쓴다. 팔지 않는다.
+const vaultById = Object.fromEntries(ITEMS.map((i) => [i.id, i]))
+const newItems = []
+for (const l of lines('items-new.txt')) {
+  const [id, like, name, t, p, effectText, effectJson, extraJson, desc] = l.split('|')
+  if (!/^nw-[a-z0-9-]+$/.test(id)) throw new Error('새 아이템 id 는 nw- 로 시작한다: ' + id)
+  if (items[id] || storyIds.has(id) || newItems.some((x) => x.id === id)) throw new Error('새 아이템 id 가 겹친다: ' + id)
+  const base = vaultById[like]
+  if (!base) throw new Error(`새 아이템: 닮은 원래 아이템이 없다 ${like} (${id})`)
+  if (!templates[t] || !PALETTES[p]) throw new Error(`새 아이템 도트 오류: ${t}:${p} (${id})`)
+  const key = t + ':' + p
+  if (comboOwner.has(key)) throw new Error(`도트가 겹친다: ${id} ↔ ${comboOwner.get(key)} (${key})`)
+  comboOwner.set(key, id)
+  const extra = JSON.parse(extraJson || '{}')
+  if (extra.bonus) for (const k of Object.keys(extra.bonus)) if (!STATS6.has(k)) throw new Error('새 장비 육조 오류: ' + k)
+  const { bonus: _b, hunt: _h, ...rest } = base
+  newItems.push({ ...rest, id, name, price: null, desc, effectText: effectText || (base.kind === 'material' ? '제작용 재료.' : undefined), effect: JSON.parse(effectJson || '{}'), ...extra })
+  pixels[id] = { t, p }
+}
+const newIds = new Set(newItems.map((i) => i.id))
+
+// ── v1.6 아이템 시트에서 고친 것(item-edits.txt) — 실행 화면이 보관고 아이템 위에 덮는다 ──
+const itemEdits = {}
+for (const l of lines('item-edits.txt')) {
+  const [id, field, ...rest] = l.split('|'); const raw = rest.join('|')
+  if (!items[id] && !storyIds.has(id) && !newIds.has(id)) throw new Error('item-edits: 없는 아이템 ' + id)
+  if (!['desc', 'effectText', 'effect', 'party', 'name'].includes(field)) throw new Error('item-edits: 모르는 칸 ' + field)
+  ;(itemEdits[id] ??= {})[field] = field === 'effect' ? JSON.parse(raw) : field === 'party' ? raw === 'true' : raw
+}
+
 const used = {}
 for (const p of Object.values(pixels)) used[p.t] = (used[p.t] || 0) + 1
 
@@ -100,15 +123,20 @@ for (const p of Object.values(pixels)) used[p.t] = (used[p.t] || 0) + 1
 //   1단계 = 바탕(다른 제작의 재료가 되는 것) · 2단계 = 바탕으로 만드는 완성품 · 3단계 = 완성품 · 바탕을 겹쳐 쓰는 상급품 · 대량 공정
 const { RECIPES } = await import('../vault/modules/game/crafting.js')
 const { COOK_RECIPES } = await import('../vault/modules/game/cooking.js')
-const itemById = Object.fromEntries([...ITEMS, ...storyItems].map((i) => [i.id, i]))
+const itemById = Object.fromEntries([...ITEMS, ...storyItems, ...newItems].map((i) => [i.id, i]))
 const gcd = (a, b) => (b ? gcd(b, a % b) : a)
 const sig = (inputs) => { const g = inputs.map((x) => x[1]).reduce(gcd); return inputs.map(([id, n]) => id + '*' + n / g).sort().join('+') }
 const seen = { W: new Map(RECIPES.map((r) => [sig(r.inputs), r.id])), K: new Map(COOK_RECIPES.map((r) => [sig(r.inputs), r.id])) }
 const newRecipes = { W: [], K: [] }
+const vaultResults = new Set([...RECIPES, ...COOK_RECIPES].map((r) => r.result))
+const newResults = new Set()
 rows('recipes-new.txt').forEach(([place, tier, result, ins, yieldN], i) => {
   const inputs = ins.split('+').map((p) => { const [id, n] = p.split('*'); return [id, Number(n || 1)] })
   for (const [id] of [[result], ...inputs]) if (!itemById[id]) throw new Error('새 제작법: 없는 아이템 ' + id)
   if (inputs.length > 10) throw new Error('새 제작법: 재료 칸 초과 ' + result)
+  if (!newIds.has(result) && vaultResults.has(result)) throw new Error('새 제작법: 원래 제작법이 있는 아이템을 또 만든다 ' + result)
+  if (newResults.has(result)) throw new Error('새 제작법: 같은 결과의 제작법이 둘 ' + result)
+  newResults.add(result)
   const s = sig(inputs)
   if (seen[place].has(s)) throw new Error('새 제작법: 재료 조합이 겹친다 ' + result + ' ↔ ' + seen[place].get(s))
   const id = 'n' + String(i + 1).padStart(3, '0') + '-' + result
@@ -138,7 +166,8 @@ for (const l of lines('story-recipes.txt')) {
 
 
 const out = `/* 직접 고치지 말 것 — npm run reskin:build 가 systems/biryeong/*.txt 에서 만든다. */
-export const ITEM_RESKIN = ${JSON.stringify(items)}
+export const ITEM_RESKIN = {} // v1.4: 개변 없음 — 초록동색 원래 이름 · 해설
+export const ITEM_EDITS = ${JSON.stringify(itemEdits)} // v1.6 아이템 시트에서 고친 해설 · 효과(item-edits.txt)
 export const ENEMY_RESKIN = ${JSON.stringify(enemies)}
 export const PSYCHIC_RESKIN = ${JSON.stringify(psychics)}
 export const TEXT_SWAPS = ${JSON.stringify(textSwaps)}
@@ -149,6 +178,7 @@ export const NEW_RECIPES = ${JSON.stringify(newRecipes)}
 export const RECIPE_TIERS = ${JSON.stringify(recipeTiers)}
 export const STORY_ITEMS = ${JSON.stringify(storyItems)}
 export const STORY_RECIPES = ${JSON.stringify(storyRecipes)}
+export const NEW_ITEMS = ${JSON.stringify(newItems)}
 `
 writeFileSync(join(HERE, 'reskin.data.js'), out)
 console.log(`아이템 ${Object.keys(items).length} · 적 ${Object.keys(enemies).length} · 영능력 ${Object.keys(psychics).length} · 도트 틀 ${Object.keys(templates).length}`)
