@@ -502,3 +502,27 @@ test('vB.03: 본편 보상 · 서버 선택은 최초 1회만 · 관리자 기�
   assert.ok(!/if a\.role = 'admin' then return jsonb_build_object\('ok', true, 'recorded', false/.test(sql))
   assert.match(readFileSync(join(ROOT, 'sync.js'), 'utf8'), /resolution=ignore-duplicates/)
 })
+
+test('vB.04: 오방색 배치 · 영능력 도감 양식 · 하루 영력 전투 3번(냥은 제한 없음)', async () => {
+  const D = {}; new Function('window', readFileSync(join(ROOT, 'game-data.js'), 'utf8'))(D)
+  const tabs = Object.fromEntries(Object.values(D.BIRYEONG_DATA.zones).flatMap((z) => z.tabs.map((t) => [t.id, t.hanja])))
+  assert.deepEqual([tabs.mainHall, tabs.annex, tabs.dorm, tabs.gym, tabs.shrine], ['靑', '靑', '白', '赤', '黃'])
+  const rs = readFileSync(join(ROOT, 'systems/play/src/reskin.js'), 'utf8')
+  assert.ok(rs.includes("LOCATIONS.dorm, { hanja: '白'") && rs.includes("LOCATIONS.annex, { hanja: '靑'"))
+  assert.match(readFileSync(join(ROOT, 'styles.css'), 'utf8'), /\.zone-card\.north\{--accent:#0a0c12/)
+  const C = {}; new Function('window', readFileSync(join(ROOT, 'codex-data.js'), 'utf8'))(C)
+  const SIX = ['안목', '호전', '인내', '절제', '신속', '이해', '육조 가운데 가장 높은 스탯', '없음']
+  for (const p of C.BIRYEONG_CODEX.psychics) {
+    assert.ok(p.mp && p.detail && p.cond && p.affects, p.id)
+    for (const a of p.affects.split(' · ')) assert.ok(SIX.includes(a), `${p.id}: ${a}`)
+    assert.ok(!/취득 경로 미정/.test(p.cond), p.id)
+  }
+  const cap = await import('../systems/play/src/spiritCap.js')
+  let p = {}; for (let i = 0; i < 3; i++) p = cap.countSpiritWin(p)
+  assert.equal(cap.spiritWinsLeft(p), 0); assert.equal(cap.spiritWinsLeft(p, Date.now() + 86400000 * 2), 3)
+  const { applyPatches } = await import('../systems/play/patches.mjs')
+  const pr = applyPatches('game/progress.js', readFileSync(join(VAULT, 'modules/game/progress.js'), 'utf8'))
+  assert.ok(pr.includes('money: player.money + reward, gym: g }, granted: 0, money: reward'))
+  assert.ok(applyPatches('game/huntField.js', readFileSync(join(VAULT, 'modules/game/huntField.js'), 'utf8')).includes('__left(player, now) <= 0'))
+  assert.ok(applyPatches('game/hunt.js', readFileSync(join(VAULT, 'modules/game/hunt.js'), 'utf8')).includes('__left(rest, now) <= 0'))
+})

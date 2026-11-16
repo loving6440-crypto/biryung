@@ -4,6 +4,14 @@ import { ITEMS } from '@vault/game/items.js'
 import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
 import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS, HUNT_EXTRA } from '../../biryeong/reskin.data.js'
 import { HUNT_SPECIES } from '@vault/game/huntSites.js'
+import { LOCATIONS } from '@vault/game/constants.js'
+import { LOCATION_INTRO } from '@vault/game/locationText.js'
+// vB.04 오방색 맞추기: 비령의 배치는 산문 北 · 黑 / 강학당(본관 · 별관) 東 · 靑 / 생활관(기숙사) 西 · 白 / 비령산 南 · 赤 / 사당 中 · 黃.
+// 보관고는 기숙사를 북(흑), 별관을 서(백)로 적어 두었으므로 여기서 방위 · 색 · 소개 글을 고친다.
+Object.assign(LOCATIONS.dorm, { hanja: '白', accentLabel: '백', navNote: '서쪽, 달빛을 머금은 하얀 보금자리.' })
+Object.assign(LOCATIONS.annex, { hanja: '靑', accentLabel: '청', navNote: '동쪽, 본관 곁에 선 푸른 띠의 장서각.' })
+LOCATION_INTRO.dorm[0] = '사당을 중심으로 서쪽에 놓인 건물. 당신이 살아가는 하얀 공간. 바닥과 벽은 그나마 알아볼 수 있게끔 검고 노란 줄들이 그어져 있으나 가끔 밤에 움직이면 온통 희기만 해서 거리감이 분간이 가질 않아 해가 진 뒤에 이동할 때엔 최소 3명에서 많으면 다섯명씩 움직이라고 주의를 받는다. 4시간 마다 선생님들이 복도를 돌아다니면서 길 잃은 아이들을 다시 방으로 돌려보내곤 한다.'
+LOCATION_INTRO.annex[0] = '사당을 중심으로 동쪽, 본관 곁에 놓인 건물. 본관과 같은 파란 띠를 둘렀지만, 별관의 벽은 푸른빛으로 일렁이는 본관과 대비가 될 정도로 하얗다. 모서리에는 글자 대신 동물 모양의 석상이 있으나, 목의 자리엔 그 무엇도 남아있지 않다. 자세히 보려고 해도 선생님들께선 그러는 것을 추천하지 않는다고 주의를 내릴 뿐이다.'
 // v1.9.8 개척 덤: 얻을 곳이 없던 아이템을 쉬운 산길의 흔한 대상에 낮은 확률로 붙인다(hunt-extra.txt). 개척을 시작할 때 대상의 보상 목록을 복사하므로 여기서 더해 두면 된다.
 for (const x of HUNT_EXTRA) { const sp = HUNT_SPECIES[x.species]; if (sp && !sp.rewards.some((r) => r.item === x.item)) sp.rewards.push({ item: x.item, chance: x.chance, amount: x.amount }) }
 

@@ -37,12 +37,22 @@ const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, ef
 const nameOf = Object.fromEntries(items.map((i) => [i.id, i.name]))
 
 // ── 영능력 ──
+// 영향받는 스탯: 육조 스탯만. 스탯에 따라 영능력의 값이 직접 달라지거나, 영능력이 스탯을 바꿀 때만 적는다(없으면 「없음」).
 const AFFECTS = {
-  buff: ['안목', '호전'], survival: ['인내', '절제'], 'monkey-paw': ['체력', '호전', '안목', '인내', '절제'], 'dokkaebi-fire': ['호전', '안목'],
-  'echo-form': ['인내', '절제', '호전', '체력'], 'karmic-recompense': ['공격 대상'], 'falling-light': ['방어 태세'], 'cotton-mist': ['상대 행동'],
+  survival: ['신속'], 'monkey-paw': ['안목', '호전', '인내', '절제'], 'dokkaebi-fire': ['안목', '호전'], 'earth-step': ['인내'], 'seven-stars': ['호전'],
 }
-const mpText = (s) => (s.id === 'monkey-paw' ? '깎는 체력만큼' : s.id === 'echo-form' ? '50 − 인내 − 절제 + 호전 (20~99)' : Number.isFinite(s.mp) ? String(s.mp) : '행동에 따라 변동')
-const psychics = PSYCHICS.map((p) => ({ ...(p.stolen ? { stolen: true, from: p.from, boss: p.boss, src: p.src } : {}), id: p.id, name: p.label, note: swap(p.note), detail: swap(p.detail || ''), cond: swap(p.cond || ''), mp: mpText(p), affects: (AFFECTS[p.id] || []).join(' · ') || '직접 참조 없음', always: !!p.default }))
+const STAT_KO = { insight: '안목', aggression: '호전', endurance: '인내', control: '절제', agility: '신속', comprehension: '이해' }
+const affectsOf = (p) => {
+  if (!p.stolen) return AFFECTS[p.id] || []
+  const out = p.k.m ? ['안목', '호전'] : [] // 피해는 내 일반 공격 굴림(2d호전 + d안목)을 바탕으로 한다
+  if (p.k.a?.[0] === 'max') return ['안목', '호전', '육조 가운데 가장 높은 스탯']
+  if (p.k.a && !out.includes(STAT_KO[p.k.a[0]])) out.push(STAT_KO[p.k.a[0]])
+  return out
+}
+const MP_TEXT = { buff: '10 (켜 둔 뒤 공격을 고를 때)', survival: '0', 'monkey-paw': '깎는 체력 + 10', 'echo-form': '50', 'earth-step': '인내 + 50 (최대 99)', 'warding-scripture': '정하는 만큼 (1 이상)' }
+const mpText = (s) => MP_TEXT[s.id] ?? (Number.isFinite(s.mp) ? String(s.mp) : '0')
+const condOf = (p) => (p.default ? '모두가 처음부터 안다.' : /취득 경로 미정/.test(p.cond || '') ? '익히는 길이 아직 알려지지 않았다.' : swap(p.cond || ''))
+const psychics = PSYCHICS.map((p) => ({ ...(p.stolen ? { stolen: true, from: p.from, boss: p.boss, src: p.src } : {}), id: p.id, name: p.label, note: swap(p.note), detail: swap(p.detail || ''), cond: condOf(p), mp: mpText(p), affects: affectsOf(p).join(' · ') || '없음', always: !!p.default }))
 
 // ── 적 ──
 const drops = {}

@@ -440,13 +440,13 @@ export function usePlayHost() {
     if (win && enemy?.id) p = questEvent(p, { type: 'kill', id: enemy.id })
     if (win && special === 'pine' && !battleDownedRef.current && battleVitalsRef.current) p = { ...p, hp: Math.min(p.hpMax, battleVitalsRef.current.hp), mp: Math.min(p.mpMax, battleVitalsRef.current.mp) }
     delete p._battleNoScanWin
-    if (win && r.granted) {
-      const m = Math.ceil(r.granted * perkV('winMoney') / 100), s = Math.ceil(r.granted * perkV('winSpirit') / 100)
+    if (win && (r.granted || r.money)) { // vB.04: 냥 덤은 이길 때마다, 영력 덤은 영력을 받은 승리(하루 3번)에만
+      const m = Math.ceil((r.money ?? r.granted) * perkV('winMoney') / 100), s = Math.ceil(r.granted * perkV('winSpirit') / 100)
       if (m || s) { p = { ...p, money: (p.money || 0) + m, spirit: (p.spirit || 0) + s }; addLog(`칭호의 기능: 전투 보상 ${[m ? `${m}냥` : '', s ? `영력 ${s}` : ''].filter(Boolean).join(' · ')} 추가.`) }
     }
     if (!win) bump('losses')
     commit(p)
-    if (win) { bridge.quest('win', enemy?.id); countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다. (오늘의 보상은 모두 받았다)`) }
+    if (win) { bridge.quest('win', enemy?.id); countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다! 돈 +${r.money || 0}냥. (오늘 전투로 얻는 영력 3번은 모두 받았다)`) }
     else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); notify('쓰러졌다. 양호실에서 쉬는 게 좋겠다.') }
   }
   const startSlowFightAction = (enemyId) => guard(() => {

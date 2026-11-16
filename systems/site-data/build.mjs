@@ -90,11 +90,11 @@ const zones = {
   ] },
   east: { title: '강학당', tabs: [
     place('mainHall', '본관', '靑', [act('mainHall', 'intro', '둘러보기'), act('mainHall', 'class', '수업'), act('mainHall', 'explore', '본관 탐사')]),
-    place('annex', '별관', '白', [act('annex', 'intro', '둘러보기'), act('annex', 'explore', '별관 탐사')]),
+    place('annex', '별관', '靑', [act('annex', 'intro', '둘러보기'), act('annex', 'explore', '별관 탐사')]),
     { ...place('infirmary', '양호실', '癒', [act('infirmary', 'intro', '둘러보기'), act('infirmary', 'rest', '휴식 · 상담')]), hidden: true }, // 본관 탐사(2층 양호실)로 들어간다
   ] },
   west: { title: '생활관', tabs: [
-    place('dorm', '기숙사', '黑', [act('dorm', 'intro', '둘러보기'), act('dorm', 'my-room', '내 기숙사'), act('dorm', 'store', '매점'), act('dorm', 'cafeteria', '급식실')]),
+    place('dorm', '기숙사', '白', [act('dorm', 'intro', '둘러보기'), act('dorm', 'my-room', '내 기숙사'), act('dorm', 'store', '매점'), act('dorm', 'cafeteria', '급식실')]),
   ] },
   south: { title: '비령산 금역', tabs: [
     place('gym', '뒷산', '赤', [act('gym', 'intro', '둘러보기'), act('gym', 'battle', '퇴마 실습'), act('gym', 'hike', '산 탐사'), act('gym', 'pioneer', '개척')]),
@@ -106,7 +106,7 @@ const shrineX = cat('shrineExplore')
 const roomsOf = (n) => [...(n.areas ?? []), ...(n.rooms ?? []), ...(n.spots ?? []), ...(n.branches ?? []), ...(n.choices ?? [])].filter((c) => c.widget !== 'extraBattle').map((c) => ({ id: c.id, name: c.name, ...(c.club ? { club: true } : {}) }))
 const maps = [
   { id: 'mainHall', name: '본관', hanja: '靑', color: 'blue', levels: explore.FLOORS.map((f) => ({ id: f.id, name: f.name, rooms: roomsOf(f) })) },
-  { id: 'annex', name: '별관', hanja: '白', color: 'white', levels: annex.ANNEX_FLOORS.map((f) => ({ id: f.id, name: f.name, rooms: roomsOf(f) })) },
+  { id: 'annex', name: '별관', hanja: '靑', color: 'blue', levels: annex.ANNEX_FLOORS.map((f) => ({ id: f.id, name: f.name, rooms: roomsOf(f) })) },
   { id: 'gym', name: '뒷산', hanja: '赤', color: 'red', levels: hike.HIKE_PATHS.map((p) => ({ id: p.id, name: p.name, rooms: (p.branches?.length ? p.branches.flatMap((b) => [{ id: b.id, name: b.name, path: true }, ...roomsOf(b)]) : roomsOf(p)) })) },
   { id: 'shrine', name: '사당', hanja: '黃', color: 'yellow', levels: [{ id: 'shrine', name: '사당 경내', rooms: (shrineX.SHRINE_AREAS ?? []).map((a) => ({ id: a.id, name: a.name })) }] },
 ]

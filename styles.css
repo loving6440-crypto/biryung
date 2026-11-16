@@ -749,3 +749,14 @@ body.is-opening{overflow:hidden}
 .leave-ask-box{width:min(92vw,380px);padding:20px 22px;background:#0f1d2b;border:1px solid #d4b078;box-shadow:6px 6px 0 #030914}
 .leave-ask-text{margin:0 0 16px;font:14px/1.8 'KoPub Batang',serif;color:#f0e4c8;word-break:keep-all}
 .leave-ask-row{display:flex;justify-content:flex-end;gap:8px}
+
+/* vB.04 오방색: 산문 北 · 黑 / 강학당 東 · 靑 / 생활관 西 · 白 / 비령산 南 · 赤 / 사당 中 · 黃 */
+.zone-card.north{--accent:#0a0c12;border-color:#0a0c12;box-shadow:inset 0 0 0 3px #08111b,0 0 0 1px #70788c,0 4px 0 #030912}
+.zone-card.north .inner-line::before,.zone-card.north .inner-line::after{filter:drop-shadow(0 0 1px #c3cada)}
+.zone-card.north .zone-number b{color:#f1f1ee;background:#05060a;padding:1px 5px;border:1px solid #70788c}
+.zone-card.north .enter-icon{color:#e4e7ee;border-color:#70788c;background:#05060a}
+.zone-card.north:is(:hover,:focus-visible){border-color:#70788c}
+.zone-card.west{--accent:#f0ede4;border-color:#b9bcb8}
+.zone-card.east{--accent:#68a9b9;border-color:#4e7c88}
+.map-legend span:nth-child(1){color:#68a9b9}.map-legend span:nth-child(4){color:#f0ede4}.map-legend span:nth-child(5){color:#e4e7ee;text-shadow:0 0 0 #000;background:#05060a;padding:1px 5px;border:1px solid #70788c}
+.dex-card.is-name-only{opacity:.62}.dex-card.is-name-only .dex-head{margin-bottom:0}

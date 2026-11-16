@@ -856,38 +856,23 @@
   }
 
   function renderDexPsychics(body) {
+    // vB.04: 아직 얻지 않은 영능력도 모두 보인다 — 이름만. 얻은 것은 의지력 소모 · 상세 설명 · 영향받는 스탯(육조) · 익히는 조건을 모두 적는다.
     const p = dexPlayer(), mine = new Set(p.psychics || []);
     const known = (x) => dexAll() || x.always || mine.has(x.id);
+    const draw = (list, x, mark) => {
+      const k = known(x), card = h('div', `dex-card${k ? ' is-got' : ' is-name-only'}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
+      const head = h('div', 'dex-head'); head.append(h('span', 'dex-icon is-skill', mark), h('strong', '', x.name), h('small', '', k ? (x.always ? '처음부터' : x.stolen ? '빼앗음' : '익힘') : '미습득'));
+      card.append(head);
+      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail || x.note), dexLine('영향받는 스탯', x.affects), dexLine('익히는 조건', x.cond));
+      list.append(card);
+    };
     const own = CODEX.psychics.filter((x) => !x.stolen), stolen = CODEX.psychics.filter((x) => x.stolen);
     body.append(h('p', 'panel-label codex-group', `영능력 · 익힌 것 ${own.filter(known).length} / ${own.length}`));
-    const list = h('div', 'dex-list');
-    own.forEach((x) => {
-      const k = known(x), card = h('div', `dex-card${k ? ' is-got' : ''}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
-      const head = h('div', 'dex-head'); const mark = h('span', 'dex-icon is-skill', '術'); head.append(mark, h('strong', '', x.name), h('small', '', k ? (x.always ? '처음부터' : '익힘') : ''));
-      card.append(head);
-      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail || x.note), dexLine('영향받는 스탯', x.affects), dexLine('익히는 조건', x.always ? '모두가 처음부터 안다' : x.cond));
-      else card.append(h('p', 'dex-note is-hidden', Q), dexLine('의지력 소모', Q, 'is-hidden'), dexLine('상세 설명', Q, 'is-hidden'), dexLine('영향받는 스탯', Q, 'is-hidden'), dexLine('익히는 조건', Q, 'is-hidden'));
-      list.append(card);
-    });
-    body.append(list);
-    // vB.03 빼앗은 영능력: 같은 적을 30번(보스는 20번마다) 쓰러뜨리면 얻는다. 만나 본 적의 것은 조건과 지금 횟수가 보인다.
+    const list = h('div', 'dex-list'); own.forEach((x) => draw(list, x, '術')); body.append(list);
     if (!stolen.length) return;
     body.append(h('p', 'panel-label codex-group', `빼앗은 영능력 · ${stolen.filter(known).length} / ${stolen.length}`),
-      h('p', 'dex-hint', '같은 적을 30번 쓰러뜨리면 그 적의 영능력을 빼앗는다. 보스는 20번마다 두 영능력 중 하나씩(20번 · 40번). 보상 횟수 제한과 상관없이 이긴 횟수를 센다. 일행 전투에서는 저마다 자기 횟수를 센다.'));
-    const list2 = h('div', 'dex-list');
-    stolen.forEach((x) => {
-      const k = known(x), met = (x.src || []).some((id) => (p.seen?.[id] || 0) > 0);
-      if (!k && !met && !dexAll()) return; // 만나 보지 못한 적의 것은 감춘다
-      const kills = Math.max(0, ...(x.src || []).map((id) => p.killCount?.[id] || 0));
-      const card = h('div', `dex-card${k ? ' is-got' : ''}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
-      const head = h('div', 'dex-head'); head.append(h('span', 'dex-icon is-skill', '奪'), h('strong', '', k ? x.name : Q), h('small', '', k ? '빼앗음' : `${x.from}${x.boss ? ' · 보스' : ''}`));
-      card.append(head);
-      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail));
-      else card.append(h('p', 'dex-note is-hidden', Q), dexLine('상세 설명', Q, 'is-hidden'));
-      card.append(dexLine('얻는 법', `${x.cond.replace(/^빼앗기 — /, '').replace(/\.$/, '')} · 지금 ${kills}번`));
-      list2.append(card);
-    });
-    body.append(list2);
+      h('p', 'dex-hint', '같은 적을 30번 쓰러뜨리면 그 적의 영능력을 빼앗는다. 보스는 20번마다 두 영능력 중 하나씩(20번 · 40번). 지금 몇 번 쓰러뜨렸는지는 [적] 칸에 적힌다.'));
+    const list2 = h('div', 'dex-list'); stolen.forEach((x) => draw(list2, x, '奪')); body.append(list2);
   }
 
   function renderDexEnemies(body) {

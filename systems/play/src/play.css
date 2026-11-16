@@ -8,7 +8,7 @@
   --facet-main: #d5b579; --facet-beast: #c66a6c;
   --panel-from: #101e2e; --panel-to: #101e2e; --stage-glow: #0b1522; --stage-base: #0b1522;
   --scrim: rgb(2 5 12 / 0.83);
-  --loc-mainHall: #68a9b9; --loc-annex: #efe6ce; --loc-dorm: #8d9bc4; --loc-gym: #d56b69; --loc-shrine: #d4b078; --loc-infirmary: #4f948d;
+  --loc-mainHall: #68a9b9; --loc-annex: #7fbccb; --loc-dorm: #efe6ce; --loc-gym: #d56b69; --loc-shrine: #d4b078; --loc-infirmary: #4f948d;
   --pixel-frame: #d0af73; --pixel-frame-cool: #4f948d; --pixel-red: #d56b69;
   /* 글꼴은 메인 화면이 정한 --ui-font-family 를 그대로 물려받는다 */
   --font-sans: var(--ui-font-family); --font-serif: var(--ui-font-family); --font-myeongjo: var(--ui-font-family);
