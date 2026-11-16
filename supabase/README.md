@@ -2,12 +2,11 @@
 
 1. Supabase 에서 새 프로젝트를 만든다.
 2. **SQL Editor** 에 `supabase/schema.sql` 을 통째로 붙여 넣고 실행한다.
-3. **Settings › API** 에서 `Project URL` 과 `anon public` 키를 복사해 `config.js` 에 넣는다.
-
-   ```js
-   supabaseUrl: 'https://xxxx.supabase.co',
-   supabaseAnonKey: 'eyJ...',
-   ```
+3. **Project Settings › Data API** 의 `Project URL`, **Project Settings › API Keys** 의 `Publishable key`(`sb_publishable_…`)를 복사한다.
+   (예전 프로젝트라면 Legacy API Keys 탭의 `anon` 키 `eyJ…` 도 된다. `secret` 키 · `service_role` 키는 절대 넣지 않는다.)
+   - GitHub 로 배포할 때: 저장소 **Settings › Secrets and variables › Actions › Variables** 에
+     `SUPABASE_URL`, `SUPABASE_KEY` 두 개를 만든다. 다음 배포부터 자동으로 `config.js` 에 들어간다.
+   - 직접 넣을 때: `config.js` 의 `supabaseUrl` · `supabaseAnonKey` 를 채운다.
 4. 사이트를 새로 고친다. 산문 › 산문 너머 › **세계** 탭의 안내가 "서버에 모인 모든 학생의 선택"으로 바뀌면 연결된 것이다.
 
 | 표 · 보기 | 쓰임 |

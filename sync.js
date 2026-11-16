@@ -1,6 +1,7 @@
 /* 秘靈 · 비령 — 서버 연결(Supabase). 지금은 "연결만 하면 되는" 준비 상태다.
  *
- * 켜는 법: config.js 의 supabaseUrl · supabaseAnonKey 를 채운다(Supabase 프로젝트 › Settings › API).
+ * 켜는 법: GitHub 저장소 Variables 에 SUPABASE_URL · SUPABASE_KEY 를 넣으면 배포 때 config.js 에 들어간다(직접 config.js 를 채워도 된다).
+ *          키는 Supabase › Project Settings › API Keys 의 Publishable key(sb_publishable_…) 또는 Legacy 의 anon 키(eyJ…).
  *          그 전에 supabase/schema.sql 을 SQL Editor 에서 한 번 실행한다. 자세한 순서는 supabase/README.md.
  * 비어 있으면 아무것도 보내지 않고(enabled = false), 게임은 이 브라우저의 값만으로 돈다.
  *
@@ -19,6 +20,8 @@
   const Auth = window.BiryeongAuth;
   const enabled = !!(C.supabaseUrl && C.supabaseAnonKey);
   const base = `${String(C.supabaseUrl).replace(/\/$/, '')}/rest/v1`;
+  // 새 키(sb_publishable_…)는 JWT 가 아니라 Authorization 에 넣으면 거절된다 — 옛 anon 키(eyJ…)일 때만 함께 보낸다.
+  const jwtKey = /^eyJ/.test(String(C.supabaseAnonKey));
   const account = () => Auth?.session?.() || 'guest';
   function playerId() {
     const key = `biryeong-sync-id:${account()}`;
@@ -31,7 +34,7 @@
   async function call(path, { method = 'GET', body, prefer, read } = {}) {
     if (!enabled) return null;
     const res = await fetch(`${base}/${path}`, {
-      method, headers: { apikey: C.supabaseAnonKey, Authorization: `Bearer ${C.supabaseAnonKey}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
+      method, headers: { apikey: C.supabaseAnonKey, ...(jwtKey ? { Authorization: `Bearer ${C.supabaseAnonKey}` } : {}), 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error(`supabase ${res.status}`);

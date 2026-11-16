@@ -47,6 +47,23 @@ jobs:
           else
             echo "::warning::ADMIN_CODE 가 비어 있다 — Secret/Variable 이름이 ADMIN_CODE 인지 확인. 지금은 임시 관리자 코드를 쓴다."
           fi
+      # Supabase: 저장소 Settings → Secrets and variables → Actions → Variables 에 SUPABASE_URL · SUPABASE_KEY 를 넣는다.
+      # 둘 다 브라우저에 공개되는 값이라 Variable 로 넣으면 된다(Secret 으로 넣어도 읽는다). 비어 있으면 서버 없이 돈다.
+      - name: Supabase 연결 넣기
+        env:
+          SB_URL: ${{ vars.SUPABASE_URL || secrets.SUPABASE_URL }}
+          SB_KEY: ${{ vars.SUPABASE_KEY || secrets.SUPABASE_KEY }}
+        run: |
+          SB_URL=$(printf '%s' "$SB_URL" | tr -d '[:space:]' | sed 's#/*$##')
+          SB_KEY=$(printf '%s' "$SB_KEY" | tr -d '[:space:]')
+          if [ -n "$SB_URL" ] && [ -n "$SB_KEY" ]; then
+            case "$SB_KEY" in sb_secret_*) echo "::error::SUPABASE_KEY 에 secret 키를 넣었다 — Publishable key(sb_publishable_…)를 넣어야 한다"; exit 1;; esac
+            sed -i -E "s#supabaseUrl: '[^']*'#supabaseUrl: '$SB_URL'#; s#supabaseAnonKey: '[^']*'#supabaseAnonKey: '$SB_KEY'#" _site/config.js
+            grep -q "supabaseUrl: '$SB_URL'" _site/config.js || { echo "::error::config.js 에 Supabase 주소를 넣지 못했다"; exit 1; }
+            echo "Supabase 를 연결했다: $SB_URL (키 앞부분 ${SB_KEY:0:15}…)"
+          else
+            echo "::warning::SUPABASE_URL · SUPABASE_KEY 중 비어 있는 값이 있다 — 서버 없이 이 브라우저의 값만 쓴다."
+          fi
       # 브라우저가 옛 config.js · auth.js 를 붙들고 있지 않게, 올릴 때마다 주소 끝에 판 번호를 붙인다.
       - name: 설정 파일 새로 읽게 하기
         run: |
