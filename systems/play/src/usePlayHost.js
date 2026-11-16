@@ -29,6 +29,7 @@ import { clubOf } from '@vault/game/clubs.js'
 import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
+import { noteKill } from './steal.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
 import { sellItem } from '@vault/game/sell.js'
 import { benchCraft, knownCraft, markMade, PLACE_RECIPES } from '@vault/game/freeCraft.js'
@@ -124,6 +125,7 @@ export function usePlayHost() {
     const prev = playerRef.current
     const safe = syncCodex(clampSpirit(protectBags(prev, limitNewGains(prev, next)))) // 한 번이라도 손에 넣은 아이템은 도감에 남는다
     playerRef.current = safe
+    globalThis.__BRY_MPMAX = safe?.mpMax // vB.03: 빼앗은 영능력이 의지력을 되찾을 때 최대치를 넘지 않게(battle.js stolenTurn)
     setPlayerState(safe)
     peak('moneyPeak', Math.floor(safe.money || 0))
     peak('spiritPeak', Math.floor(safe.spirit || 0))
@@ -398,6 +400,11 @@ export function usePlayHost() {
   const countWin = (enemy) => {
     bump('battleWins')
     if (!enemy) return
+    // vB.03 적의 영능력 빼앗기: 같은 적을 30번(보스는 20번마다) 쓰러뜨리면 그 영능력이 내 것이 된다.
+    const st = noteKill(playerRef.current, enemy, Math.random, PSYCHICS)
+    if (st.player !== playerRef.current) commit(st.player)
+    st.logs.forEach(addLog)
+    st.got.forEach((id) => bridge.toast('영능력을 빼앗았다', `「${PSYCHICS.find((p) => p.id === id)?.label ?? id}」 — ${enemy.name}에게서 빼앗았다. 전투의 영능력 목록에서 쓸 수 있다.`))
     collect('beaten', enemy.id)
     if (enemy.tier) peak('tierMax', enemy.tier)
     if (enemy.role === '보스') { bump('bossWins'); collect('bosses', enemy.id) }

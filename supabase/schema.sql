@@ -72,6 +72,21 @@ grant select on public.story_tally, public.story_contrib_totals to anon;
 alter table public.story_choices drop constraint if exists story_choices_option_check;
 alter table public.story_choices add constraint story_choices_option_check check (option between 1 and 12);
 
+-- vB.03 최초 1회만: 한 계정은 분기마다 처음 고른 한 표만 남는다(다시 보기 · 다른 기기 · 기록 재시작에도 바뀌거나 늘지 않는다).
+--   · 이미 같은 계정의 표가 여럿이면 가장 이른 것만 남긴다. · 덮어쓰기(update)는 막는다. · 같은 계정의 두 번째 표는 조용히 버린다.
+delete from public.story_choices c using public.story_choices d
+  where c.account <> '' and c.account = d.account and c.branch = d.branch
+    and (c.updated_at > d.updated_at or (c.updated_at = d.updated_at and c.player_id > d.player_id));
+drop policy if exists choices_update on public.story_choices;
+revoke update on public.story_choices from anon;
+create or replace function public.story_choice_first() returns trigger language plpgsql as $$
+begin
+  if new.account <> '' and exists (select 1 from public.story_choices where account = new.account and branch = new.branch) then return null; end if;
+  return new;
+end $$;
+drop trigger if exists story_choice_first on public.story_choices;
+create trigger story_choice_first before insert on public.story_choices for each row execute function public.story_choice_first();
+
 -- 장 파일(story-chapters/chN.json). 공개 시각(open_at)이 지난 장만 학생이 읽을 수 있다 — 공개 전 내용은 서버가 내주지 않는다.
 create table if not exists public.story_chapters (
   ch         smallint    primary key,
@@ -935,7 +950,7 @@ end $$;
 grant execute on function public.story_admin_routes(text) to anon;
 grant execute on function public.story_admin_route(text, text, smallint, timestamptz) to anon;
 
--- ── 수업 랭킹(vB.01): 과목마다 이번 주(월요일 0시, 한국 시각) 각자의 최고 기록. 관리자 계정은 올리지 않는다. ──
+-- ── 수업 랭킹(vB.01): 과목마다 이번 주(월요일 0시, 한국 시각) 각자의 최고 기록. (vB.03부터 관리자 기록도 올린다) ──
 create table if not exists biryeong_private.scores (
   account_id bigint      not null references biryeong_private.accounts on delete cascade,
   course     text        not null,
@@ -956,7 +971,7 @@ create or replace function public.bry_rank_submit(p_token text, p_course text, p
 declare a biryeong_private.accounts := who(p_token); w date := week0(); prev integer;
 begin
   if coalesce(p_course, '') !~ '^[a-z0-9-]{2,40}$' or p_score is null or p_score < 1 or p_score > 100000000 then raise exception 'invalid_value'; end if;
-  if a.role = 'admin' then return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'admin'); end if;
+  -- vB.03: 관리자 계정의 기록도 올린다(시험 삼아 한 판도 랭킹에 보인다).
   perform throttle_do('rank:' || a.id, 60, 600);
   select score into prev from scores where account_id = a.id and course = p_course and week_start = w;
   if prev is not null and prev >= p_score then return jsonb_build_object('ok', true, 'recorded', false, 'score', prev); end if;
@@ -1015,7 +1030,7 @@ end $$;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'B.02', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'B.03', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

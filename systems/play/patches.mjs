@@ -6,7 +6,135 @@
  *   @story/…    → systems/play/src/…   (비령 쪽 모듈)
  *   @biryeong/… → systems/biryeong/…
  */
+const STOLEN_FN = `/** vB.03 빼앗은 영능력(steal-…) 한 번 쓰기. 칸의 뜻은 systems/play/src/steal.js 머리말. */
+function stolenTurn(state, s, id, ctx, rng, stats, mpNow0) {
+  const def = PSYCHICS.find((p) => p.id === id)
+  const k = def?.k
+  if (!k) return { state, events: [{ kind: 'warn', text: '쓸 수 없는 영능력이다.' }], mpCost: 0, invalid: true }
+  const mpCost = mpCostOf(stats, k.mp || 0)
+  if (mpCost > mpNow0) return { state, events: [{ kind: 'warn', text: \`의지력이 모자라 쓸 수 없다! (필요 \${mpCost}, 지금 \${mpNow0})\` }], mpCost: 0, invalid: true }
+  const bits = []
+  const hpMax = s.phpMax || maxHp(stats)
+  const maxRoll = 2 * Math.max(1, Math.floor(stats.aggression || 0)) + Math.floor(stats.insight || 0) + 1
+  if (k.sh) {
+    const pay = Math.min(Math.max(0, Math.floor(s.php) - 1), Math.ceil(hpMax * k.sh))
+    s.php = Math.floor(s.php) - pay
+    if (pay) bits.push(\`체력 \${pay}을(를) 바쳤다\`)
+  }
+  let dealt = 0
+  if (k.m) {
+    const braced = !k.p && s.queue?.[0] === 'guard'
+    let mult = 1
+    if (k.es) {
+      const used = s.stealUses?.[id] || 0
+      mult *= Math.min(3, 1 + k.es * used)
+      s.stealUses = { ...(s.stealUses || {}), [id]: used + 1 }
+    }
+    const exec = k.ex && s.ehp <= s.enemy.hp * k.ex
+    if (exec) mult *= 2
+    const rolls = []
+    for (let i = 0; i < (k.n || 1); i++) rolls.push(Math.max(1, Math.ceil(attackRoll(stats, rng, true).dmg * k.m * atkMult(stats) * mult)))
+    let dmg = rolls.reduce((x, y) => x + y, 0)
+    if (k.a) dmg += Math.floor((k.a[0] === 'max' ? Math.max(...STAT6.map((x) => Number(stats[x]) || 0)) : Number(stats[k.a[0]]) || 0) * k.a[1])
+    if (k.rb) dmg += Math.min(30, k.rb * Math.max(0, (s.round || 1) - 1))
+    if (k.pc) dmg += Math.min(maxRoll, Math.floor(s.ehp * k.pc))
+    if (k.back) dmg += Math.min(maxRoll * 2, Math.floor(Math.max(0, hpMax - s.php) * k.back))
+    if (braced) dmg = Math.ceil(dmg / 2)
+    dealt = Math.min(s.ehp, dmg)
+    s.ehp = Math.max(0, s.ehp - dmg)
+    bits.push(\`\${rolls.length > 1 ? \`\${rolls.length}번 연달아(\${rolls.join('+')}) \` : ''}\${dmg} 피해\${exec ? ' (약해진 틈 · 2배)' : ''}\${mult > 1 && !exec ? \` (×\${Math.round(mult * 10) / 10})\` : ''}\${braced ? ' (방어에 절반으로 막힘)' : ''}\`)
+  }
+  let heal = 0
+  if (k.ls && dealt) heal += Math.ceil(dealt * k.ls)
+  if (k.h) heal += Math.ceil(hpMax * k.h)
+  if (heal) {
+    const before = Math.floor(s.php)
+    s.php = Math.min(hpMax, before + heal)
+    if (s.php > before) bits.push(\`체력 +\${s.php - before}\`)
+  }
+  if (k.eq) {
+    const mine = s.php / hpMax, theirs = s.ehp / Math.max(1, s.enemy.hp)
+    if (mine < theirs) {
+      // 한 번에 크게 뒤집지 않게: 상대는 최대 체력의 10%까지만 깎이고, 나는 20%까지만 차오른다.
+      const avg = (mine + theirs) / 2
+      const nm = Math.min(avg, mine + 0.2), nt = Math.max(avg, theirs - 0.1)
+      const before = Math.floor(s.php), ebefore = s.ehp
+      s.php = Math.max(1, Math.min(hpMax, Math.round(hpMax * nm)))
+      s.ehp = Math.max(1, Math.min(s.ehp, Math.round(s.enemy.hp * nt)))
+      dealt += Math.max(0, ebefore - s.ehp)
+      bits.push(\`되비춰 체력 +\${Math.max(0, s.php - before)}, 상대 체력 -\${Math.max(0, ebefore - s.ehp)}\`)
+    } else bits.push('되비출 것이 없었다(내가 더 멀쩡하다)')
+  }
+  if (k.cl) {
+    const had = Object.keys(s.ps || {}).length || s.curse > 0
+    s.ps = {}
+    s.curse = 0
+    s.bound = false
+    if (had) bits.push('몸에 걸린 것을 모두 털어냈다')
+  }
+  if (k.gd && !s.bound) { s.guard = true; bits.push('막기 자세를 잡았다') }
+  if (k.dz && s.ehp > 0) {
+    const chance = k.dc >= 100 ? 100 : Math.floor(s.enemy.boss ? k.dc / 2 : k.dc)
+    const roll = 1 + Math.floor(rng() * 100)
+    if (roll <= chance) {
+      s.queue = [k.dz, ...(s.queue ?? []).slice(1)]
+      bits.push(\`상대의 다음 행동이 \${INTENTS[k.dz]?.label ?? k.dz}(으)로 바뀌었다\${chance < 100 ? \` (확률 \${chance}%, d100 = \${roll})\` : ''}\`)
+    } else bits.push(\`상대가 버텨 냈다 (확률 \${chance}%, d100 = \${roll})\`)
+  }
+  if (k.rv) {
+    const q = [...(s.queue ?? [])]
+    while (q.length < k.rv) q.push(rollIntent(q[q.length - 1] ?? null, rng, s.party, !!s.enemy?.boss))
+    s.queue = q
+    s.known = Math.max(s.known || 0, k.rv)
+    bits.push(\`앞으로 \${k.rv}턴을 간파했다\`)
+  }
+  if (k.ch) {
+    const before = s.charms ?? CHARMS
+    s.charms = Math.min(CHARMS, before + 1)
+    if (s.charms > before) bits.push('부적 한 장을 되찾았다')
+  }
+  let gain = 0
+  if (k.g) {
+    const cap = Number(ctx.mpMax ?? globalThis.__BRY_MPMAX) || Infinity
+    gain = Math.max(0, Math.min(k.g, cap - (mpNow0 - mpCost)))
+    if (gain) bits.push(\`의지력 +\${gain}\`)
+  }
+  const ev = [{ kind: 'player', dmg: dealt || undefined, text: \`✦ \${def.label}!\${mpCost ? \` 의지력 \${mpCost} 소모.\` : ''} \${bits.join(', ')}.\` }]
+  if (s.ehp <= 0) {
+    s.over = 'win'
+    ev.push({ kind: 'end', text: \`\${s.enemy.name}이(가) 쓰러졌다.\` })
+  }
+  return { state: s, events: ev, mpCost: mpCost - gain }
+}
+
+`
+
 export const SOURCE_PATCHES = [
+  // ── vB.03 적의 영능력 빼앗기: 빼앗은 영능력(steal-…)을 영능력 목록에 붙이고, 쓰면 stolenTurn 이 처리한다 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["import { BESTIARY } from './bestiary.js'", "import { BESTIARY } from './bestiary.js'\nimport { stolenPsychics, STEAL_PREFIX } from '@story/steal.js'"],
+      ["\n]\n\n/** 상시 발동(패시브) 영능력", "\n  ...stolenPsychics(ALL_ENEMIES),\n]\n\n/** 상시 발동(패시브) 영능력"],
+      ["/** 영능력 사용(내 턴).", STOLEN_FN + "/** 영능력 사용(내 턴)."],
+      ["  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서", "  if (String(id).startsWith(STEAL_PREFIX)) return stolenTurn(state, s, id, ctx, rng, stats, mpNow0)\n  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic)) return { error: 'bad-psychic' }", "  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic) && !String(act.psychic).startsWith('steal-')) return { error: 'bad-psychic' }"],
+      ["  m.mp = Math.max(0, m.mp - (r.mpCost || 0))\n  if (r.selfMpRestoration)", "  m.mp = Math.max(0, Math.min(m.mpMax, m.mp - (r.mpCost || 0))) // vB.03: 빼앗은 영능력은 의지력을 되찾기도 한다(최대치까지)\n  if (r.selfMpRestoration)"],
+    ],
+  },
+  {
+    file: 'game/progress.js',
+    edits: [
+      ["import { enemyById } from './battle.js'", "import { enemyById, PSYCHICS as __PSY } from './battle.js'\nimport { noteKill as __noteKill } from '@story/steal.js'"],
+      ["  return { player: questEvent(r.player, { type: 'kill', id: enemy.id }, now), logs } // v-B.18", "  const __st = __noteKill(questEvent(r.player, { type: 'kill', id: enemy.id }, now), enemy, Math.random, __PSY) // vB.03 느린 싸움 승리도 빼앗기 횟수에 센다\n  return { player: __st.player, logs: [...logs, ...__st.logs] } // v-B.18"],
+    ],
+  },
+
   // ── vB.01 수업 랭킹: 서버(Supabase bry_rank)에 잇는다. 서버가 없으면 null 을 돌려 '연결되지 않음'을 보여 준다(예전엔 빈 화면으로 멈췄다) ──
   {
     file: 'ui/adapters/online.js',

@@ -327,7 +327,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
-  assert17.equal(C.items.length, 429); assert17.equal(C.psychics.length, 13); assert17.ok(C.enemies.length >= 62)
+  assert17.equal(C.items.length, 429); assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
   // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
   for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
@@ -466,3 +466,39 @@ test('vB.02: 서버 이름은 캐릭터 이름을 따른다 (기록 저장 · �
   const cm = readFileSync(join(ROOT, 'community.js'), 'utf8');
   assert.ok(cm.includes('message.sender_name') && !cm.includes('`@${message.sender_username}'));
 });
+
+test('vB.03: 적의 영능력 빼앗기 — 일반 30번 · 보스 20번마다 하나씩 · 본편 전투는 세지 않는다', async () => {
+  const S = await import('../systems/play/src/steal.js')
+  const { ALL_ENEMIES } = await import('../systems/vault/modules/game/battle.js')
+  const defs = S.stolenPsychics(ALL_ENEMIES)
+  assert.equal(defs.length, 69)
+  for (const d of defs) { assert.ok(d.detail.length > 10 && d.k.mp >= 0, d.id); assert.ok(!/초록동색/.test(d.note + d.detail + d.cond)) }
+  const fox = ALL_ENEMIES.find((e) => e.id === 'foxfire')
+  let p = { psychics: [], killCount: { foxfire: 28 } }
+  p = S.noteKill(p, fox, () => 0, defs).player; assert.ok(!p.psychics.includes('steal-foxfire'))
+  const r30 = S.noteKill(p, fox, () => 0, defs); assert.deepEqual(r30.got, ['steal-foxfire']); assert.equal(r30.player.killCount.foxfire, 30)
+  const boss = ALL_ENEMIES.find((e) => e.id === 'gumiho')
+  let b = { psychics: [], killCount: { gumiho: 19 } }
+  const b20 = S.noteKill(b, boss, () => 0.99, defs); assert.equal(b20.got.length, 1); b = b20.player
+  b = { ...b, killCount: { gumiho: 38 } }
+  assert.equal(S.noteKill(b, boss, () => 0.5, defs).got.length, 0)
+  const b40 = S.noteKill({ ...b, killCount: { gumiho: 39 } }, boss, () => 0.5, defs); assert.equal(b40.got.length, 1)
+  assert.equal(new Set([...b40.player.psychics]).size, 2)
+  assert.equal(S.noteKill({ psychics: [] }, { id: 'story-x', name: '이야기' }, Math.random, defs).player.killCount, undefined)
+  // 개척 요괴와 묵은 원귀는 같은 「원한의 저주」 하나
+  assert.deepEqual(S.stealableOf({ id: 'tree-spirit' }).map((x) => x.id), ['steal-curse'])
+  // 실행 화면 조각: 영능력 목록에 붙고, 쓰면 stolenTurn 이 처리한다
+  const { applyPatches } = await import('../systems/play/patches.mjs')
+  const src = applyPatches('game/battle.js', readFileSync(join(VAULT, 'modules/game/battle.js'), 'utf8'))
+  assert.ok(src.includes('...stolenPsychics(ALL_ENEMIES)') && src.includes('function stolenTurn(') && src.includes('return stolenTurn('))
+})
+
+test('vB.03: 본편 보상 · 서버 선택은 최초 1회만 · 관리자 기록도 랭킹에 오른다', () => {
+  const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
+  assert.ok(q.includes("claimOnce(`give:${stepKey}`)") && q.includes("claimOnce(`done:${scene.id}`)") && q.includes('cs.sent[ln.id]'))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.match(sql, /create trigger story_choice_first before insert on public\.story_choices/)
+  assert.match(sql, /drop policy if exists choices_update/)
+  assert.ok(!/if a\.role = 'admin' then return jsonb_build_object\('ok', true, 'recorded', false/.test(sql))
+  assert.match(readFileSync(join(ROOT, 'sync.js'), 'utf8'), /resolution=ignore-duplicates/)
+})

@@ -5,7 +5,7 @@
  *          그 전에 supabase/schema.sql 을 SQL Editor 에서 한 번 실행한다. 자세한 순서는 supabase/README.md.
  * 비어 있으면 아무것도 보내지 않고(enabled = false), 게임은 이 브라우저의 값만으로 돈다.
  *
- * 올리는 것  choice(분기, 고른 번호)   — 본편의 주요 선택(B1-1 … B15-2). 한 사람당 분기마다 한 줄(다시 고르면 덮어쓴다)
+ * 올리는 것  choice(분기, 고른 번호)   — 본편의 주요 선택(B1-1 … B15-2). 한 계정당 분기마다 처음 고른 한 줄만(다시 골라도 바뀌지 않는다)
  *            contrib(사건, 양)         — 공동 사건 기여(B7-2 쌍응수 · erased-map 지워진 지도 · B12-1 신격 레이드 · final 오방 결전)
  *            progress(끝낸 장면 수)    — 진행도
  * 읽는 것    tally()                   — 분기별 선택 집계(세계 탭)   contribTotals() — 사건별 합계
@@ -46,7 +46,8 @@
 
   window.BiryeongSync = {
     enabled, playerId,
-    choice: (branch, option) => (enabled ? upsert('story_choices', { player_id: playerId(), account: account(), branch, option, updated_at: now() }, 'player_id,branch') : null),
+    // 최초 1회만: 이미 올린 분기는 다시 보내도 서버가 처음 표를 지킨다(ignore-duplicates · 계정당 첫 표만 남기는 서버 규칙)
+    choice: (branch, option) => (enabled ? quiet(call(`story_choices?on_conflict=player_id,branch`, { method: 'POST', body: { player_id: playerId(), account: account(), branch, option, updated_at: now() }, prefer: 'resolution=ignore-duplicates,return=minimal' })) : null),
     contrib: (event, amount = 1) => (enabled ? quiet(call('story_contrib', { method: 'POST', body: { player_id: playerId(), account: account(), event, amount }, prefer: 'return=minimal' })) : null),
     progress: (scenes) => (enabled ? upsert('story_progress', { player_id: playerId(), account: account(), scenes, updated_at: now() }, 'player_id') : null),
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),

@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url)), ROOT = join(HERE, '..', '..'), G = join(ROOT, 'systems/vault/modules/game')
 const imp = (f) => import(join(G, f))
-const { PSYCHICS, specialEffects, SPECIAL_PERCENT } = await imp('battle.js')
+const { PSYCHICS: VAULT_PSYCHICS, ALL_ENEMIES, specialEffects, SPECIAL_PERCENT } = await imp('battle.js')
+// vB.03: 빼앗은 영능력(실행 화면에서는 patches.mjs 가 PSYCHICS 뒤에 붙인다)도 도감에 싣는다.
+const { stolenPsychics } = await import(join(ROOT, 'systems/play/src/steal.js'))
+const PSYCHICS = [...VAULT_PSYCHICS, ...stolenPsychics(ALL_ENEMIES)]
 const { yogoeList } = await imp('codex.js')
 const { HUNT_SITES } = await imp('huntSites.js')
 const { TIER_HANJA } = await imp('constants.js')
@@ -39,7 +42,7 @@ const AFFECTS = {
   'echo-form': ['인내', '절제', '호전', '체력'], 'karmic-recompense': ['공격 대상'], 'falling-light': ['방어 태세'], 'cotton-mist': ['상대 행동'],
 }
 const mpText = (s) => (s.id === 'monkey-paw' ? '깎는 체력만큼' : s.id === 'echo-form' ? '50 − 인내 − 절제 + 호전 (20~99)' : Number.isFinite(s.mp) ? String(s.mp) : '행동에 따라 변동')
-const psychics = PSYCHICS.map((p) => ({ id: p.id, name: p.label, note: swap(p.note), detail: swap(p.detail || ''), cond: swap(p.cond || ''), mp: mpText(p), affects: (AFFECTS[p.id] || []).join(' · ') || '직접 참조 없음', always: !!p.default }))
+const psychics = PSYCHICS.map((p) => ({ ...(p.stolen ? { stolen: true, from: p.from, boss: p.boss, src: p.src } : {}), id: p.id, name: p.label, note: swap(p.note), detail: swap(p.detail || ''), cond: swap(p.cond || ''), mp: mpText(p), affects: (AFFECTS[p.id] || []).join(' · ') || '직접 참조 없음', always: !!p.default }))
 
 // ── 적 ──
 const drops = {}

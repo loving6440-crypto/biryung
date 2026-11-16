@@ -858,9 +858,10 @@
   function renderDexPsychics(body) {
     const p = dexPlayer(), mine = new Set(p.psychics || []);
     const known = (x) => dexAll() || x.always || mine.has(x.id);
-    body.append(h('p', 'panel-label codex-group', `영능력 · 익힌 것 ${CODEX.psychics.filter(known).length} / ${CODEX.psychics.length}`));
+    const own = CODEX.psychics.filter((x) => !x.stolen), stolen = CODEX.psychics.filter((x) => x.stolen);
+    body.append(h('p', 'panel-label codex-group', `영능력 · 익힌 것 ${own.filter(known).length} / ${own.length}`));
     const list = h('div', 'dex-list');
-    CODEX.psychics.forEach((x) => {
+    own.forEach((x) => {
       const k = known(x), card = h('div', `dex-card${k ? ' is-got' : ''}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
       const head = h('div', 'dex-head'); const mark = h('span', 'dex-icon is-skill', '術'); head.append(mark, h('strong', '', x.name), h('small', '', k ? (x.always ? '처음부터' : '익힘') : ''));
       card.append(head);
@@ -869,6 +870,24 @@
       list.append(card);
     });
     body.append(list);
+    // vB.03 빼앗은 영능력: 같은 적을 30번(보스는 20번마다) 쓰러뜨리면 얻는다. 만나 본 적의 것은 조건과 지금 횟수가 보인다.
+    if (!stolen.length) return;
+    body.append(h('p', 'panel-label codex-group', `빼앗은 영능력 · ${stolen.filter(known).length} / ${stolen.length}`),
+      h('p', 'dex-hint', '같은 적을 30번 쓰러뜨리면 그 적의 영능력을 빼앗는다. 보스는 20번마다 두 영능력 중 하나씩(20번 · 40번). 보상 횟수 제한과 상관없이 이긴 횟수를 센다. 일행 전투에서는 저마다 자기 횟수를 센다.'));
+    const list2 = h('div', 'dex-list');
+    stolen.forEach((x) => {
+      const k = known(x), met = (x.src || []).some((id) => (p.seen?.[id] || 0) > 0);
+      if (!k && !met && !dexAll()) return; // 만나 보지 못한 적의 것은 감춘다
+      const kills = Math.max(0, ...(x.src || []).map((id) => p.killCount?.[id] || 0));
+      const card = h('div', `dex-card${k ? ' is-got' : ''}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
+      const head = h('div', 'dex-head'); head.append(h('span', 'dex-icon is-skill', '奪'), h('strong', '', k ? x.name : Q), h('small', '', k ? '빼앗음' : `${x.from}${x.boss ? ' · 보스' : ''}`));
+      card.append(head);
+      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail));
+      else card.append(h('p', 'dex-note is-hidden', Q), dexLine('상세 설명', Q, 'is-hidden'));
+      card.append(dexLine('얻는 법', `${x.cond.replace(/^빼앗기 — /, '').replace(/\.$/, '')} · 지금 ${kills}번`));
+      list2.append(card);
+    });
+    body.append(list2);
   }
 
   function renderDexEnemies(body) {
@@ -904,6 +923,13 @@
         if (anyOpen && (e.effects.length || e.gimmicks.length)) { const fx = h('ul', 'dex-fx'); [...e.effects, ...e.gimmicks].forEach((t) => fx.append(h('li', '', t))); sp.append(fx); }
         card.append(sp);
         if (e.drops.length) card.append(dexLine('떨어뜨리는 것', e.drops.join(' · ')));
+        // vB.03 빼앗기 횟수
+        const steals = CODEX.psychics.filter((x) => x.stolen && (x.src || []).includes(e.id));
+        if (steals.length) {
+          const n = p.killCount?.[e.id] || 0, owned = steals.filter((x) => (p.psychics || []).includes(x.id)).length;
+          const goal = e.boss ? 20 * (owned + 1) : 30;
+          card.append(dexLine('빼앗기', owned >= steals.length ? `다 빼앗았다 (${n}번 쓰러뜨림)` : `${n} / ${goal}번 쓰러뜨림${e.boss ? ` · 보스: 20번마다 하나씩 (${owned}/${steals.length})` : ''}`));
+        }
         list.append(card);
       });
       body.append(list);

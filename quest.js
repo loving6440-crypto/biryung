@@ -96,6 +96,10 @@
     if (OLD_HEIR[st.heirloom]) st.heirloom = OLD_HEIR[st.heirloom];
     return q;
   }
+  // 최초 1회만: 본편이 주는 것 · 서버에 올리는 선택은 계정 기록(story.claimed / story.sent)에 남겨, 다시 보기 · 이야기 재시작 · 원고 판 갈이에도 두 번 들어오지 않게 한다.
+  // (q 는 원고 판이 바뀌면 새로 시작하지만 claimed · sent 는 q 바깥에 두어 그대로 남는다)
+  function claims() { const st = save().story; if (!st.claimed || typeof st.claimed !== 'object') st.claimed = {}; if (!st.sent || typeof st.sent !== 'object') st.sent = {}; return st; }
+  function claimOnce(key) { const st = claims(); if (st.claimed[key]) return false; st.claimed[key] = Date.now(); return true; }
   const persist = () => App.persist();
   const playerName = () => App.profile()?.name || '학생';
   const hasBatchim = (word) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 !== 0 : /[13678lmnr]$/i.test(word); };
@@ -225,11 +229,13 @@
   function stepDone(scene, st) {
     const q = Q(), a = api();
     const got = [];
-    if (st.give && a) {
+    const stepKey = `${scene.id}.${q.step}`;
+    if (st.give && a && claimOnce(`give:${stepKey}`)) {
       a.grant({ items: st.give, log: `본편: ${Object.entries(st.give).map(([id, n]) => `${itemName(id)}${n > 1 ? ` ×${n}` : ''}`).join(', ')}을(를) 받았다.` });
       for (const [id, n] of Object.entries(st.give)) { q.given[id] = (q.given[id] || 0) + n; got.push(`${itemName(id)}${n > 1 ? ` ×${n}` : ''}`); }
     }
-    if (st.heir && heir() && a && !q.given[heir().weapon]) {
+    if (st.heir && heir() && a && !q.given[heir().weapon] && !claims().claimed[`heir:${stepKey}`]) {
+      claims().claimed[`heir:${stepKey}`] = Date.now();
       const name = a.giveHeirloom(heir().weapon, heir().enh);
       if (name) { q.given[heir().weapon] = 1; card({ kind: 'heir', head: '유품이 무구가 되었다', title: `「${name}」`, sub: `${heir().name} · ${heir().line} 계통`, lines: [heir().note, '부모의 손길 — 강화 1이 붙은 채로 받았다.', '본편 이야기 전투에서는 이 무구만 쓸 수 있다.'], btn: '소지품 열기', act: () => App.playApi()?.openInventory() }); }
     }
@@ -241,7 +247,7 @@
     const q = Q();
     q.done[scene.id] = Date.now(); q.step = 0; q.prog = {};
     const spirit = 4 + scene.ch * 2, money = 5 + scene.ch * 3;
-    try { App.playApi()?.grant({ spirit, money, log: `본편 「${scene.title}」을(를) 마쳤다. 영력 +${spirit}, ${money}냥.` }); } catch (_) { /* 실행 화면이 아직 없으면 넘어간다 */ }
+    if (claimOnce(`done:${scene.id}`)) try { App.playApi()?.grant({ spirit, money, log: `본편 「${scene.title}」을(를) 마쳤다. 영력 +${spirit}, ${money}냥.` }); } catch (_) { /* 실행 화면이 아직 없으면 넘어간다 */ }
     persist();
     banner(scene, [`영력 +${spirit}`, `${money}냥`]);
     const list = SCENES.filter((s) => s.ch === scene.ch);
@@ -531,9 +537,10 @@
       box.querySelector('button')?.focus();
     }
     function pick(ln, key, n) {
-      q.picked[key] = n; q.pick[scene.id] = n; q.flags[ln.id] = n;
+      // 같은 선택이 다시 나와도 처음 고른 것이 남는다
+      q.picked[key] = n; q.pick[scene.id] = n; if (q.flags[ln.id] == null) q.flags[ln.id] = n;
       if (ln.id === HEIR_CHOICE) { save().story.heirloom = HEIRS[n - 1]?.weapon || null; App.mark('heirloomChosen'); if (!q.keep.includes('부모의 유품')) q.keep.push('부모의 유품'); }
-      Sync()?.choice(ln.id, n);
+      const cs = claims(); if (ln.id && !cs.sent[ln.id]) { cs.sent[ln.id] = n; Sync()?.choice(ln.id, n); }
       persist(); at += 1; show();
     }
     // 장의 첫 장면을 처음 열 때: 권 · 장 표제
