@@ -434,3 +434,18 @@ t198('v1.9.8: 획득처가 없는 것은 본편 전용 아이템뿐 · 개척 �
   const R = await import('../systems/biryeong/reskin.data.js')
   assert198.ok(R.HUNT_EXTRA.length === 6 && R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
 })
+
+// ───────── vB.01 ─────────
+import { test as tB01 } from 'node:test'
+import assertB01 from 'node:assert/strict'
+tB01('vB.01: 지신성 없음 · 수업 랭킹은 서버로 · 업데이트 노트는 vB.01 하나 · 나가기 확인 · 조사 글', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assertB01.ok(!/data-community="social"/.test(html) && !/data-community-tab="social"/.test(html), '지신성 단추가 없다')
+  const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8')
+  assertB01.ok(/v: 'vB\.01'/.test(app) && !/v: 'v1\.\d/.test(app), '예전 노트는 지웠다')
+  assertB01.ok(/정말 나가겠습니까\? 지금 나가면 보상을 얻을 수 없습니다\./.test(app))
+  const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  for (const fn of ['bry_rank', 'bry_rank_submit', 'bry_notes', 'bry_admin_note_post', 'bry_admin_note_delete']) assertB01.ok(new RegExp(`function public\\.${fn}\\(`).test(sql), fn)
+  const J = JSON.parse(readFileSync(new URL('../systems/biryeong/josa-overrides.json', import.meta.url), 'utf8'))
+  assertB01.ok(J.edits.length >= 20 && J.edits.some((e) => e.name === '비령산 학당 (??%)'))
+})

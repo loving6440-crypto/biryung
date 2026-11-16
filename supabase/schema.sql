@@ -927,9 +927,87 @@ end $$;
 grant execute on function public.story_admin_routes(text) to anon;
 grant execute on function public.story_admin_route(text, text, smallint, timestamptz) to anon;
 
+-- ── 수업 랭킹(vB.01): 과목마다 이번 주(월요일 0시, 한국 시각) 각자의 최고 기록. 관리자 계정은 올리지 않는다. ──
+create table if not exists biryeong_private.scores (
+  account_id bigint      not null references biryeong_private.accounts on delete cascade,
+  course     text        not null,
+  week_start date        not null,
+  score      integer     not null,
+  name       text        not null default '',
+  updated_at timestamptz not null default now(),
+  primary key (account_id, course, week_start)
+);
+create index if not exists scores_rank on biryeong_private.scores (course, week_start, score desc);
+revoke all on biryeong_private.scores from anon, authenticated;
+
+create or replace function biryeong_private.week0(p_offset int default 0) returns date language sql stable as $$
+  select (date_trunc('week', now() at time zone 'Asia/Seoul') - make_interval(weeks => p_offset))::date $$;
+
+create or replace function public.bry_rank_submit(p_token text, p_course text, p_score integer, p_name text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); w date := week0(); prev integer;
+begin
+  if coalesce(p_course, '') !~ '^[a-z0-9-]{2,40}$' or p_score is null or p_score < 1 or p_score > 100000000 then raise exception 'invalid_value'; end if;
+  if a.role = 'admin' then return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'admin'); end if;
+  perform throttle_do('rank:' || a.id, 60, 600);
+  select score into prev from scores where account_id = a.id and course = p_course and week_start = w;
+  if prev is not null and prev >= p_score then return jsonb_build_object('ok', true, 'recorded', false, 'score', prev); end if;
+  insert into scores (account_id, course, week_start, score, name) values (a.id, p_course, w, p_score, left(coalesce(nullif(btrim(p_name), ''), a.display_name), 40))
+    on conflict (account_id, course, week_start) do update set score = excluded.score, name = excluded.name, updated_at = now();
+  return jsonb_build_object('ok', true, 'recorded', true, 'score', p_score);
+end $$;
+
+-- p_week: 'this'(이번 주 — 20위까지와 내 순위) · 'last'(지난주 5위까지)
+create or replace function public.bry_rank(p_token text, p_course text, p_week text default 'this') returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); w date := week0(case when p_week = 'last' then 1 else 0 end); lim int := case when p_week = 'last' then 5 else 20 end;
+begin
+  return jsonb_build_object(
+    'weekLabel', to_char(week0(), 'YYYY-MM-DD'), 'lastLabel', to_char(week0(1), 'YYYY-MM-DD'), 'lastEndLabel', to_char(week0() - 1, 'YYYY-MM-DD'),
+    'total', (select count(*) from scores where course = p_course and week_start = w),
+    'top', (select coalesce(jsonb_agg(jsonb_build_object('id', u.username, 'name', s.name, 'score', s.score) order by s.score desc, s.updated_at), '[]'::jsonb)
+      from (select * from scores where course = p_course and week_start = w order by score desc, updated_at limit lim) s join accounts u on u.id = s.account_id),
+    'me', (select jsonb_build_object('rank', 1 + (select count(*) from scores o where o.course = p_course and o.week_start = w and o.score > s.score), 'score', s.score)
+      from scores s where s.account_id = a.id and s.course = p_course and s.week_start = w));
+end $$;
+
+-- ── 업데이트 노트(vB.01): 관리자가 직접 쓴다. 최신이 맨 위. ──
+create table if not exists biryeong_private.patch_notes (
+  id         bigint generated always as identity primary key,
+  version    text        not null,
+  body       text        not null,
+  author     text        not null default '',
+  created_at timestamptz not null default now()
+);
+revoke all on biryeong_private.patch_notes from anon, authenticated;
+create or replace function public.bry_notes(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('notes', (select coalesce(jsonb_agg(jsonb_build_object('id', n.id, 'version', n.version, 'body', n.body, 'created_at', n.created_at) order by n.id desc), '[]'::jsonb) from (select * from patch_notes order by id desc limit 100) n));
+end $$;
+create or replace function public.bry_admin_note_post(p_token text, p_version text, p_body text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); n bigint;
+begin
+  if length(btrim(coalesce(p_version, ''))) not between 1 and 20 or length(btrim(coalesce(p_body, ''))) not between 1 and 3000 then raise exception 'invalid_value'; end if;
+  insert into patch_notes (version, body, author) values (btrim(p_version), btrim(p_body), a.username) returning id into n;
+  perform log(a, 'note_post', '', p_version);
+  return jsonb_build_object('id', n);
+end $$;
+create or replace function public.bry_admin_note_delete(p_token text, p_id bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); v text;
+begin
+  delete from patch_notes where id = p_id returning version into v;
+  if v is null then raise exception 'not_found'; end if;
+  perform log(a, 'note_delete', '', v);
+  return jsonb_build_object('ok', true);
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', '1.9.6', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'B.01', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

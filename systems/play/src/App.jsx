@@ -150,7 +150,7 @@ export default function App() {
       {screen}
 
       {course && (
-        <GameModal course={course} onClose={() => { if (routeCourse) bridge.back(); else setOpenCourse(null) }} playerKey={`biryeong-${player.createdAt ?? 'local'}`} playerName={player.name}
+        <GameModal course={course} onClose={() => { if (routeCourse) bridge.back(); else setOpenCourse(null) }} playerKey={globalThis.BiryeongAuth?.server && globalThis.BiryeongAuth?.session?.() ? globalThis.BiryeongAuth.session() : `biryeong-${player.createdAt ?? 'local'}`} playerName={player.name}
           stats={effStats} lesson={H.lessonOf(course.id)} actions={H.lessonActions} player={player} onSkin={H.setSkin2048} onSkinRunner={H.setSkinRunner} admin={admin} />
       )}
 

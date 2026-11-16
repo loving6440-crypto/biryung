@@ -22,6 +22,27 @@ for (const e of ALL_ENEMIES) {
 }
 for (const p of PSYCHICS) { const r = PSYCHIC_RESKIN[p.id]; if (r) p.note = r.note } // 이름(label)은 빌드할 때 글자째로 바꾼다
 
+// ── vB.01 조사(탐사) 글 — 시트 「비령_조사」 탭에 맞춘 글로 바꾼다(josa-overrides.json, systems/biryeong/josa_match.mjs 가 만든다).
+//    조건부 글(스탯에 따라 덧붙는 글)은 그대로 두고, 바탕 글만 바꾼다. ──
+import { FLOORS } from '@vault/game/explore.js'
+import { ANNEX_FLOORS } from '@vault/game/annex.js'
+import { HIKE_PATHS as JOSA_HIKE } from '@vault/game/hike.js'
+import { SHRINE_AREAS } from '@vault/game/shrineExplore.js'
+import JOSA from '../../biryeong/josa-overrides.json'
+{
+  const ROOTS = { main: { floors: FLOORS }, annex: { floors: ANNEX_FLOORS }, hike: { floors: JOSA_HIKE }, shrine: { areas: SHRINE_AREAS } }
+  const KEYS = ['floors', 'areas', 'rooms', 'spots', 'choices', 'branches']
+  const step = (node, id) => { for (const k of KEYS) { const i = node?.[k]?.findIndex?.((c) => c.id === id) ?? -1; if (i >= 0) return { list: node[k], i } } return null }
+  for (const e of JOSA.edits) {
+    let node = ROOTS[e.zone], at = null
+    for (const id of e.path) { at = step(node, id); if (!at) break; node = at.list[at.i] }
+    if (!at) continue
+    if (e.remove) { at.list.splice(at.i, 1); continue }
+    if (e.name) node.name = e.name
+    if (e.texts) { const old = Array.isArray(node[e.field]) ? node[e.field] : node[e.field] != null ? [node[e.field]] : []; node[e.field] = [...e.texts, ...old.filter((x) => typeof x !== 'string')] }
+  }
+}
+
 // ── v1.0 새 제작법 113개(공작소 63 · 조리실 50) — 보관고의 제작법 목록 뒤에 붙인다. 표: systems/biryeong/recipes-new.txt ──
 // tier: 1 바탕 · 2 바탕으로 만드는 완성품 · 3 상급 공정 / yield: 한 번에 나오는 수(usePlayHost 의 afterMake 가 더해 준다)
 import { RECIPES } from '@vault/game/crafting.js'

@@ -586,35 +586,44 @@
     const log = (save.playLog || []).slice(-25).reverse();
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
+  // vB.01 부터: 예전 노트는 모두 지웠다. 이 다음 노트는 관리자가 [업데이트 노트] 화면에서 직접 쓴다(서버 bry_notes — 서버가 없으면 이 브라우저에만).
   const UPDATE_NOTES = [
-    { v: 'v1.9.8', date: '2026-11-16', lines: ['얻을 곳이 없던 재료 6종(부러진 먹 · 갈라진 붓 · 연필 · 우정 편지 · 벚꽃나무 가지 · 까치 깃)을 쉬운 산길(산길-1 ~ 산길 4)의 개척 대상에 덤으로 붙였다. 채집 · 수렵에 성공하면 15~30% 확률로 함께 나온다.'] }, { v: 'v1.9.7', date: '2026-11-16', lines: ['소지품에 [중요한 아이템] 칸이 생겼다. 본편 이야기에서 받은 물건(303호의 방울 · 찢긴 출석부 · 받아 적은 이름 · 당산나무 가지 등)이 저절로 들어가고, 소지품 칸을 차지하지 않는다. 버리거나 가방에 넣을 수 없다.', '도감 · 소지품에서 본편으로 얻는 아이템은 몇 장 어느 장면에서 얻는지 적힌다(루트가 갈리면 그 루트까지).', '소지품에서 아이템에 마우스를 올리면 「취득」에 획득처가 보인다.'] }, { v: 'v1.9.6', date: '2026-11-16', lines: ['「모두의 선택」(투표) 뒤의 이야기는 관리자가 루트를 공개해야 이어진다. 공개 전에는 「모두의 선택이 모이는 중」으로 기다린다. 공개된 뒤에는 각자 고른 것과 상관없이 모두 같은 루트로 이어진다.', '본편 전투의 [이야기 행동] 단추 글씨를 진하게 바꿨다.', '명부의 귀신 전투 안내에 정답이 적혀 있던 것을 지웠다.'] },
-    { v: 'v1.9.5', date: '2026-11-16', lines: ['본편 이야기 전투가 모두 3인 전투가 되었다. 싸우기 전에 [연호수 · 윤진서와 함께] 또는 [파티 모집하기]를 고른다.', '파티(서버 연결 시): 같은 장면의 같은 전투에 와 있는 학생끼리만 서로 보인다. 모인 만큼으로 시작하고, 빈 자리는 NPC가 채운다.', '이름 부르기 · 이름 묻기 · 곁에 앉기 · 금줄 끊기는 [이야기 행동]에서, 누구 차례든 그 사람이 쓸 수 있다. 연호수 · 윤진서도 상황에 맞게 돕는다.', '전투 튜토리얼: 허수아비 체력이 크게 늘고, 누구도 1 밑으로 떨어지지 않는다(되살아나며 체력이 차는 일이 없다). 마지막 한 방에서만 정말 쓰러진다.', '튜토리얼 #3의 소지품 단계는 오른쪽 아래 [소지품] 버튼을 누르면 넘어간다.'] },
-    { v: 'v1.9.4', date: '2026-11-16', lines: ['첫 화면 왼쪽 기밀 문서가 [주요 이야기] · [공지사항] 두 칸이 되었다.', '주요 이야기: 공개된 권의 사건 개요를 연다(지금은 「제1권 - 신공강림」). 사건 개요를 새로 썼다.', '공지사항: 관리자만 쓰고 지울 수 있는 게시판. 가장 최신 공지가 맨 위에 오고, 새 공지가 있으면 탭에 빨간 점이 뜬다.'] },
-    { v: 'v1.9.1', date: '2026-11-16', lines: ['생활관 › 기숙사 › 급식실의 익명 사연 투고함이 열렸다(서버 연결 시). 투고하면 바로 그날의 교내 신문에 실리고, 쓴 사람은 누구에게도 보이지 않는다. 쓴 본인과 관리자는 뗄 수 있다.'] },
-    { v: 'v1.9', date: '2026-11-16', lines: ['서버(Supabase)를 연결하면 계정과 기록이 서버에 보관된다. 어느 기기에서든 같은 아이디로 이어서 한다.', '지신성 · 낮새들의 터 · 밤쥐들의 터가 게임 계정 그대로 열린다. 자기 글은 지울 수 있고, 안 읽은 밀담은 단추에 숫자로 뜬다.', '관리자 › 서버 관리: 공지(속보 띠) · 하사(냥 · 영력 · 아이템) · 회원 관리(칭호 · 글쓰기 정지 · 계정 정지 · 비밀번호 초기화 · 기록 열람) · 밀담 감사 · 감사 기록.', '본편 이야기는 배경 그림과 장면 그림 없이, 보던 화면 위의 대사 창에서 대사를 넘기며 진행한다.'] },
-    { v: 'v1.8', date: '2026-11-16', lines: ['본편 이야기를 새 원고로 다시 짰다 — 1권 「신공강림」 프롤로그 · 1장 「불리지 않은 이름」 · 2장 「저 이승의 장례식」.', '프롤로그는 튜토리얼이다. 프로필을 만들면 바로 이어지고, 별관 강당 · 뒷산 무구보관소를 지나 유품을 무구로 받는다.', '1장부터는 공개된 장만 열린다. 열리기 전에는 권과 장의 이름만 보이고 [아직 열리지 않은 이야기입니다.]라고 적혀 있다.', '이야기 화면이 바뀌었다 — 장소마다 배경이 깔리고, 종소리 · 문틈 빛 · 꺼진 촛불 · 단말기의 붉은 빛 · 먹물 · 흔들림 · 뉴스 화면 · 장 표제가 화면으로 흐른다. 글자로 나오는 것은 대사와 지문뿐이다.', '선택은 서버에 모인다. 산문 너머 › 모두의 선택에서 내가 고른 것과 다른 학생들의 비율을 본다. 2장의 당산신 선택은 고른 것에 따라 싸우는 상대와 뒷이야기가 달라진다.', '바깥 지역 「서울」이 「강릉」(강릉 시내)이 되었다. 속보 띠 · 사건 개요의 연도를 2035~2036년으로 맞췄다.', '지도 제목 뒤의 꼬리말(IS …)을 지웠다.'] },
-    { v: 'v1.7', date: '2026-11-16', lines: ['업적 / 도감에 [아이템] [영능력] [적] 칸이 생겼다.', '아이템 — 한 번이라도 손에 넣은 것은 도트 · 효과 · 해설 · 설명 · 획득처가 모두 보인다. 아직 손에 넣지 못한 것은 이름과 획득처만 보인다.', '영능력 — 익히기 전에는 이름만 보인다.', '적 — 직접 만나 본 상대만 적힌다. 등장 위치 · 영능력(둘이면 둘 다, 효과까지) · 떨어뜨리는 것 · 수치를 볼 수 있지만, 안목이 상대의 영력보다 낮으면 일부 수치와 영능력은 가려져 있다.'] },
-    { v: 'v1.6', date: '2026-11-16', lines: ['명부 등록 직후, 화면 전체를 채우는 오프닝이 흐른다(섣달그믐의 화면들 → 정확도 100% → 문틈의 손 → 제야의 종 → 빈 안방 → 괴담 → 비령산 → 산문 단말기). 끝나면 「내 프로필 만들기」로 이어진다. 프로필 화면의 [오프닝 다시 보기]로 다시 볼 수 있다.', '지도는 지금 있는 곳의 것만 보인다 — 본관에선 본관, 뒷산에선 뒷산. 지도를 눌러 옮겨 가는 기능은 없앴다. 대신 마지막으로 들른 곳이 「지금 여기」로 깜빡인다.', '오방 지도의 사당 그림을 다른 네 구역과 같은 결의 도트 그림으로 새로 그렸다.', '아이템 시트(v3) 반영 — 붉은여우 부적이 바뀌었다: 일행(파티) 상태에서만 쓰고, 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다). 느타리 전골 · 매깃 철릭 · 붉은 지네 부적의 해설이 바뀌었다.', '칭호 40개의 이름을 고쳤다(기밀 열람자 → 열람자, 공방 단골 → 망치질 단골, 운동하는 학생 → 붉은 피 …). 업적 「밥 짓는 사람」은 「늘 밥을 해줬어」가 되었다.', '관리자 코드: GitHub 의 ADMIN_CODE 를 Secret 으로도 Variable 로도 읽는다. 사이트가 아직 임시 코드를 쓰고 있으면 로그인 화면이 그렇다고 알려 준다.'] },
-    { v: 'v1.5', date: '2026-11-15', lines: ['업적이 120개가 됐다 — 새 묶음 「본교 — 학당 생활」 10개. 학당 생활 업적 셋(직업은 학생, 취미는 운동 · 신의 주시 · 나는야 모범생)이 도감에 올라오고, 일곱 개를 새로 더했다(유품 등록 · 망친 것도 공부 · 남의 사물함 · 가방 속 박물관 · 이름을 부른 밤 · 새 장부 · 장부를 다 채웠다). 업적마다 칭호가 하나씩 붙는다.', '한 아이템에 제작법이 둘 있던 79종을 하나로 정리했다 — 아이템마다 제작법은 하나다.', '빈자리(겹치던 v1.0 제작법 81개)는 새 아이템 81종이 채운다. 재료 · 단계 · 나오는 수는 그대로다(천 한지 · 주묵 · 잣기름 · 매듭 팔찌 · 오색 부적첩 · 팔물탕 · 송이 죽 …).', '1단계 새 바탕 17종은 모두 다른 새 아이템의 재료로 쓰인다(천 한지 → 천 부적 꾸러미, 주묵 → 붉은 지네 부적 …).', '새 아이템마다 도트 아이콘이 따로 있다. 횃불 · 팔찌 · 도장 · 죽 · 사탕 · 모깃불 · 전골 · 벽돌 서낭단 · 숫돌 · 부꾸미 틀 10개를 새로 찍었다.'] },
-    { v: 'v1.4', date: '2026-11-15', lines: ['아이템 이름과 해설을 다듬었다(사과맛 피크닉 · 에너지드링크 · 부채 · 단검 …).', '요괴와 영능력의 이름 · 소개도 다듬었다(허수아비 잡귀 · 묵은 원귀 · 생존본능 · 업인과보 …).', '사이버펑크 풍을 걷어 냈다 — 별전 칭호 이름(학당 훈장 · 보부상 · 장원급제 …), 본편 아이템 해설, 아이콘의 네온 색까지. 한국 전통에 근미래(단말기 · 관측동)만 남겼다.', '유품 무구 이름 — 무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기.'] },
-    { v: 'v1.3', date: '2026-11-15', lines: ['유품이 10종이 되었다 — 게임의 무구 10종(무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기)과 하나씩 짝지어진다. 둘씩 다섯 계통.', '입소식 뒤 무구보관소에서 고른 유품을 실제 무구로 받는다(부모의 손길 — 강화 1). 장착까지가 튜토리얼.', '본편 보스 14종에 고유 패턴이 붙었다 — 이름 부르기 · 진정 · 뿌리 · 모습 · 되감기 · 눈 · 두 머리 · 목소리 · 번갈아 오는 신탁 · 안개 · 부모들의 자리 · 형태 변화. 전투 아래 [이야기 전투] 칸에서 계기판과 전용 행동을 쓴다.', '보스를 이기면 전리품이 나오고, 그 전리품으로 만드는 장비 · 부적 제작법이 열린다. 이야기 전투는 져도 쇠약이 남지 않는다.', '본편 새 아이템 36종 · 새 제작법 16종. 302호의 방울 · 흐린 영정 조각 · 기도 쪽지 묶음 · 귤 · 가곡면 감자가 소지품에 들어오고, 미역국 · 관측 차단 봉투 · 결계 말뚝 · 거점 기둥은 퀘스트가 가르쳐 준 대로 직접 만든다.', '장면을 마치면 완료 띠가, 장을 마치면 장 완료 카드가 뜬다. 산문 너머 › 나의 기록에 본편 도감(퇴마한 신탁 · 본편 물건 · 본편 제작법)이 생겼다.'] },
-    { v: 'v1.2', date: '2026-11-14', lines: ['본편 이야기 3권 15장이 열렸다. 산문 › 산문 너머에서 장면 퀘스트 97개를 차례로 진행한다.', '퀘스트는 한 페이지에서 끝나지 않는다 — 단계마다 실제 장소로 가서 탐사 · 전투 · 개척 · 제작 · 수업을 해야 다음으로 넘어간다. 오른쪽 상태 창에 지금 할 일과 [그곳으로] 단추가 뜬다.', '산문 너머의 바깥 지역(강릉 · 청암리 · 물치항 · 관측 밖)과 거대한 문 너머 · 경계가 이야기를 따라 열린다.', '대사 창에 인물 칸이 생겼다. 지금은 머리색 인장이고, 초상 그림을 넣을 자리다.', '이야기를 따라 칭호 18개를 얻는다. 엔딩은 다섯 가지.', '서버(Supabase)를 연결하면 모든 학생의 선택이 「세계」 탭에 모인다. 연결 전에는 이 브라우저의 값만 쓴다.'] },
-    { v: 'v1.1', date: '2026-11-14', lines: ['아이템 도트를 전부 새로 짰다. 312개 아이템이 저마다 다른 도트를 가진다(틀 109개 · 색 30가지, 겹치는 것 없음).'] },
-    { v: 'v1.0', date: '2026-11-14', lines: ['로그인(명부 등록)이 생겼다. 계정마다 기록이 따로 남는다. 계정과 기록은 아직 이 브라우저에만 보관된다.', '오방 지도: 가운데에 사당이 생겼다. [내부 지도]로 본관 · 별관 · 뒷산 · 사당의 안쪽을 볼 수 있다.', '구역 얼개를 바꿨다. 그 자리에 가면 그 자리의 기능이 나온다 — 별관 탐사에서 공작소 · 조리실 · 동아리 부실(가입), 본관 탐사에서 물품보관소 · 양호실, 산 탐사에서 무구보관소 · 텃밭 · 도깨비 놀이.', '추가전투를 퇴마 실습장으로 옮겼다.', '접속을 끊은 동안에도 영력이 차오른다(수련 · 잠 · 휴식도 흐른다).', '칭호 50개 추가(모두 114개). 모든 칭호에 소소한 기능이 붙었다 — 달고 있는 칭호 하나의 기능만 듣는다.', '제작법 113개 추가(모두 247개). 1단계 바탕 → 2단계 완성품 → 3단계 상급 공정.', '관리자 도구(로그인 화면의 「비령」을 다섯 번 누르면 관리자 코드 칸이 나온다).'] },
-    { v: 'v0.9', date: '2026-11-12', lines: ['창이 뜨던 화면을 모두 페이지로 바꿈. 어느 페이지든 머리글 · 배너 · 나의 상태는 그대로, [뒤로가기] 로 돌아온다.', '전투 · 개척 · 제작 · 수업 · 매점 등이 구역 페이지 안에서 바로 열린다. 화면 색을 비령에 맞춤.', '나의 상태에서 육조 스탯을 바로 올릴 수 있다.', '아이템 312종 · 상대 57종 · 영능력 13종의 이름과 설명을 비령 세계관으로 고치고, 아이템에 도트 아이콘을 붙임.', '업적 60개 · 칭호 64개로 다시 짬(둘러보기 · 하루 · 며칠 · 꾸준히 · 한 달 · 극).', '산문에 스토리 퀘스트 제1장 「사라진 자들의 아이들」.'] },
-    { v: 'v0.8', date: '2026-11-12', lines: ['전투 · 개척 · 제작 · 수업 미니게임을 실행할 수 있게 연결.'] },
-    { v: 'v0.7', date: '2026-11-12', lines: ['내 프로필, 나의 상태, 구역 데이터, 배너 다섯 쪽, 칭호와 업적.'] },
-    { v: 'v0.6', date: '2026-11-12', lines: ['게임 콘텐츠를 한데 모았다. GitHub Pages 대응.'] },
+    { v: 'vB.01', date: '2026-11-16', lines: ['비령 vB.01.', '소통 공간: 지신성이 없어지고, 낮새들의 터가 타임라인이 되었다. 밤쥐들의 터(밀담)는 그대로다.', '조사(본관 · 별관 · 뒷산 · 사당 탐사) 글을 새로 다듬었다.', '수업 랭킹 창이 멈추던 문제를 고쳤다. 서버가 연결되면 과목마다 이번 주 랭킹이 쌓인다.', '느린 전투 · 수업 대기 · 휴식처럼 시간이 드는 행동 중에 다른 페이지로 나가려 하면 한 번 더 묻는다.'] },
   ];
+  const NOTES_KEY = 'biryeong-notes-v1';
+  const notesLocal = () => { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch (_) { return []; } };
+  const notesApi = {
+    list: async () => (Auth.server && Auth.token() ? (await Auth.call('bry_notes')).notes : notesLocal().slice().sort((x, y) => y.id - x.id)),
+    post: async (v, body) => { if (Auth.server) return Auth.call('bry_admin_note_post', { p_version: v, p_body: body }); const rows = notesLocal(); rows.push({ id: Date.now(), version: v, body, created_at: new Date().toISOString() }); localStorage.setItem(NOTES_KEY, JSON.stringify(rows)); return true; },
+    remove: async (id) => { if (Auth.server) return Auth.call('bry_admin_note_delete', { p_id: id }); localStorage.setItem(NOTES_KEY, JSON.stringify(notesLocal().filter((x) => x.id !== id))); return true; },
+  };
+  const noteBox = (v, date, lines, onDel) => {
+    const box = h('div', 'note-box'); const head = h('p', 'panel-label'); head.append(h('b', '', v), date ? ` · ${date}` : '');
+    const ul = h('ul'); lines.forEach((l) => ul.append(h('li', '', l)));
+    box.append(head, ul); if (onDel) box.append(btn('ghost-btn codex-use note-del', '지우기', onDel)); return box;
+  };
   function renderNotes() {
     openPage('報 / UPDATE NOTES', '업데이트 노트', 'simple');
     addTo('pages', 'notes');
-    UPDATE_NOTES.forEach((n) => {
-      const box = h('div', 'note-box'); const head = h('p', 'panel-label'); head.append(h('b', '', n.v), n.date ? ` · ${n.date}` : '');
-      const ul = h('ul'); n.lines.forEach((l) => ul.append(h('li', '', l)));
-      box.append(head, ul); panelBody.append(box);
-    });
+    if (App.isAdmin()) {
+      const f = h('form', 'admin-form note-form'); const vIn = h('input'); vIn.placeholder = '버전 (예: vB.02)'; vIn.maxLength = 20; vIn.required = true;
+      const ta = h('textarea'); ta.rows = 4; ta.maxLength = 3000; ta.placeholder = '바뀐 점 — 한 줄에 하나씩 적으면 줄마다 한 항목이 된다'; ta.required = true;
+      const sb = h('button', 'solid-btn', '노트 올리기'); sb.type = 'submit';
+      const d = h('details', 'notice-write'); d.append(h('summary', '', '＋ 업데이트 노트 쓰기 (관리자)'), f); f.append(vIn, ta, sb); panelBody.append(d);
+      if (!Auth.server) panelBody.append(para('서버가 연결되지 않아, 여기 올린 노트는 이 브라우저에서만 보인다.'));
+      f.addEventListener('submit', async (e) => { e.preventDefault(); sb.disabled = true; try { await notesApi.post(vIn.value.trim(), ta.value.trim()); toast('업데이트 노트', '노트를 올렸다.'); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); sb.disabled = false; } });
+    }
+    const list = h('div', 'notes-list'); panelBody.append(list);
+    const draw = (rows) => {
+      list.replaceChildren();
+      rows.forEach((r) => list.append(noteBox(r.version, dateOnly(r.created_at), String(r.body).split('\n').map((x) => x.trim()).filter(Boolean),
+        App.isAdmin() ? async () => { if (!window.confirm(`${r.version} 노트를 지울까요?`)) return; try { await notesApi.remove(r.id); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); } } : null)));
+      UPDATE_NOTES.forEach((n) => list.append(noteBox(n.v, n.date, n.lines)));
+    };
+    draw([]);
+    notesApi.list().then(draw).catch(() => draw([]));
   }
+  const dateOnly = (v) => { try { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(v)); } catch (_) { return ''; } };
 
   /* ───────── 내 프로필 ───────── */
   function avatarInto(el, photo, name) {
@@ -970,7 +979,27 @@
     window.dispatchEvent(new CustomEvent('biryeong:route', { detail: { hash: location.hash, parts } }));
     if (head) { const top = pageView.getBoundingClientRect().top; if (top < 70 || top > window.innerHeight * 0.45) window.scrollTo({ top: window.scrollY + top - 84, behavior: 'smooth' }); }
   }
-  window.addEventListener('hashchange', route);
+  // vB.01: 시간이 드는 행동 중에 다른 페이지로 나가려 하면 한 번 더 묻는다(나가면 그 행동은 멈추고 보상은 없다).
+  let lastHash = location.hash, skipHash = false;
+  function leaveAsk(onYes) {
+    const wrap = h('div', 'leave-ask'); const box = h('div', 'leave-ask-box'); wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true');
+    box.append(h('p', 'leave-ask-text', '정말 나가겠습니까? 지금 나가면 보상을 얻을 수 없습니다.'));
+    const row = h('div', 'leave-ask-row');
+    const close = () => wrap.remove();
+    row.append(btn('solid-btn', '예', () => { close(); onYes(); }), btn('ghost-btn', '아니오', close));
+    box.append(row); wrap.append(box); document.body.append(wrap); row.lastChild.focus();
+  }
+  window.addEventListener('hashchange', () => {
+    if (skipHash) { skipHash = false; lastHash = location.hash; return; }
+    const busy = playApi()?.busy?.();
+    if (busy && location.hash !== lastHash) {
+      const target = location.hash;
+      skipHash = true; location.replace(lastHash || '#/'); // 일단 제자리로
+      leaveAsk(() => { playApi()?.interrupt?.('자리를 떠나'); location.hash = target; });
+      return;
+    }
+    lastHash = location.hash; route();
+  });
 
   /* ─────────   /* ───────── 메인 배너 (다섯 쪽) ───────── */
   const hero = $('#hero'), heroTrack = $('#heroTrack'), heroDots = [...$('#heroDots').children];

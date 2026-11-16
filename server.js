@@ -123,7 +123,7 @@
         const side = h('div', 'codex-side admin-side');
         side.append(btn('ghost-btn codex-use', '칭호', () => { const v = window.prompt(`@${u.username} 이름 옆에 달 칭호 (20자까지, 비우면 뗀다)`, u.chat_title || ''); if (v != null) setUser(u, 'chat_title', v.trim(), '칭호를 고쳤다.'); }));
         side.append(btn('ghost-btn codex-use', '기록 보기', () => showSave(u)));
-        side.append(btn('ghost-btn codex-use', '글쓰기 정지', () => { const d = askDays(`@${u.username} 의 글쓰기(지신성 · 낮새 · 밤쥐)를 막는다.`); if (d != null) setUser(u, 'mute', d, d ? `${d}일 동안 글쓰기를 막았다.` : '글쓰기 정지를 풀었다.'); }));
+        side.append(btn('ghost-btn codex-use', '글쓰기 정지', () => { const d = askDays(`@${u.username} 의 글쓰기(낮새 · 밤쥐 · 급식실)를 막는다.`); if (d != null) setUser(u, 'mute', d, d ? `${d}일 동안 글쓰기를 막았다.` : '글쓰기 정지를 풀었다.'); }));
         side.append(btn('ghost-btn codex-use', '비밀번호 초기화', () => { const pw = window.prompt(`@${u.username} 의 새 비밀번호 (4자 이상)`); if (pw != null) setUser(u, 'password', pw, '비밀번호를 바꿨다. 그 계정은 다시 로그인해야 한다.'); }));
         if (!self) {
           side.append(btn('ghost-btn codex-use', u.role === 'admin' ? '관리자 해제' : '관리자 지정', () => setUser(u, 'role', u.role === 'admin' ? 'user' : 'admin', '역할을 바꿨다.')));
@@ -147,7 +147,7 @@
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
     const aList = h('div', 'server-audit'); body.append(aList);
-    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움',
+    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {
       if (!rows.length) aList.append(para('아직 기록이 없다.'));

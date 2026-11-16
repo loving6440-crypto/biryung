@@ -763,7 +763,9 @@ export function usePlayHost() {
   }
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, spendMp, effStats: () => effStats, // 도감: 안목으로 적 수치를 가린다
+    save: persist, storyBattle, spendMp, effStats: () => effStats,
+    // vB.01: 시간이 드는 행동(느린 싸움 · 수업 대기 · 휴식 · 잠 · 수련 · 제작) 중인가 — 바깥(app.js)이 페이지를 떠나기 전에 묻는다
+    busy: () => busyLabel(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
     itemName: (id) => itemOf(id)?.name ?? id, count: countOfId, equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
     tutorialCount: () => Object.keys(playerRef.current?.tutorialDone ?? {}).length, // 본편: [전투 안내] 몇 단계까지 마쳤나

@@ -214,6 +214,12 @@
   };
   window.BiryeongAuth = Auth;
   /* 급식실 익명 사연(실행 화면의 급식실이 부른다): 날짜별 신문 읽기 · 투고 · 떼기 */
+  /* 수업 랭킹(실행 화면의 수업 창이 부른다). 서버가 없거나 로그인 표가 없으면 null — 화면이 '서버에 연결되지 않아'를 보여 준다. */
+  globalThis.__BRY_RANK = {
+    fetch: async (course, _pid, week) => { if (!token()) return null; try { return await Auth.call('bry_rank', { p_course: course, p_week: week === 'last' ? 'last' : 'this' }); } catch (_) { return null; } },
+    submit: async (course, name, score) => { if (!token()) return { ok: false, error: 'not-connected' }; try { return await Auth.call('bry_rank_submit', { p_course: course, p_score: Math.round(score), p_name: name }); } catch (e) { return { ok: false, error: e.code || 'error' }; } },
+    live: () => !!token(),
+  };
   if (SERVER) globalThis.__BRY_CAFE = {
     online: () => !!token(), admin: () => Auth.isAdmin(),
     fetch: async (date) => { try { const r = await Auth.call('bry_stories', { p_date: date }); return { ok: true, stories: r.stories.map((x) => ({ id: x.id, no: x.no, text: x.body, mine: x.mine })) }; } catch (_) { return { ok: false }; } },
