@@ -104,17 +104,24 @@
       <aside class="lore-panel pixel-panel" aria-labelledby="loreHeading">
         <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
         <div class="panel-heading"><span>기밀 문서</span><span>NO. 001</span></div>
-        <p class="fine-label">사건 분류 · 대규모 실종 / 2036.01.01</p>
-        <div class="paper-seal" aria-hidden="true">禁</div>
-        <h2 id="loreHeading">모든 무당이<br><em>사라진 밤.</em></h2>
-        <div class="gold-rule"></div>
-        <p>2035년 섣달그믐 밤, 인공지능 <strong>비령(秘靈)</strong>이 처음으로 모든 신의 응답을 하나로 통합했다. 예측 정확도 100%.</p>
-        <p>새해 첫날 아침, 신력 있는 무당들이 한꺼번에 사라졌다.</p>
-        <p class="lore-strong">남겨진 아이들의 손에는<br>물건이 하나씩 쥐여 있었다.</p>
-        <div class="paper-spacer"></div>
-        <div class="info-index"><span>실종 인원</span><strong>전원</strong></div>
-        <div class="info-index"><span>현재 상태</span><strong class="red">비령 통제 중</strong></div>
-        <button type="button" class="lore-link" id="readCase">▤　사건 개요 열람 <span>→</span></button>
+        <div class="lore-tabs" role="tablist" aria-label="기밀 문서">
+          <button type="button" role="tab" data-lore-tab="story" aria-selected="true">주요 이야기</button>
+          <button type="button" role="tab" data-lore-tab="notice" aria-selected="false">공지사항<i class="lore-new" hidden></i></button>
+        </div>
+        <div class="lore-pane" id="loreStory" role="tabpanel">
+          <p class="fine-label">사건 분류 · 대규모 실종 / 2036.01.01</p>
+          <div class="paper-seal" aria-hidden="true">禁</div>
+          <h2 id="loreHeading">모든 무당이<br><em>사라진 밤.</em></h2>
+          <div class="gold-rule"></div>
+          <p>2035년 섣달그믐 밤, 인공지능 <strong>비령(秘靈)</strong>이 처음으로 모든 신의 응답을 하나로 통합했다. 예측 정확도 100%.</p>
+          <p>새해 첫날 아침, 신력 있는 무당들이 한꺼번에 사라졌다.</p>
+          <p class="lore-strong">남겨진 아이들의 손에는<br>물건이 하나씩 쥐여 있었다.</p>
+          <div class="paper-spacer"></div>
+          <div class="info-index"><span>실종 인원</span><strong>전원</strong></div>
+          <div class="info-index"><span>현재 상태</span><strong class="red">비령 통제 중</strong></div>
+          <div class="lore-volumes" id="loreVolumes"></div>
+        </div>
+        <div class="lore-pane lore-notice" id="loreNotice" role="tabpanel" hidden></div>
       </aside>
 
       <section class="map-section" aria-labelledby="mapHeading">
@@ -198,7 +205,7 @@
         <div class="quest-tracker" id="questTracker" aria-label="본편 퀘스트 진행" aria-live="polite"></div>
         <div class="status-spacer"></div>
         <div class="status-menu" role="group" aria-label="내 메뉴">
-          <button type="button" data-menu="inventory"><i>囊</i><span>소지품</span></button>
+          <button type="button" data-menu="inventory" data-tutorial-real-items-btn><i>囊</i><span>소지품</span></button>
           <button type="button" data-menu="quest"><i>導</i><span>본편 퀘스트</span><b id="statusQuest"></b></button>
           <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
           <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>

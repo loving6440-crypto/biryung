@@ -163,7 +163,7 @@
     $('#innerMapBtn').dataset.map = ''; $('#innerMapBtn').hidden = true;
     showPlay(null);
   }
-  function showHome() { pageView.hidden = true; homeView.hidden = false; showPlay(null); }
+  function showHome() { pageView.hidden = true; homeView.hidden = false; showPlay(null); drawVolumes(); drawBoard().catch(() => {}); }
   function setTabs(nav, list, current, onPick) {
     nav.hidden = list.length < 1;
     nav.replaceChildren(...list.map((t) => { const b = btn(t.id === current ? 'is-on' : '', t.label, () => onPick(t.id)); b.setAttribute('aria-pressed', String(t.id === current)); return b; }));
@@ -498,16 +498,84 @@
   }
 
   /* ───────── 사건 기록 · 소지금 · 업데이트 노트 ───────── */
-  function renderCase() {
-    openPage('檔案 001 / 2036 · 무속인 실종 사건', '그날 사라진 사람들', 'simple');
-    STORY.premise.forEach((t) => panelBody.append(para(t)));
-    ['무당들이 사라진 이후 전국에서는 기이한 현상이 발생하기 시작한다. 사당의 신들이 모습을 드러내고, 오래전에 죽은 사람들이 살아 돌아오며, 인간의 기억 속에만 존재하던 괴담이 현실이 된다.',
-      '실종된 무당들의 자녀에게는 공통점이 있었다. 모두 실종 직전 부모에게 정체불명의 물건을 하나씩 받았다는 것. 방울, 부채, 거울, 칼, 오색천.',
-      '이 물건들은 단순한 유품이 아니었다. 무당들이 사라지기 전, 자신들이 모시던 신과의 마지막 약속을 담아 놓은 매개체였다.',
-      '무당들의 후손들은 한 자리에 모이게 된다. 비령을 통한 정부의 제어, 그 기반을 다지기 위한 일환으로.'].forEach((t) => panelBody.append(para(t)));
-    panelBody.append(h('p', 'panel-fine', '보관 문서 001 · 비령'), btn('solid-btn', '산문으로 — 스토리 퀘스트', () => go('#/zone/north')));
+  const VOLUMES = STORY.volumes || [];
+  const QD = () => window.BIRYEONG_QUESTS || { chapters: [], volumes: [] };
+  // 권이 열렸는가: 그 권에 속한 장이 하나라도 공개되었으면(프롤로그는 늘 열려 있다)
+  const volOpen = (n) => QD().chapters.some((c) => c.vol === n && (c.n === 0 || window.BiryeongQuest?.isOpen(c.n)));
+  const openVolumes = () => VOLUMES.filter((v) => volOpen(v.n));
+  function renderCase(n) {
+    const list = openVolumes();
+    const vol = list.find((v) => String(v.n) === String(n)) || list[0];
+    if (!vol) { go('#/'); return; }
+    openPage(`主要 / 第${vol.n}卷`, `제${vol.n}권 - ${vol.title}`, 'simple');
+    if (list.length > 1) setTabs(panelTabs, list.map((v) => ({ id: String(v.n), label: `제${v.n}권 · ${v.title}` })), String(vol.n), (id) => go(`#/case/${id}`));
+    if (vol.hanja) panelBody.append(h('p', 'case-hanja', vol.hanja));
+    const doc = h('div', 'case-doc');
+    vol.blocks.forEach((b) => {
+      if (b.kind === 'quote') { const q = h('div', 'case-oracle'); q.append(h('b', '', '秘靈 · 통합 신탁'), h('p', '', b.text)); doc.append(q); }
+      else doc.append(h('p', 'case-para', b.text));
+    });
+    panelBody.append(doc, h('p', 'panel-fine', `주요 이야기 · 제${vol.n}권`), btn('solid-btn', '산문으로 — 본편 이야기', () => go('#/zone/north')));
     mark('caseRead');
   }
+  /* 첫 화면 왼쪽 — [주요 이야기] 공개된 권의 사건 개요 · [공지사항] 관리자가 쓰는 게시판(최신이 맨 위) */
+  function drawVolumes() {
+    const host = $('#loreVolumes'); if (!host) return;
+    host.replaceChildren(...openVolumes().map((v) => { const b = btn('lore-link', '', () => go(`#/case/${v.n}`)); b.append(`▤　제${v.n}권 - ${v.title}`, h('span', '', '→')); return b; }));
+  }
+  const BOARD_KEY = 'biryeong-board-v1', BOARD_SEEN = () => `biryeong-board-seen:${Auth.session()}`;
+  const boardLocal = () => { try { return JSON.parse(localStorage.getItem(BOARD_KEY) || '[]'); } catch (_) { return []; } };
+  const boardSave = (rows) => { try { localStorage.setItem(BOARD_KEY, JSON.stringify(rows)); return true; } catch (_) { return false; } };
+  const board = {
+    list: async () => (Auth.server && Auth.token() ? (await Auth.call('bry_board')).posts : boardLocal().slice().sort((x, y) => y.id - x.id)),
+    post: async (title, body) => {
+      if (Auth.server) return Auth.call('bry_admin_board_post', { p_title: title, p_body: body });
+      const rows = boardLocal(); rows.push({ id: Date.now(), title, body, author: Auth.session(), created_at: new Date().toISOString() }); return boardSave(rows);
+    },
+    remove: async (id) => (Auth.server ? Auth.call('bry_admin_board_delete', { p_id: id }) : boardSave(boardLocal().filter((x) => x.id !== id))),
+  };
+  const dateText = (v) => { try { return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(v)); } catch (_) { return ''; } };
+  let boardOpenId = null;
+  async function drawBoard() {
+    const host = $('#loreNotice'); if (!host) return;
+    const admin = Auth.isAdmin();
+    const listEl = h('div', 'notice-list'); host.replaceChildren(listEl);
+    if (admin) {
+      const f = h('form', 'notice-form'); const t = h('input'); t.maxLength = 80; t.placeholder = '공지 제목'; t.required = true;
+      const ta = h('textarea'); ta.maxLength = 3000; ta.rows = 4; ta.placeholder = '공지 내용'; ta.required = true;
+      const sb = h('button', 'lore-link notice-submit', '공지 올리기'); sb.type = 'submit';
+      const d = h('details', 'notice-write'); d.append(h('summary', '', '＋ 공지 쓰기 (관리자)'), f); f.append(t, ta, sb);
+      f.addEventListener('submit', async (e) => { e.preventDefault(); if (!t.value.trim() || !ta.value.trim()) return; sb.disabled = true; try { await board.post(t.value.trim(), ta.value.trim()); toast('공지사항', '공지를 올렸다.'); drawBoard(); } catch (err) { toast('공지사항', err.message); sb.disabled = false; } });
+      host.prepend(d);
+      if (!Auth.server) host.append(h('p', 'notice-fine', '서버가 연결되지 않아, 여기 올린 공지는 이 브라우저에서만 보인다.'));
+    }
+    let rows = [];
+    try { rows = await board.list(); } catch (err) { listEl.append(h('p', 'notice-fine', err.message)); return; }
+    if (!rows.length) { listEl.append(h('p', 'notice-fine', '아직 올라온 공지가 없다.')); return; }
+    const seen = Number(localStorage.getItem(BOARD_SEEN()) || 0);
+    rows.forEach((r, i) => {
+      const item = h('article', `notice-item${i === 0 ? ' is-latest' : ''}`);
+      const head = btn('notice-head', '', () => { boardOpenId = boardOpenId === r.id ? null : r.id; drawBoard(); });
+      head.append(h('span', 'notice-date', dateText(r.created_at)), h('strong', '', r.title));
+      if (new Date(r.created_at).getTime() > seen) head.append(h('i', 'notice-dot', 'N'));
+      item.append(head);
+      if (boardOpenId === r.id || (boardOpenId == null && i === 0)) {
+        item.classList.add('is-open'); item.append(h('p', 'notice-body', r.body));
+        if (admin) item.append(btn('notice-del', '지우기', async () => { if (!window.confirm(`「${r.title}」 공지를 지울까요?`)) return; try { await board.remove(r.id); drawBoard(); } catch (err) { toast('공지사항', err.message); } }));
+      }
+      listEl.append(item);
+    });
+    const newest = Math.max(...rows.map((r) => new Date(r.created_at).getTime()));
+    const dot = $('.lore-new');
+    if (dot) dot.hidden = !(newest > seen) || !$('#loreNotice').hidden;
+    if (!$('#loreNotice').hidden) try { localStorage.setItem(BOARD_SEEN(), String(newest)); } catch (_) { /* 무시 */ }
+  }
+  document.querySelectorAll('[data-lore-tab]').forEach((b) => b.addEventListener('click', () => {
+    const t = b.dataset.loreTab;
+    document.querySelectorAll('[data-lore-tab]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    $('#loreStory').hidden = t !== 'story'; $('#loreNotice').hidden = t !== 'notice';
+    if (t === 'notice') drawBoard();
+  }));
   function renderMoney() {
     const p = profile();
     openPage('錢 / 소지금', `${Math.floor(game()?.money ?? p?.money ?? 0)}냥`, 'simple');
@@ -519,6 +587,8 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   const UPDATE_NOTES = [
+    { v: 'v1.9.5', date: '2026-11-16', lines: ['본편 이야기 전투가 모두 3인 전투가 되었다. 싸우기 전에 [연호수 · 윤진서와 함께] 또는 [파티 모집하기]를 고른다.', '파티(서버 연결 시): 같은 장면의 같은 전투에 와 있는 학생끼리만 서로 보인다. 모인 만큼으로 시작하고, 빈 자리는 NPC가 채운다.', '이름 부르기 · 이름 묻기 · 곁에 앉기 · 금줄 끊기는 [이야기 행동]에서, 누구 차례든 그 사람이 쓸 수 있다. 연호수 · 윤진서도 상황에 맞게 돕는다.', '전투 튜토리얼: 허수아비 체력이 크게 늘고, 누구도 1 밑으로 떨어지지 않는다(되살아나며 체력이 차는 일이 없다). 마지막 한 방에서만 정말 쓰러진다.', '튜토리얼 #3의 소지품 단계는 오른쪽 아래 [소지품] 버튼을 누르면 넘어간다.'] },
+    { v: 'v1.9.4', date: '2026-11-16', lines: ['첫 화면 왼쪽 기밀 문서가 [주요 이야기] · [공지사항] 두 칸이 되었다.', '주요 이야기: 공개된 권의 사건 개요를 연다(지금은 「제1권 - 신공강림」). 사건 개요를 새로 썼다.', '공지사항: 관리자만 쓰고 지울 수 있는 게시판. 가장 최신 공지가 맨 위에 오고, 새 공지가 있으면 탭에 빨간 점이 뜬다.'] },
     { v: 'v1.9.1', date: '2026-11-16', lines: ['생활관 › 기숙사 › 급식실의 익명 사연 투고함이 열렸다(서버 연결 시). 투고하면 바로 그날의 교내 신문에 실리고, 쓴 사람은 누구에게도 보이지 않는다. 쓴 본인과 관리자는 뗄 수 있다.'] },
     { v: 'v1.9', date: '2026-11-16', lines: ['서버(Supabase)를 연결하면 계정과 기록이 서버에 보관된다. 어느 기기에서든 같은 아이디로 이어서 한다.', '지신성 · 낮새들의 터 · 밤쥐들의 터가 게임 계정 그대로 열린다. 자기 글은 지울 수 있고, 안 읽은 밀담은 단추에 숫자로 뜬다.', '관리자 › 서버 관리: 공지(속보 띠) · 하사(냥 · 영력 · 아이템) · 회원 관리(칭호 · 글쓰기 정지 · 계정 정지 · 비밀번호 초기화 · 기록 열람) · 밀담 감사 · 감사 기록.', '본편 이야기는 배경 그림과 장면 그림 없이, 보던 화면 위의 대사 창에서 대사를 넘기며 진행한다.'] },
     { v: 'v1.8', date: '2026-11-16', lines: ['본편 이야기를 새 원고로 다시 짰다 — 1권 「신공강림」 프롤로그 · 1장 「불리지 않은 이름」 · 2장 「저 이승의 장례식」.', '프롤로그는 튜토리얼이다. 프로필을 만들면 바로 이어지고, 별관 강당 · 뒷산 무구보관소를 지나 유품을 무구로 받는다.', '1장부터는 공개된 장만 열린다. 열리기 전에는 권과 장의 이름만 보이고 [아직 열리지 않은 이야기입니다.]라고 적혀 있다.', '이야기 화면이 바뀌었다 — 장소마다 배경이 깔리고, 종소리 · 문틈 빛 · 꺼진 촛불 · 단말기의 붉은 빛 · 먹물 · 흔들림 · 뉴스 화면 · 장 표제가 화면으로 흐른다. 글자로 나오는 것은 대사와 지문뿐이다.', '선택은 서버에 모인다. 산문 너머 › 모두의 선택에서 내가 고른 것과 다른 학생들의 비율을 본다. 2장의 당산신 선택은 고른 것에 따라 싸우는 상대와 뒷이야기가 달라진다.', '바깥 지역 「서울」이 「강릉」(강릉 시내)이 되었다. 속보 띠 · 사건 개요의 연도를 2035~2036년으로 맞췄다.', '지도 제목 뒤의 꼬리말(IS …)을 지웠다.'] },
@@ -891,7 +961,7 @@
     else if (head === 'profile') renderProfile(rest[0] === 'edit');
     else if (head === 'codex') renderCodex(rest[0]);
     else if (head === 'notes') renderNotes();
-    else if (head === 'case') renderCase();
+    else if (head === 'case') renderCase(rest[0]);
     else if (head === 'money') renderMoney();
     else if (head === 'admin' && Auth.isAdmin()) renderAdmin(rest[0]);
     else if (head === 'out' && window.BiryeongQuest) window.BiryeongQuest.renderPlace(rest[0], rest[1]); // 산문 너머의 바깥 지역 · 새 층
@@ -935,7 +1005,8 @@
   /* ───────── 연결 ───────── */
   document.querySelectorAll('[data-zone]').forEach((card) => card.addEventListener('click', () => go(`#/zone/${card.dataset.zone}`)));
   $('#storyBtn').addEventListener('click', () => go('#/case'));
-  $('#readCase').addEventListener('click', () => go('#/case'));
+  // 공개된 장(권)은 서버에서 늦게 오므로 한 번 더 그리고, 공지 새 글 표시도 확인한다
+  setTimeout(drawVolumes, 1500); setTimeout(drawVolumes, 4000); setTimeout(() => drawBoard().catch(() => {}), 2500);
   $('#journalBtn').addEventListener('click', () => go('#/profile'));
   $('#statusWho').addEventListener('click', () => go('#/profile'));
   $('#accountName').textContent = Auth.session();

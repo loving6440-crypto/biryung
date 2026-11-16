@@ -707,3 +707,36 @@ body.is-opening{overflow:hidden}
 .server-dl dt{color:#9fc3c8}.server-dl dd{margin:0;word-break:break-all}
 .server-audit{max-height:280px;overflow:auto;padding:8px 10px;border:1px solid #33475a;background:#0a1420}
 .server-audit p{margin:0 0 4px;font-size:11px;line-height:1.6;color:#b9c6c2;word-break:break-all}
+/* ───────── v1.9.4 첫 화면 왼쪽: 주요 이야기 · 공지사항 ───────── */
+.lore-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 0 2px}
+.lore-tabs button{position:relative;padding:7px 4px;border:1px solid #42515a;background:#0c1622;color:#899a9d;font:11px var(--ui-font-family,sans-serif);letter-spacing:.06em;cursor:pointer}
+.lore-tabs button[aria-selected="true"]{border-color:#c9a86a;background:#1d2b36;color:#f3d6a5}
+.lore-new{position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:#d5443e;border-radius:50%}
+.lore-pane{display:flex;flex-direction:column;flex:1;min-height:0}
+.lore-pane[hidden]{display:none}
+.lore-volumes{display:flex;flex-direction:column;gap:6px}
+.lore-volumes .lore-link{margin-top:0}
+.lore-notice{padding-top:12px;gap:8px}
+.notice-write summary{cursor:pointer;font-size:11px;color:#d5b478;letter-spacing:.04em;padding:4px 0}
+.notice-form{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px}
+.notice-form input,.notice-form textarea{width:100%;padding:7px 8px;background:#08111d;border:1px solid #3d5063;color:#f0e4c8;font:11px/1.6 var(--ui-font-family,sans-serif);resize:vertical;box-sizing:border-box}
+.notice-submit{margin-top:2px !important}
+.notice-list{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:440px;padding-right:2px}
+.notice-item{border:1px solid #33475a;background:#0c1622}
+.notice-item.is-latest{border-color:#806e50}
+.notice-head{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:8px 10px;background:none;border:0;color:#e9dcc0;text-align:left;cursor:pointer}
+.notice-head strong{font-size:12px;line-height:1.5;word-break:keep-all}
+.notice-date{font-size:10px;color:#899a9d;letter-spacing:.04em}
+.notice-dot{position:absolute;top:7px;right:8px;font:9px 'Galmuri9',sans-serif;font-style:normal;padding:0 4px;background:#d5443e;color:#fff}
+.notice-item.is-open .notice-head{border-bottom:1px dashed #33475a}
+.lore-panel .notice-body{margin:0 !important;padding:9px 10px;white-space:pre-line;font-size:11px !important;line-height:1.9 !important;color:#c7d0cc !important}
+.notice-del{margin:0 10px 9px;padding:3px 8px;border:1px solid #7a4a48;background:#2a1d1f;color:#e2b3ae;font-size:10px;cursor:pointer}
+.lore-panel .notice-fine{font-size:10px !important;color:#7f9193 !important;line-height:1.7 !important}
+/* 사건 개요(권) */
+.case-hanja{margin:-6px 0 14px;font:13px 'KoPub Batang',serif;letter-spacing:.4em;color:#8f9cc8}
+.case-doc{display:flex;flex-direction:column;gap:16px;max-width:680px;margin-bottom:22px}
+.case-para{margin:0;white-space:pre-line;font:14px/2 'KoPub Batang',serif;color:#e4dcc8;word-break:keep-all}
+.case-oracle{margin:6px 0;padding:16px 18px;background:#071a22;border:1px solid #1f7a80;border-left-width:3px}
+.case-oracle b{display:block;margin-bottom:8px;font:10px 'Galmuri9',monospace;letter-spacing:.3em;color:#5fb8be}
+.case-oracle p{margin:0;white-space:pre-line;font:13px/1.9 'Galmuri9',monospace;color:#9fe9ee}
+@media (max-width:1080px){.lore-panel{display:block !important}.lore-panel .paper-seal,.lore-panel .gold-rule,.lore-panel .paper-spacer{display:none}.lore-panel p:not(.fine-label){grid-column:auto !important;grid-row:auto !important}.notice-list{max-height:300px}}

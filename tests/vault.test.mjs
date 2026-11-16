@@ -372,3 +372,25 @@ t19('v1.9: 이야기 화면에 배경 · 장면 그림이 없다', () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
   assert19.ok(!/\.vn-bg|\.vn-stage|\.vn-tint|\.vn-crack|\.vn-ink/.test(css))
 })
+
+// ───────── v1.9.5 본편 3인 전투 · 파티 · 튜토리얼 ─────────
+import { test as t195 } from 'node:test'
+import assert195 from 'node:assert/strict'
+t195('v1.9.5: 본편 전투는 3인(StoryParty)으로 열리고, 파티 함수가 서버에 있다', () => {
+  const app = readFileSync(new URL('../systems/play/src/App.jsx', import.meta.url), 'utf8')
+  assert195.ok(/<StoryParty /.test(app) && !/<HuntBattleModal[^>]*storyFight/.test(app), '본편 전투는 StoryParty')
+  const sp = readFileSync(new URL('../systems/play/src/StoryParty.jsx', import.meta.url), 'utf8')
+  assert195.ok(/연호수/.test(sp) && /윤진서/.test(sp))
+  const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  for (const fn of ['bry_party_list', 'bry_party_create', 'bry_party_join', 'bry_party_leave', 'bry_party_get', 'bry_party_start', 'bry_party_push', 'bry_party_act']) {
+    assert195.ok(new RegExp(`function public\\.${fn}\\(`).test(sql), fn)
+    assert195.ok(sp.includes(`'${fn}'`), `화면이 ${fn} 을 부른다`)
+  }
+})
+t195('v1.9.5: 튜토리얼 허수아비는 체력이 크고 되살리지 않는다 · #3은 오른쪽 아래 소지품 버튼', () => {
+  const p = readFileSync(new URL('../systems/play/patches.mjs', import.meta.url), 'utf8')
+  assert195.ok(/hp: 9999/.test(p) && /finisher: true/.test(p))
+  assert195.ok(/data-tutorial-real-items-btn/.test(readFileSync(new URL('../index.html', import.meta.url), 'utf8')))
+  const play = readFileSync(new URL('../play/play.js', import.meta.url), 'utf8')
+  assert195.ok(!/내 소지품 확인하기/.test(play), '없는 버튼을 누르라는 안내가 남아 있으면 안 된다')
+})

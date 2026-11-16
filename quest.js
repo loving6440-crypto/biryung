@@ -282,7 +282,7 @@
         const foe = D.foes[n.arg];
         out.push(btn('solid-btn quest-act', `${foe.name}와(과) ${n.calm ? '마주한다' : '싸운다'}`, () => {
           const a = App.playApi(); if (!a) { toast('본편', '실행 화면을 불러오는 중이다.'); return; }
-          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, names: { player: playerName() }, family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 } } });
+          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName() }, family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 } } });
         }));
       } else out.push(btn('solid-btn quest-act', n.arg || actOf(st), () => { q.prog[n.i] = (q.prog[n.i] || 0) + 1; persist(); later(); drawTracker(); }));
     });

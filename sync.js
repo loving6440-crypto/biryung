@@ -19,7 +19,7 @@
   const C = Object.assign({ supabaseUrl: '', supabaseAnonKey: '' }, window.BIRYEONG_CONFIG);
   const Auth = window.BiryeongAuth;
   const enabled = !!(C.supabaseUrl && C.supabaseAnonKey);
-  const base = `${String(C.supabaseUrl).replace(/\/$/, '')}/rest/v1`;
+  const base = `${String(C.supabaseUrl).trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '').replace(/\/+$/, '')}/rest/v1`;
   // 새 키(sb_publishable_…)는 JWT 가 아니라 Authorization 에 넣으면 거절된다 — 옛 anon 키(eyJ…)일 때만 함께 보낸다.
   const jwtKey = /^eyJ/.test(String(C.supabaseAnonKey));
   const account = () => Auth?.session?.() || 'guest';

@@ -54,7 +54,7 @@ jobs:
           SB_URL: ${{ vars.SUPABASE_URL || secrets.SUPABASE_URL }}
           SB_KEY: ${{ vars.SUPABASE_KEY || secrets.SUPABASE_KEY }}
         run: |
-          SB_URL=$(printf '%s' "$SB_URL" | tr -d '[:space:]' | sed 's#/*$##')
+          SB_URL=$(printf '%s' "$SB_URL" | tr -d '[:space:]' | sed -E 's#/*$##; s#/rest/v1$##; s#/*$##')
           SB_KEY=$(printf '%s' "$SB_KEY" | tr -d '[:space:]')
           if [ -n "$SB_URL" ] && [ -n "$SB_KEY" ]; then
             case "$SB_KEY" in sb_secret_*) echo "::error::SUPABASE_KEY 에 secret 키를 넣었다 — Publishable key(sb_publishable_…)를 넣어야 한다"; exit 1;; esac

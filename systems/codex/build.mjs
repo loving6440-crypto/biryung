@@ -17,11 +17,20 @@ const { yogoeList } = await imp('codex.js')
 const { HUNT_SITES } = await imp('huntSites.js')
 const { TIER_HANJA } = await imp('constants.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
-const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
+// {{npc:자리|조사}} 는 실행 화면이 사람 이름으로 바꾸는 자리표시다. 도감에는 그 자리의 역할 이름으로 적는다(받침에 맞춰 조사도 고른다).
+const NPC_ROLE = { storeKeeper: '매점 담당', armorySmith: '무구보관소 담당', seedKeeper: '텃밭 씨앗 상점 담당', outskirtsGuide: '뒷산 캠핑장 안내인', shrineKeeper: '사당 문지기', kitchenKeeper: '조리실 담당', infirmaryKeeper: '양호실 담당' }
+const JOSA = [['이', '가'], ['을', '를'], ['은', '는'], ['과', '와'], ['으로', '로']] // [받침 있을 때, 없을 때]
+const npcText = (t) => t.replace(/\{\{npc:(\w+)\|?([^}]*)\}\}/g, (_, slot, josa) => {
+  const name = NPC_ROLE[slot] || '어느 선생'
+  const last = name.charCodeAt(name.length - 1), batchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0
+  const pair = JOSA.find((p) => p.includes(josa))
+  return name + (pair ? pair[batchim ? 0 : 1] : josa)
+})
+const swap = (t) => npcText(R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? '')))
 
 // ── 아이템: 표(엑셀) 자료와 같은 것을 쓴다 ──
 const sheet = JSON.parse(execFileSync(process.execPath, [join(ROOT, 'systems/sheets/export.mjs')], { encoding: 'utf8', maxBuffer: 64 << 20 }))
-const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, effect: i.effect, desc: i.lore, use: i.use, from: i.sourceSimple, px: R.ITEM_PIXELS[i.id] ?? null }))
+const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, effect: npcText(String(i.effect ?? '')), desc: npcText(String(i.lore ?? '')), use: npcText(String(i.use ?? '')), from: i.sourceSimple, px: R.ITEM_PIXELS[i.id] ?? null }))
 const nameOf = Object.fromEntries(items.map((i) => [i.id, i.name]))
 
 // ── 영능력 ──

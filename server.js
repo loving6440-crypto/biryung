@@ -66,7 +66,7 @@
     Auth.rpc('bry_status').then((s) => { state.textContent = `서버 연결됨 · 표 판 ${s.version}${s.admin_code_set ? '' : ' · ⚠ 관리자 코드가 아직 서버에 등록되지 않았다(README 2번)'}`; }).catch((e) => { state.textContent = e.message; });
 
     /* 공지 */
-    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '공지 — 첫 화면의 속보 띠에 뜬다'));
+    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '속보 띠 — 첫 화면 위쪽 띠에 짧게 뜬다 (게시판 공지사항은 첫 화면 왼쪽 [공지사항] 탭에서 쓴다)'));
     const nf = h('form', 'admin-form server-form'); const nIn = h('textarea'); nIn.maxLength = 300; nIn.rows = 2; nIn.placeholder = '비워서 저장하면 공지를 내리고 원래 속보로 돌아간다';
     const nSave = h('button', 'solid-btn', '공지 저장'); nSave.type = 'submit'; nf.append(nIn, nSave); body.append(nf);
     call('bry_inbox').then((b) => { nIn.value = b.notice?.body || ''; }).catch(() => {});
@@ -147,7 +147,7 @@
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
     const aList = h('div', 'server-audit'); body.append(aList);
-    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제',
+    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {
       if (!rows.length) aList.append(para('아직 기록이 없다.'));

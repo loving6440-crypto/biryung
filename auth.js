@@ -15,15 +15,19 @@
   const ACC_KEY = 'biryeong-accounts-v1', SES_KEY = 'biryeong-session-v1', SAVE_BASE = 'biryeong-save-v1';
   const CONFIG = Object.assign({ api: '', sameOrigin: false, adminCodeHash: '', supabaseUrl: '', supabaseAnonKey: '' }, window.BIRYEONG_CONFIG);
   /* v1.9 서버(Supabase)가 연결되면 계정 · 기록이 서버에 있다. 이 브라우저에는 그림자 계정(로그인 유지용)과 서버 표(token)만 둔다. */
+  // 주소는 https://xxxx.supabase.co 까지만 쓴다 — 뒤에 /rest/v1/ 이 붙어 들어와도 떼어 낸다.
+  CONFIG.supabaseUrl = String(CONFIG.supabaseUrl || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '').replace(/\/+$/, '');
+  CONFIG.supabaseAnonKey = String(CONFIG.supabaseAnonKey || '').trim();
   const SERVER = !!(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey);
   const TOKEN_KEY = (id) => `biryeong-token:${id}`, CLOUD_KEY = (id) => `biryeong-cloud:${id}`, PENDING_KEY = (id) => `biryeong-save-pending:${id}`;
   const ERR = {
-    network: '비령 서버에 닿지 못했습니다. 잠시 뒤 다시 해 주세요.', schema_missing: '서버에 비령의 표가 아직 없습니다. Supabase SQL Editor 에서 supabase/schema.sql 을 실행해 주세요.',
+    network: '비령 서버에 닿지 못했습니다. 잠시 뒤 다시 해 주세요.', schema_missing: '서버에 비령의 함수가 아직 없습니다. Supabase SQL Editor 에서 schema.sql 을 끝까지 실행했는지(맨 아래에 Success 가 떴는지) 확인해 주세요.',
+    bad_url: '서버 주소가 맞지 않습니다. GitHub 의 SUPABASE_URL 은 https://xxxx.supabase.co 까지만 넣어 주세요.', bad_key: '서버 키가 맞지 않습니다. GitHub 의 SUPABASE_KEY 에 Publishable key(sb_publishable_…)를 넣었는지 확인해 주세요.', not_exposed: 'Supabase 의 Data API 가 public 스키마를 내보내지 않고 있습니다. Integrations › Data API › Settings 의 Exposed schemas 에 public 을 넣어 주세요.',
     login_required: '다시 로그인해 주세요.', banned: '이 계정은 정지되어 있습니다.', muted: '지금은 글을 남길 수 없습니다(운영자 조치).', forbidden: '권한이 없습니다.',
     invalid_username: '아이디는 2~16자(한글 · 영문 · 숫자 · _)로 적어 주세요.', invalid_password: '비밀번호는 4자 이상으로 적어 주세요.', username_taken: '이미 명부에 있는 아이디입니다.',
     invalid_credentials: '아이디 또는 비밀번호가 맞지 않습니다.', user_not_found: '해당 계정을 찾을 수 없습니다.', too_many_requests: '요청이 너무 많습니다. 잠시 뒤 다시 해 주세요.',
     invalid_profile: '프로필 입력값을 확인해 주세요.', invalid_post: '글은 1~500자로 적어 주세요.', invalid_memo: '제목(1~100자)과 메모(1~3,000자)를 확인해 주세요.', invalid_comment: '댓글은 1~1,200자로 적어 주세요.',
-    invalid_dm: '대화는 1~2,000자로 적어 주세요.', not_found: '대상을 찾을 수 없거나 볼 수 없습니다.', not_self: '자기 계정에는 할 수 없습니다.', invalid_value: '입력값을 확인해 주세요.', save_too_large: '기록이 너무 커서 서버에 올리지 못했습니다(프로필 사진을 줄여 주세요).',
+    invalid_dm: '대화는 1~2,000자로 적어 주세요.', not_found: '대상을 찾을 수 없거나 볼 수 없습니다.', not_self: '자기 계정에는 할 수 없습니다.', party_full: '파티가 이미 가득 찼습니다(3명).', invalid_value: '입력값을 확인해 주세요.', save_too_large: '기록이 너무 커서 서버에 올리지 못했습니다(프로필 사진을 줄여 주세요).',
   };
   const errorText = (code) => ERR[code] || `서버 오류 (${code})`;
   async function rpc(name, args, opt = {}) {
@@ -34,7 +38,7 @@
         headers: { apikey: key, ...(/^eyJ/.test(key) ? { Authorization: `Bearer ${key}` } : {}), 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
     } catch (_) { const e = new Error(ERR.network); e.code = 'network'; throw e; }
     let data = null; try { data = await res.json(); } catch (_) { /* 본문 없음 */ }
-    if (!res.ok) { const code = data?.code === 'PGRST202' || res.status === 404 ? 'schema_missing' : (data?.message || `server_${res.status}`); const e = new Error(errorText(code)); e.code = code; throw e; }
+    if (!res.ok) { const code = data?.code === 'PGRST202' ? 'schema_missing' : data?.code === 'PGRST106' || res.status === 406 ? 'not_exposed' : res.status === 404 ? 'bad_url' : res.status === 401 || res.status === 403 ? 'bad_key' : (data?.message || `server_${res.status}`); const e = new Error(errorText(code)); e.code = code; throw e; }
     return data;
   }
 

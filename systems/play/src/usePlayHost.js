@@ -666,7 +666,7 @@ export function usePlayHost() {
     if (!base) return false
     const inv = playerRef.current.inventory ?? {}
     const has = Object.fromEntries(STORY_ITEMS.filter((it) => inv[it.id] > 0).map((it) => [it.id, true]))
-    setStoryFight({ key, enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }) })
+    setStoryFight({ key, stage: ctx.stage || '', enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }) })
     return true
   }
   /** 본편 제작법을 연다. 새로 연 것의 [{ id, name }] */
@@ -686,8 +686,10 @@ export function usePlayHost() {
     const enemy = result.enemy ?? fight.enemy
     const calm = !!enemy?.calmed
     let drop = null, recipes = []
+    if (result.cancelled) { persist(); return } // 고르는 창에서 물러났다 — 아무 일도 없었다
     if (result.win) {
       finishBattle({ ...result, enemy })
+      if (result.party) { const cur = playerRef.current; commit({ ...cur, hp: Math.max(1, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) }) }
       const d = dropOf(fight.key)
       if (d && itemOf(d[0])) {
         const cur = playerRef.current
@@ -709,6 +711,8 @@ export function usePlayHost() {
     persist()
     bridge.quest('storyBattle', { key: fight.key, win: !!result.win, fled: !!result.fled, calm, drop, recipes, name: enemy?.name })
   }
+  /** 3인 전투에서 쓴 아이템 하나를 소지품에서 뺀다 */
+  const spendItem = (id) => { const cur = playerRef.current; const n = cur.inventory?.[id] || 0; if (n <= 0) return false; const inventory = { ...cur.inventory }; if (n <= 1) delete inventory[id]; else inventory[id] = n - 1; commit({ ...cur, inventory }); addLog(`[${itemOf(id)?.name ?? id}]을(를) 썼다.`); return true }
   const spendMp = (amount) => { const cur = playerRef.current; if ((cur.mp || 0) < amount) return false; commit({ ...cur, mp: cur.mp - amount }); return true }
 
   /** Battle · HuntBattleModal 에 그대로 넘기는 props */
@@ -773,7 +777,7 @@ export function usePlayHost() {
   } : null
 
   return {
-    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
+    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, spendItem, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
     reviveOn, boostOn, battleUsedItems, notify, addLog,
     handlers: {
       beginTraining, endTraining, beginSleep, endSleep, beginRest, endRest, upgradeStat,

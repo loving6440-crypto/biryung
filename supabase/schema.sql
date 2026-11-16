@@ -735,9 +735,169 @@ create or replace function public.story_admin_ok(p_code text) returns boolean
 $$;
 revoke all on function public.story_admin_ok(text) from anon;
 
+-- ── 공지사항 게시판(v1.9.4): 첫 화면 왼쪽 [공지사항]. 관리자만 쓰고 지운다. 최신이 맨 위. ──
+create table if not exists biryeong_private.board (
+  id         bigint generated always as identity primary key,
+  title      text        not null,
+  body       text        not null,
+  author     text        not null default '',
+  created_at timestamptz not null default now()
+);
+revoke all on biryeong_private.board from anon, authenticated;
+
+create or replace function public.bry_board(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('posts', (select coalesce(jsonb_agg(jsonb_build_object('id', b.id, 'title', b.title, 'body', b.body, 'author', b.author, 'created_at', b.created_at) order by b.id desc), '[]'::jsonb)
+    from (select * from board order by id desc limit 50) b));
+end $$;
+
+create or replace function public.bry_admin_board_post(p_token text, p_title text, p_body text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); n bigint;
+begin
+  if length(btrim(coalesce(p_title, ''))) not between 1 and 80 or length(btrim(coalesce(p_body, ''))) not between 1 and 3000 then raise exception 'invalid_value'; end if;
+  insert into board (title, body, author) values (btrim(p_title), btrim(p_body), a.username) returning id into n;
+  perform log(a, 'board_post', '', left(p_title, 80));
+  return jsonb_build_object('id', n);
+end $$;
+
+create or replace function public.bry_admin_board_delete(p_token text, p_id bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); t text;
+begin
+  delete from board where id = p_id returning title into t;
+  if t is null then raise exception 'not_found'; end if;
+  perform log(a, 'board_delete', '', left(t, 80));
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- ── 본편 파티 전투(v1.9.5): 같은 진도(같은 장면 · 같은 전투)의 학생끼리 3인까지 모인다. ──
+-- 판은 방장의 브라우저가 돌리고(전투 엔진), 서버는 모집 · 판의 모습(view) · 일행이 보낸 행동만 맡는다.
+create table if not exists biryeong_private.parties (
+  id         bigint generated always as identity primary key,
+  stage      text        not null,                 -- 장면.단계 (예: 1-3.2) — 같은 진도끼리만 보인다
+  foe        text        not null,
+  host       bigint      not null references biryeong_private.accounts on delete cascade,
+  status     text        not null default 'open' check (status in ('open', 'battle', 'over', 'closed')),
+  members    jsonb       not null default '[]',    -- [{ u: 아이디, name, m: 전투 엔진에 넣을 수치 }]
+  view       jsonb,                                -- 방장이 올리는 판의 모습
+  acts       jsonb       not null default '[]',    -- [{ n, u, a }] 일행이 보낸 행동(방장이 읽고 지운다)
+  act_seq    integer     not null default 0,
+  seq        integer     not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists parties_stage on biryeong_private.parties (stage, status);
+revoke all on biryeong_private.parties from anon, authenticated;
+
+create or replace function biryeong_private.party_json(p biryeong_private.parties) returns jsonb language sql stable as $$
+  select jsonb_build_object('id', p.id, 'stage', p.stage, 'foe', p.foe, 'status', p.status, 'host', (select username from biryeong_private.accounts where id = p.host),
+    'members', (select coalesce(jsonb_agg(jsonb_build_object('u', x->>'u', 'name', x->>'name')), '[]'::jsonb) from jsonb_array_elements(p.members) x),
+    'seq', p.seq, 'updated_at', p.updated_at) $$;
+
+create or replace function public.bry_party_list(p_token text, p_stage text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  update parties set status = 'closed' where status in ('open', 'battle') and updated_at < now() - interval '15 minutes';
+  return jsonb_build_object('parties', (select coalesce(jsonb_agg(party_json(p) order by p.id desc), '[]'::jsonb)
+    from parties p where p.stage = p_stage and p.status = 'open' and jsonb_array_length(p.members) < 3));
+end $$;
+
+create or replace function public.bry_party_create(p_token text, p_stage text, p_foe text, p_member jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); n bigint;
+begin
+  if coalesce(p_stage, '') = '' or length(p_stage) > 40 or coalesce(p_foe, '') = '' or octet_length(coalesce(p_member::text, '')) > 6000 then raise exception 'invalid_value'; end if;
+  perform throttle_do('party:' || a.id, 20, 600);
+  update parties set status = 'closed', updated_at = now() where host = a.id and status = 'open';
+  insert into parties (stage, foe, host, members) values (p_stage, p_foe, a.id, jsonb_build_array(jsonb_build_object('u', a.username, 'name', coalesce(p_member->>'name', a.display_name), 'm', p_member)))
+    returning id into n;
+  return jsonb_build_object('id', n);
+end $$;
+
+create or replace function public.bry_party_join(p_token text, p_id bigint, p_member jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); p biryeong_private.parties;
+begin
+  if octet_length(coalesce(p_member::text, '')) > 6000 then raise exception 'invalid_value'; end if;
+  select * into p from parties where id = p_id for update;
+  if not found or p.status <> 'open' then raise exception 'not_found'; end if;
+  if exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username) then return jsonb_build_object('party', party_json(p)); end if;
+  if jsonb_array_length(p.members) >= 3 then raise exception 'party_full'; end if;
+  update parties set members = members || jsonb_build_array(jsonb_build_object('u', a.username, 'name', coalesce(p_member->>'name', a.display_name), 'm', p_member)), updated_at = now(), seq = seq + 1
+    where id = p_id returning * into p;
+  return jsonb_build_object('party', party_json(p));
+end $$;
+
+create or replace function public.bry_party_leave(p_token text, p_id bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); p biryeong_private.parties;
+begin
+  select * into p from parties where id = p_id for update;
+  if not found then return jsonb_build_object('ok', true); end if;
+  if p.host = a.id and p.status = 'open' then update parties set status = 'closed', updated_at = now(), seq = seq + 1 where id = p_id;
+  elsif p.status = 'open' then
+    update parties set members = (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(members) x where x->>'u' <> a.username), updated_at = now(), seq = seq + 1 where id = p_id;
+  elsif p.status = 'battle' and p.host <> a.id then
+    -- 싸우는 중에 나가면 방장에게 '이탈'을 알린다
+    update parties set act_seq = act_seq + 1, acts = acts || jsonb_build_array(jsonb_build_object('n', act_seq + 1, 'u', a.username, 'a', jsonb_build_object('flee', true))), updated_at = now() where id = p_id;
+  elsif p.host = a.id then update parties set status = 'closed', updated_at = now(), seq = seq + 1 where id = p_id;
+  end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- 일행이면 판 전체를, 방장이면 행동 목록과 일행의 수치까지 받는다.
+create or replace function public.bry_party_get(p_token text, p_id bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); p biryeong_private.parties;
+begin
+  select * into p from parties where id = p_id;
+  if not found or not exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username) then raise exception 'not_found'; end if;
+  return party_json(p) || jsonb_build_object('view', p.view, 'is_host', p.host = a.id) ||
+    case when p.host = a.id then jsonb_build_object('acts', p.acts, 'raw', p.members) else '{}'::jsonb end;
+end $$;
+
+create or replace function public.bry_party_start(p_token text, p_id bigint, p_view jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if octet_length(coalesce(p_view::text, '')) > 200000 then raise exception 'invalid_value'; end if;
+  update parties set status = 'battle', view = p_view, acts = '[]', updated_at = now(), seq = seq + 1 where id = p_id and host = a.id and status = 'open';
+  if not found then raise exception 'not_found'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- 방장: 판의 모습을 올리고, 처리한 행동(n 이하)을 지운다. p_status 'over' 로 끝낸다.
+create or replace function public.bry_party_push(p_token text, p_id bigint, p_view jsonb, p_done integer, p_status text default 'battle') returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if octet_length(coalesce(p_view::text, '')) > 200000 or p_status not in ('battle', 'over') then raise exception 'invalid_value'; end if;
+  update parties set view = p_view, status = p_status, seq = seq + 1, updated_at = now(),
+    acts = (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(acts) x where (x->>'n')::int > coalesce(p_done, 0))
+    where id = p_id and host = a.id and status = 'battle';
+  if not found then raise exception 'not_found'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- 일행: 자기 행동을 보낸다(방장이 다음 읽을 때 처리한다).
+create or replace function public.bry_party_act(p_token text, p_id bigint, p_act jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if octet_length(coalesce(p_act::text, '')) > 2000 then raise exception 'invalid_value'; end if;
+  update parties set act_seq = act_seq + 1, acts = acts || jsonb_build_array(jsonb_build_object('n', act_seq + 1, 'u', a.username, 'a', p_act)), updated_at = now()
+    where id = p_id and status = 'battle' and exists (select 1 from jsonb_array_elements(members) x where x->>'u' = a.username);
+  if not found then raise exception 'not_found'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', '1.9.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', '1.9.5', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop
