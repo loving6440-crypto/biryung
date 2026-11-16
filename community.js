@@ -94,7 +94,7 @@
     if(!loadedMe){try{const data=await api('me');me=data.user;loadedMe=true;}catch(err){account.replaceChildren();content.replaceChildren(empty(err.message));return;}}
     renderAccount();content.replaceChildren();
     if(!me){if(SERVER){content.append(empty('서버 계정으로 로그인되어 있지 않습니다. 오른쪽 위에서 로그아웃한 뒤 같은 아이디로 다시 로그인하면 이어집니다.'));return;}renderAuth();return;}
-    if(SERVER&&!syncedName){syncedName=true;const nm=window.BiryeongApp?.profile?.()?.name;if(nm&&me.display_name===me.username&&nm!==me.username){try{me=(await post('profile',{displayName:String(nm).slice(0,40),bio:me.bio||'',avatarSymbol:me.avatar_symbol||'✦',accent:me.accent||'#d4b078'},'PATCH')).user;renderAccount();}catch{/* 이름 맞추기는 다음에 */}}}
+    if(SERVER&&!syncedName){syncedName=true;const nm=window.BiryeongApp?.profile?.()?.name;if(nm&&String(nm).slice(0,40)!==me.display_name){try{me=(await post('profile',{displayName:String(nm).slice(0,40),bio:me.bio||'',avatarSymbol:me.avatar_symbol||'✦',accent:me.accent||'#d4b078'},'PATCH')).user;renderAccount();}catch{/* 이름 맞추기는 다음에 */}}}
     window.BiryeongServer?.poll?.();
     if(tab==='social'||tab==='memos')await renderSocial();else await renderDm();
   }
@@ -127,7 +127,7 @@
     const wrap=h('div','community-editor');wrap.append(profileSummary(me));
     const form=h('form','community-form');
     function makeField(label,value,max,textarea=false){const l=h('label','',label);const e=h(textarea?'textarea':'input');e.value=value;e.maxLength=max;e.required=!textarea;l.append(e);form.append(l);return e;}
-    const displayName=makeField('표시 이름',me.display_name,40);const bio=makeField('프로필 한마디 · 300자',me.bio||'',300,true);const symbol=makeField('프로필 상징 (1~2글자 또는 이모지)',me.avatar_symbol||'✦',8);
+    const charName=SERVER&&window.BiryeongApp?.profile?.()?.name;const displayName=makeField(charName?'표시 이름 (캐릭터 이름을 따른다)':'표시 이름',charName?String(charName).slice(0,40):me.display_name,40);if(charName)displayName.readOnly=true;const bio=makeField('프로필 한마디 · 300자',me.bio||'',300,true);const symbol=makeField('프로필 상징 (1~2글자 또는 이모지)',me.avatar_symbol||'✦',8);
     const colorLabel=h('label','','인장 색상');const select=h('select');
     for(const [value,name] of [['#d4b078','황금'],['#68a9b9','청옥'],['#d56b69','적색'],['#8fa997','연녹'],['#b1a1cc','연자'],['#d7b389','황토']]){const option=h('option','',name);option.value=value;option.selected=value===me.accent;select.append(option);}colorLabel.append(select);form.append(colorLabel);
     const row=h('div','compose-actions');row.append(button('돌아가기','community-secondary',()=>render()),h('button','community-primary','저장하기'));row.lastChild.type='submit';form.append(row);
@@ -210,14 +210,14 @@
     const list=h('div','community-dm-list');list.id='dmThreadList';sidebar.append(list);layout.append(sidebar,chat);content.append(layout);
     try{threads=(await api(adminView?'admin/dm/threads':'dm/threads')).threads;list.replaceChildren();
       if(!threads.length)list.append(empty(adminView?'조회 가능한 대화가 없습니다.':'대화 상대를 검색해 비밀 대화를 시작하세요.'));
-      for(const t of threads){const label=adminView?`${t.user_low} ↔ ${t.user_high}`:t.other_display_name||t.other_username;
+      for(const t of threads){const label=adminView?`${t.name_low||t.user_low} ↔ ${t.name_high||t.user_high}`:t.other_display_name||t.other_username;
         const row=button(label,'community-dm-item',()=>{activeThread=String(t.id);activeOther=label;initialDM=true;dmLastId=null;dmOldestId=null;renderDm();});
         row.setAttribute('aria-current',String(String(t.id)===String(activeThread)));
-        row.append(h('small','',adminView?`${t.message_count}개 대화`:t.last_body||`@${t.other_username} · 대화를 시작하세요`));if(t.unread&&String(t.id)!==String(activeThread))row.dataset.unread='1';list.append(row);
+        row.append(h('small','',adminView?`${t.message_count}개 대화`:t.last_body||'대화를 시작하세요'));if(t.unread&&String(t.id)!==String(activeThread))row.dataset.unread='1';list.append(row);
       }
       const current=threads.find(t=>String(t.id)===String(activeThread));
       if(!current){chat.append(empty('왼쪽에서 대화를 선택해 주세요.'));activeThread=null;return;}
-      const title=adminView?`${current.user_low} ↔ ${current.user_high}`:current.other_display_name||current.other_username;
+      const title=adminView?`${current.name_low||current.user_low} ↔ ${current.name_high||current.user_high}`:current.other_display_name||current.other_username;
       chat.append(h('div','community-dm-chat-head',`${adminView?'운영자 열람 · ':''}${title}`));const messages=h('div','community-dm-messages');messages.id='communityDmMessages';chat.append(messages);
       if(!adminView){const form=h('form','community-dm-send'),input=h('input');input.placeholder='밀담을 남겨 주세요';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','새 비밀 메시지');
         const send=h('button','','전송');send.type='submit';form.append(input,send);form.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await post(`dm/threads/${activeThread}/messages`,{body:input.value});input.value='';await refreshMessages();});});chat.append(form);
@@ -229,13 +229,13 @@
   async function searchUsers(q,sidebar){const host=sidebar.querySelector('#communityUserResults');if(!host)return;host.replaceChildren();
     if(!q.trim()){host.append(h('p','community-warning','검색할 계정 ID를 입력하세요.'));return;}
     try{const data=await api(`users?q=${encodeURIComponent(q.trim())}`);if(!data.users.length)host.append(h('p','community-warning','검색 결과가 없습니다.'));
-      for(const person of data.users){const b=button(`@${person.username} · ${person.display_name}`,'community-dm-item',()=>attempt(async()=>{const result=await post('dm/threads',{username:person.username});activeThread=String(result.threadId);adminView=false;await renderDm();}));host.append(b);}
+      for(const person of data.users){const b=button(`${person.display_name} · @${person.username}`,'community-dm-item',()=>attempt(async()=>{const result=await post('dm/threads',{username:person.username});activeThread=String(result.threadId);adminView=false;await renderDm();}));host.append(b);}
     }catch(err){setFeedback(err.message);}
   }
   function messageBubble(message){
     const bubble=h('div','community-bubble'+(String(message.sender_id)===String(me.id)?' mine':''));
     bubble.dataset.messageId=String(message.id);
-    bubble.append(h('div','',message.body),h('small','',`@${message.sender_username} · ${formatDate(message.created_at)}`));return bubble;
+    bubble.append(h('div','',message.body),h('small','',`${message.sender_name||message.sender_username} · ${formatDate(message.created_at)}`));return bubble;
   }
   async function loadOlderMessages(){
     const list=$('#communityDmMessages'),id=activeThread;

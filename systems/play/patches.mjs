@@ -125,8 +125,9 @@ export const SOURCE_PATCHES = [
   {
     file: 'ui/components/InventoryModal.jsx',
     edits: [
-      ["                {picked && !inBattle && <button type=\"button\" onClick={() => setDiscardConfirm(true)} className=\"flat-btn-ghost min-w-[4.5rem] !py-1 text-xs\">버리기</button>}",
-       "                {picked && !inBattle && globalThis.__BRY_INSPECT?.can(picked.id) && <button type=\"button\" data-inspect onClick={() => { const id = picked.id; closeAll(); globalThis.__BRY_INSPECT.run(id) }} className=\"flat-btn !py-1 text-xs\">조사한다</button>}\n                {picked && !inBattle && <button type=\"button\" onClick={() => setDiscardConfirm(true)} className=\"flat-btn-ghost min-w-[4.5rem] !py-1 text-xs\">버리기</button>}"],
+      // (v1.9.7 묶음이 먼저 '버리기' 줄에 중요한 아이템 조건을 붙였으므로 그 줄 앞에 끼운다)
+      ["                {picked && !inBattle && !picked.tags?.includes('중요한 아이템') && <button type=\"button\" onClick={() => setDiscardConfirm(true)}",
+       "                {picked && !inBattle && globalThis.__BRY_INSPECT?.can(picked.id) && <button type=\"button\" data-inspect onClick={() => { const id = picked.id; closeAll(); globalThis.__BRY_INSPECT.run(id) }} className=\"flat-btn !py-1 text-xs\">조사한다</button>}\n                {picked && !inBattle && !picked.tags?.includes('중요한 아이템') && <button type=\"button\" onClick={() => setDiscardConfirm(true)}"],
     ],
   },
   // ── v1.6 붉은여우 부적: 다인 전투에서 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다) ──
@@ -176,12 +177,13 @@ export const SOURCE_PATCHES = [
 
 /** 한 파일의 원문에 조각을 적용한다. relPath: systems/vault/modules 기준 경로 */
 export function applyPatches(relPath, text) {
-  const p = SOURCE_PATCHES.find((x) => relPath.replace(/\\/g, '/').endsWith(x.file))
-  if (!p) return text
-  for (const [find, put] of p.edits) {
-    const n = text.split(find).length - 1
-    if (n !== 1) throw new Error(`보관고 조각을 끼울 자리를 찾지 못했다 (${p.file}, ${n}곳): ${find.slice(0, 60)}`)
-    text = text.replace(find, () => put)
+  // 같은 파일에 묶음이 여럿이면 적힌 차례대로 모두 끼운다(앞 묶음만 쓰고 뒤를 건너뛰지 않는다).
+  for (const p of SOURCE_PATCHES.filter((x) => relPath.replace(/\\/g, '/').endsWith(x.file))) {
+    for (const [find, put] of p.edits) {
+      const n = text.split(find).length - 1
+      if (n !== 1) throw new Error(`보관고 조각을 끼울 자리를 찾지 못했다 (${p.file}, ${n}곳): ${find.slice(0, 60)}`)
+      text = text.replace(find, () => put)
+    }
   }
   return text
 }

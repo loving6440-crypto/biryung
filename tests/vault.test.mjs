@@ -449,3 +449,20 @@ tB01('vB.01: 지신성 없음 · 수업 랭킹은 서버로 · 업데이트 노�
   const J = JSON.parse(readFileSync(new URL('../systems/biryeong/josa-overrides.json', import.meta.url), 'utf8'))
   assertB01.ok(J.edits.length >= 20 && J.edits.some((e) => e.name === '비령산 학당 (??%)'))
 })
+
+test('vB.02: 같은 파일의 조각 묶음은 모두 끼워진다 (소지품 [조사한다] · 급식실 사연 · 랭킹)', async () => {
+  const { applyPatches } = await import('../systems/play/patches.mjs');
+  const inv = applyPatches('ui/components/InventoryModal.jsx', readFileSync(join(VAULT, 'modules/ui/components/InventoryModal.jsx'), 'utf8'));
+  assert.ok(inv.includes('data-inspect') && inv.includes('data-key-items'));
+  const on = applyPatches('ui/adapters/online.js', readFileSync(join(VAULT, 'modules/ui/adapters/online.js'), 'utf8'));
+  assert.ok(on.includes('__BRY_CAFE') && on.includes('__BRY_RANK'));
+});
+
+test('vB.02: 서버 이름은 캐릭터 이름을 따른다 (기록 저장 · 밀담 · 관리자 열람)', () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8');
+  assert.match(sql, /p_data #>> '\{profile,name\}'/);
+  assert.match(sql, /'sender_name', u\.display_name/);
+  assert.match(sql, /'name_low', l\.display_name/);
+  const cm = readFileSync(join(ROOT, 'community.js'), 'utf8');
+  assert.ok(cm.includes('message.sender_name') && !cm.includes('`@${message.sender_username}'));
+});

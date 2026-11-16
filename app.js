@@ -426,7 +426,7 @@
     const list = h('div', 'codex-list');
     Auth.list().forEach((u) => {
       const r = h('div', 'codex-row is-got'); const t = h('div', 'codex-text');
-      t.append(h('strong', '', `${u.id}${u.id === me ? ' (나)' : ''}${u.admin ? ' · 관리자' : ''}`), h('p', '', `등록 ${new Date(u.createdAt).toLocaleDateString('ko-KR')} · 기록 ${u.hasSave ? '있음' : '없음'}`));
+      t.append(h('strong', '', `${u.name || u.id}${u.name ? ` @${u.id}` : ''}${u.id === me ? ' (나)' : ''}${u.admin ? ' · 관리자' : ''}`), h('p', '', `등록 ${new Date(u.createdAt).toLocaleDateString('ko-KR')} · 기록 ${u.hasSave ? '있음' : '없음'}`));
       const side = h('div', 'codex-side admin-side');
       side.append(btn('ghost-btn codex-use', '비밀번호 초기화', () => { const pw = window.prompt(`${u.id} 의 새 비밀번호 (4자 이상)`); if (pw == null) return; toast('관리자', Auth.resetPassword(u.id, pw) ? `${u.id} 의 비밀번호를 바꿨다.` : '바꾸지 못했다. (4자 이상)'); }));
       if (u.id !== me) {

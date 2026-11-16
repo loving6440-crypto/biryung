@@ -367,12 +367,15 @@ end $$;
 -- ── 기록(어느 기기에서 들어와도 이어진다) ──
 create or replace function public.bry_save_put(p_token text, p_data jsonb) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
-declare a biryeong_private.accounts := who(p_token); t timestamptz;
+declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text;
 begin
   if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'invalid_save'; end if;
   if octet_length(p_data::text) > 4000000 then raise exception 'save_too_large'; end if;
   insert into saves (account_id, data) values (a.id, p_data)
     on conflict (account_id) do update set data = excluded.data, updated_at = now() returning updated_at into t;
+  -- 처음 정한 캐릭터 이름을 서버 표시 이름으로 맞춘다(관리자 도구 · 밤쥐들의 터 등에 그 이름이 뜬다).
+  nm := left(btrim(coalesce(p_data #>> '{profile,name}', '')), 40);
+  if nm <> '' and nm is distinct from a.display_name then update accounts set display_name = nm where id = a.id; end if;
   return jsonb_build_object('updated_at', t);
 end $$;
 
@@ -383,6 +386,11 @@ begin
   select case when p_meta then jsonb_build_object('updated_at', s.updated_at) else jsonb_build_object('updated_at', s.updated_at, 'data', s.data) end into r from saves s where s.account_id = a.id;
   return coalesce(r, jsonb_build_object('updated_at', null));
 end $$;
+
+-- 이미 있는 계정도 기록 속 캐릭터 이름으로 한 번 맞춘다(여러 번 실행해도 같다).
+update biryeong_private.accounts a set display_name = left(btrim(s.data #>> '{profile,name}'), 40)
+  from biryeong_private.saves s
+  where s.account_id = a.id and btrim(coalesce(s.data #>> '{profile,name}', '')) <> '' and a.display_name is distinct from left(btrim(s.data #>> '{profile,name}'), 40);
 
 -- ── 지신성 ──
 create or replace function biryeong_private.post_json(p biryeong_private.posts, me bigint) returns jsonb language sql stable as $$
@@ -553,7 +561,7 @@ begin
 end $$;
 
 create or replace function biryeong_private.dm_page(p_thread bigint, p_before bigint, p_after bigint) returns jsonb language sql stable as $$
-  select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'sender_id', m.sender, 'sender_username', u.username, 'body', m.body, 'created_at', m.created_at) order by m.id), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'sender_id', m.sender, 'sender_username', u.username, 'sender_name', u.display_name, 'body', m.body, 'created_at', m.created_at) order by m.id), '[]'::jsonb)
   from (select * from biryeong_private.dm_messages x where x.thread_id = p_thread and (p_before is null or x.id < p_before) and (p_after is null or x.id > p_after)
         order by case when p_after is null then x.id end desc, case when p_after is not null then x.id end asc limit 50) m
   join biryeong_private.accounts u on u.id = m.sender $$;
@@ -649,7 +657,7 @@ create or replace function public.bry_admin_dm_threads(p_token text) returns jso
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
 declare a biryeong_private.accounts := adm(p_token);
 begin
-  return jsonb_build_object('threads', (select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'user_low', l.username, 'user_high', hi.username,
+  return jsonb_build_object('threads', (select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'user_low', l.username, 'user_high', hi.username, 'name_low', l.display_name, 'name_high', hi.display_name,
       'message_count', (select count(*) from dm_messages m where m.thread_id = t.id)) order by t.last_at desc), '[]'::jsonb)
     from dm_threads t join accounts l on l.id = t.user_low join accounts hi on hi.id = t.user_high));
 end $$;
@@ -1007,7 +1015,7 @@ end $$;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'B.01', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'B.02', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

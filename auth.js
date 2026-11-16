@@ -206,7 +206,7 @@
     },
     server: SERVER, token, rpc, errorText, pushSave,
     call: (name, args = {}) => rpc(name, { p_token: token(), ...args }), // 로그인한 계정으로 서버 함수를 부른다
-    list: () => Object.values(readAcc().users).map((u) => ({ id: u.id, createdAt: u.createdAt, admin: !!u.admin, hasSave: !!get(saveKey(u.id)) })),
+    list: () => Object.values(readAcc().users).map((u) => { const raw = get(saveKey(u.id)); let name = ''; try { name = (raw && JSON.parse(raw)?.profile?.name) || ''; } catch (_) { /* 기록이 깨졌으면 이름 없이 */ } return { id: u.id, name, createdAt: u.createdAt, admin: !!u.admin, hasSave: !!raw }; }),
     resetPassword(id, pw) { const acc = readAcc(); const u = acc.users[id]; if (!u || !Auth.isAdmin()) return false; if (String(pw).length < 4) return false; u.salt = newSalt(); u.hash = hashPw(u.salt, pw); return writeAcc(acc); },
     remove(id) { const acc = readAcc(); if (!acc.users[id] || !Auth.isAdmin() || id === session()) return false; delete acc.users[id]; del(saveKey(id)); return writeAcc(acc); },
     setAdmin(id, on) { const acc = readAcc(); if (!acc.users[id] || !Auth.isAdmin() || id === session()) return false; if (on) acc.users[id].admin = true; else delete acc.users[id].admin; return writeAcc(acc); },
