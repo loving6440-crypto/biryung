@@ -147,13 +147,13 @@
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
     const aList = h('div', 'server-audit'); body.append(aList);
-    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제',
+    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {
       if (!rows.length) aList.append(para('아직 기록이 없다.'));
       rows.forEach((x) => aList.append(h('p', '', `${when(x.at)} · ${x.admin} · ${LABEL[x.action] || x.action}${x.target ? ` → ${x.target}` : ''}${x.detail ? ` · ${x.detail}` : ''}`)));
     }).catch((e) => aList.append(para(e.message)));
-    body.append(para('밀담 감사 열람은 「밤쥐들의 터」 안의 [운영자 · 전체 대화 열람]에서, 글 삭제는 각 글의 [지우기]에서 한다.'));
+    body.append(para('밀담 감사 열람은 「밤쥐들의 터」 안의 [운영자 · 전체 대화 열람]에서, 글 삭제는 각 글의 [지우기]에서, 급식실 익명 사연은 급식실의 교내 신문에서 뗀다.'));
   }
 
   window.BiryeongServer = { renderAdmin, poll };

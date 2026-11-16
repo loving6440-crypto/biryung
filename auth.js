@@ -209,6 +209,13 @@
     verifyAdminCode,
   };
   window.BiryeongAuth = Auth;
+  /* 급식실 익명 사연(실행 화면의 급식실이 부른다): 날짜별 신문 읽기 · 투고 · 떼기 */
+  if (SERVER) globalThis.__BRY_CAFE = {
+    online: () => !!token(), admin: () => Auth.isAdmin(),
+    fetch: async (date) => { try { const r = await Auth.call('bry_stories', { p_date: date }); return { ok: true, stories: r.stories.map((x) => ({ id: x.id, no: x.no, text: x.body, mine: x.mine })) }; } catch (_) { return { ok: false }; } },
+    submit: async (body) => { try { await Auth.call('bry_story', { p_body: body }); return { ok: true }; } catch (e) { return { ok: false, error: e.code === 'too_many_requests' ? 'slow-down' : e.code === 'invalid_post' ? 'too-long' : e.code, message: e.message }; } },
+    remove: async (id) => { try { await Auth.call('bry_delete', { p_kind: 'story', p_id: id }); return true; } catch (e) { window.alert(e.message); return false; } },
+  };
 
   // 글꼴은 로그인 화면에서도 맞춘다.
   try { const f = get('biryeong-ui-font'); if (f) document.documentElement.dataset.uiFont = f; } catch (_) { /* 기본 글꼴 */ }

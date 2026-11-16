@@ -116,7 +116,7 @@ export default function App() {
         else if (loc === 'shrine') screen = <Shrine key={act} view={act} player={player} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} onEnter={enter} onInvestigate={H.investigateShrine} onVisit={H.visitSpot} />
         else if (loc === 'infirmary') screen = <Infirmary view={act} player={player} onStartRest={H.beginRest} onStopRest={H.endRest} />
         else if (loc === 'dorm' && act === 'store') screen = <Store player={player} onBuy={H.buyItem} onSell={H.sellToStore} onBuyRecipe={H.buyRecipe} onMeet={H.meetNpc} onLineSeen={H.lineSeen} admin={admin} onGiveNpc={H.giveNpc} />
-        else if (loc === 'dorm' && act === 'cafeteria') screen = <Cafeteria online={false} onSubmitted={() => {}} />
+        else if (loc === 'dorm' && act === 'cafeteria') screen = <Cafeteria online={!!globalThis.__BRY_CAFE?.online()} onSubmitted={() => {}} />
         else if (loc === 'dorm') screen = <Dormitory view={act} control={effStats.control} spirit={player.spirit} training={player.training ?? null} sleeping={player.sleeping ?? null} onStartTraining={H.beginTraining} onStopTraining={H.endTraining} onStartSleep={H.beginSleep} onStopSleep={H.endSleep} />
         else screen = <p className="text-sm text-crimson">없는 곳: {route.path}</p>
         break

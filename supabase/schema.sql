@@ -471,7 +471,38 @@ begin
   return jsonb_build_object('id', n);
 end $$;
 
--- 글 지우기: 쓴 사람 본인 또는 관리자. p_kind: post · memo · comment
+-- ── 급식실 익명 사연(v1.9.1): 검토 없이 바로 그날의 교내 신문에 실리고, 쓴 사람은 누구에게도(관리자에게도) 보이지 않는다. 쓴 본인과 관리자가 지울 수 있다. ──
+create table if not exists biryeong_private.cafeteria_stories (
+  id         bigint generated always as identity primary key,
+  author     bigint      not null references biryeong_private.accounts on delete cascade,
+  body       text        not null,
+  created_at timestamptz not null default now()
+);
+revoke all on biryeong_private.cafeteria_stories from anon, authenticated;
+
+drop function if exists public.bry_stories(text, bigint);
+-- 그날(한국 시각)의 교내 신문: 붙은 순서대로 #1, #2 … 번호가 붙는다.
+create or replace function public.bry_stories(p_token text, p_date text default null) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); d date := case when p_date ~ '^\d{4}-\d{2}-\d{2}$' then p_date::date else (now() at time zone 'Asia/Seoul')::date end;
+begin
+  return jsonb_build_object('date', d, 'stories',
+    (select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'no', s.no, 'body', s.body, 'created_at', s.created_at, 'mine', s.author = a.id) order by s.id), '[]'::jsonb)
+     from (select x.*, row_number() over (order by x.id) as no from cafeteria_stories x where (x.created_at at time zone 'Asia/Seoul')::date = d order by x.id limit 300) s));
+end $$;
+
+create or replace function public.bry_story(p_token text, p_body text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); n bigint;
+begin
+  if length(btrim(coalesce(p_body, ''))) not between 1 and 500 then raise exception 'invalid_post'; end if;
+  perform can_write(a, 'story');
+  perform throttle_do('story-day:' || a.id, 30, 86400);
+  insert into cafeteria_stories (author, body) values (a.id, btrim(p_body)) returning id into n;
+  return jsonb_build_object('id', n);
+end $$;
+
+-- 글 지우기: 쓴 사람 본인 또는 관리자. p_kind: post · memo · comment · story
 create or replace function public.bry_delete(p_token text, p_kind text, p_id bigint) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
 declare a biryeong_private.accounts := who(p_token); owner bigint; txt text;
@@ -479,12 +510,14 @@ begin
   if p_kind = 'post' then select author, body into owner, txt from posts where id = p_id;
   elsif p_kind = 'memo' then select author, title into owner, txt from memos where id = p_id;
   elsif p_kind = 'comment' then select author, body into owner, txt from memo_comments where id = p_id;
+  elsif p_kind = 'story' then select author, body into owner, txt from cafeteria_stories where id = p_id;
   else raise exception 'not_found'; end if;
   if owner is null then raise exception 'not_found'; end if;
   if owner <> a.id and a.role <> 'admin' then raise exception 'forbidden'; end if;
-  if owner <> a.id then perform log(a, 'delete_' || p_kind, (select username from accounts where id = owner), left(txt, 200)); end if;
+  if owner <> a.id then perform log(a, 'delete_' || p_kind, case when p_kind = 'story' then '(익명)' else (select username from accounts where id = owner) end, left(txt, 200)); end if;
   if p_kind = 'post' then delete from posts where id = p_id;
   elsif p_kind = 'memo' then delete from memos where id = p_id;
+  elsif p_kind = 'story' then delete from cafeteria_stories where id = p_id;
   else delete from memo_comments where id = p_id; end if;
   return jsonb_build_object('ok', true);
 end $$;
@@ -704,7 +737,7 @@ revoke all on function public.story_admin_ok(text) from anon;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', '1.9', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', '1.9.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop
