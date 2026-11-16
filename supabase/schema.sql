@@ -895,9 +895,41 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- ── 투표 루트 공개(v1.9.6): 모두의 선택(예: C2-3)을 지켜본 뒤 관리자가 어느 루트로 이야기를 이어 갈지 공개한다. 공개 전에는 아무도 그 뒤로 가지 못한다. ──
+create table if not exists public.story_routes (
+  flag       text        primary key,
+  option     smallint    check (option between 1 and 12),
+  open_at    timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table public.story_routes enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname = 'routes_read_open') then
+    create policy routes_read_open on public.story_routes for select to anon using (option is not null and open_at is not null and open_at <= now());
+  end if;
+end $$;
+grant select on public.story_routes to anon;
+
+create or replace function public.story_admin_routes(p_code text) returns setof public.story_routes
+  language plpgsql security definer set search_path = public, biryeong_private as $$
+begin
+  if not public.story_admin_ok(p_code) then raise exception 'admin code mismatch'; end if;
+  return query select * from public.story_routes order by flag;
+end $$;
+
+create or replace function public.story_admin_route(p_code text, p_flag text, p_option smallint, p_open_at timestamptz) returns void
+  language plpgsql security definer set search_path = public, biryeong_private as $$
+begin
+  if not public.story_admin_ok(p_code) then raise exception 'admin code mismatch'; end if;
+  insert into public.story_routes (flag, option, open_at, updated_at) values (p_flag, p_option, case when p_option is null then null else p_open_at end, now())
+    on conflict (flag) do update set option = excluded.option, open_at = excluded.open_at, updated_at = now();
+end $$;
+grant execute on function public.story_admin_routes(text) to anon;
+grant execute on function public.story_admin_route(text, text, smallint, timestamptz) to anon;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', '1.9.5', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', '1.9.6', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

@@ -2,7 +2,10 @@
 // (수치는 그대로. 표는 systems/biryeong/*.txt → reskin.data.js)
 import { ITEMS } from '@vault/game/items.js'
 import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
-import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS } from '../../biryeong/reskin.data.js'
+import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS, HUNT_EXTRA } from '../../biryeong/reskin.data.js'
+import { HUNT_SPECIES } from '@vault/game/huntSites.js'
+// v1.9.8 개척 덤: 얻을 곳이 없던 아이템을 쉬운 산길의 흔한 대상에 낮은 확률로 붙인다(hunt-extra.txt). 개척을 시작할 때 대상의 보상 목록을 복사하므로 여기서 더해 두면 된다.
+for (const x of HUNT_EXTRA) { const sp = HUNT_SPECIES[x.species]; if (sp && !sp.rewards.some((r) => r.item === x.item)) sp.rewards.push({ item: x.item, chance: x.chance, amount: x.amount }) }
 
 for (const item of ITEMS) {
   const r = ITEM_RESKIN[item.id]
@@ -33,9 +36,10 @@ COOK_RECIPES.push(...NEW_RECIPES.K.map(withNote))
 
 // ── v1.3 본편 제작법 16개 — 처음엔 잠겨 있다(unlock). 퀘스트가 가르쳐 주거나 그 상대를 이기면 열린다(usePlayHost · patches.mjs). ──
 import { STORY_RECIPES } from '../../biryeong/reskin.data.js'
-const OPEN_NOTE = (u) => (u === 'quest' ? '본편 · 퀘스트에서 배운 제작법' : '본편 · 이야기 전투의 전리품으로 만든다')
+const OPEN_NOTE = (u) => (u === 'quest' ? '본편 · 퀘스트에서 배운 제작법' : u === 'open' ? '본편 물건으로 만든다(재료는 개척에서)' : '본편 · 이야기 전투의 전리품으로 만든다')
 for (const r of STORY_RECIPES) {
   const { place, ...rest } = r
+  if (rest.unlock === 'open') delete rest.unlock // 처음부터 열려 있다
   ;(place === 'K' ? COOK_RECIPES : RECIPES).push({ ...rest, note: `${OPEN_NOTE(r.unlock)} · ${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
 }
 

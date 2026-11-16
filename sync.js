@@ -54,6 +54,9 @@
     openChapters: async () => (enabled ? call('story_chapters?select=ch,title,content&order=ch') : []),
     adminList: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_list', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
     adminSet: async (code, ch, title, content, openAt, mode) => { if (!enabled) return null; try { await call('rpc/story_admin_set', { method: 'POST', body: { p_code: code, p_ch: ch, p_title: title, p_content: content, p_open_at: openAt, p_mode: mode } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
+    openRoutes: async () => (enabled ? call('story_routes?select=flag,option') : []),
+    adminRoutes: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_routes', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
+    adminRoute: async (code, flag, option, openAt) => { if (!enabled) return null; try { await call('rpc/story_admin_route', { method: 'POST', body: { p_code: code, p_flag: flag, p_option: option, p_open_at: openAt } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
     adminChoices: async () => (enabled ? call('story_choices?select=account,branch,option,updated_at,player_id&order=updated_at.desc') : []),
     contribTotals: async () => (enabled ? call('story_contrib_totals?select=event,total,players') : []),
   };

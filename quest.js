@@ -33,11 +33,13 @@
    * 프롤로그(0장)는 늘 열려 있다. 1장부터는 공개된 장 파일이 있을 때만 이야기가 이어진다. */
   const LOCAL_KEY = 'biryeong-story-chapters-v1'; // { [장]: { title, content, openAt, uploadedAt } } — 서버가 없을 때 · 관리자 미리 보기
   const loaded = {};
+  var voteIdx = null; // eslint-disable-line no-var -- rebuild() 가 맨 먼저 불려서 var 로 둔다
   let SCENES = [], byId = {};
   const validChapter = (c, n) => c && c.format === 'biryeong-chapter' && Number(c.ch) === Number(n) && Array.isArray(c.scenes) && c.scenes.every((s) => s.id && Array.isArray(s.lines) && Array.isArray(s.steps));
   function rebuild() {
     SCENES = [...D.scenes, ...Object.keys(loaded).map(Number).sort((a, b) => a - b).flatMap((n) => loaded[n].scenes)];
     byId = Object.fromEntries(SCENES.map((s) => [s.id, s]));
+    voteIdx = null; // 투표 장면 색인은 다음에 쓸 때 다시 만든다
   }
   rebuild();
   const localStore = () => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}') || {}; } catch (_) { return {}; } };
@@ -51,7 +53,12 @@
       try { (await sync.openChapters() || []).forEach((r) => { if (validChapter(r.content, r.ch)) got[r.ch] = r.content; }); } catch (e) { console.warn('[비령] 공개된 장을 받지 못했다', e?.message); }
     } else Object.entries(L).forEach(([n, v]) => { if (v?.openAt && Date.parse(v.openAt) <= now && validChapter(v.content, n)) got[n] = v.content; });
     if (preview()) Object.entries(L).forEach(([n, v]) => { if (validChapter(v?.content, n)) got[n] = v.content; }); // 관리자 미리 보기: 올려 둔 장은 공개 전이라도
-    const before = Object.keys(loaded).sort().join(','), after = Object.keys(got).sort().join(',');
+    const R = {}, RL = routeStore();
+    if (sync?.enabled && sync.openRoutes) { try { (await sync.openRoutes() || []).forEach((r) => { R[r.flag] = Number(r.option); }); } catch (_) { /* 다음에 */ } }
+    else Object.entries(RL).forEach(([f, v]) => { if (v?.option && v.openAt && Date.parse(v.openAt) <= now) R[f] = Number(v.option); });
+    if (preview()) Object.entries(RL).forEach(([f, v]) => { if (v?.option) R[f] = Number(v.option); });
+    const rBefore = JSON.stringify(routes); Object.keys(routes).forEach((k) => delete routes[k]); Object.assign(routes, R);
+    const before = Object.keys(loaded).sort().join(',') + rBefore, after = Object.keys(got).sort().join(',') + JSON.stringify(routes);
     Object.keys(loaded).forEach((k) => delete loaded[k]); Object.assign(loaded, got); rebuild();
     if (before !== after) { drawTracker(); if (/^#\/zone\/north/.test(location.hash) || /^#\/admin\/story/.test(location.hash)) App.route(); else later(); }
   }
@@ -102,13 +109,35 @@
   }
 
   /* ───────── 조건 ───────── */
-  function ok(conds) {
-    const q = Q();
-    return (conds || []).every((c) => (c.flag ? c.in.includes(q.flags[c.flag]) : true));
+  function ok(conds, sid) {
+    return (conds || []).every((c) => (c.flag ? c.in.includes(flagOf(c.flag, sid)) : true));
+  }
+  /* ───────── 모두의 선택(투표) → 루트 공개 ─────────
+   * 투표 선택(예: C2-3)은 각자 고른 것이 집계로만 쓰이고, 이야기가 실제로 어느 길로 갈지는 관리자가 [스토리 관리]에서 공개한 루트를 따른다.
+   * 루트가 공개되기 전에는 그 갈림길 뒤의 장면이 「모두의 선택이 모이는 중」으로 멈춰 있다. */
+  const VOTES = new Set(Object.entries(D.choices || {}).filter(([, c]) => c.vote).map(([id]) => id));
+  const ROUTE_KEY = 'biryeong-story-routes-v1'; // { [선택]: { option, openAt } } — 서버가 없을 때 · 관리자 미리 보기
+  const routes = {}; // 공개된 루트 { [선택]: 번호 }
+  const routeStore = () => { try { return JSON.parse(localStorage.getItem(ROUTE_KEY) || '{}') || {}; } catch (_) { return {}; } };
+  // 투표 선택을 고른 그 장면 안(바로 뒤 반응 대사)에서는 내가 고른 것을, 그 뒤 장면부터는 공개된 루트를 따른다.
+  function voteScene(id) {
+    if (!voteIdx) { voteIdx = {}; SCENES.forEach((sc) => sc.lines.forEach((l) => { if (l.t === 'choice' && VOTES.has(l.id)) voteIdx[l.id] = sc.id; })); }
+    return voteIdx[id];
+  }
+  function flagOf(id, sid) { return VOTES.has(id) && sid !== voteScene(id) ? routes[id] : Q().flags[id]; }
+  // 이 장면이 아직 공개되지 않은 루트를 기다리는가 → 그 선택 id
+  function waitingRoute(scene) {
+    if (!scene) return null;
+    const ids = new Set();
+    const scan = (cs) => (cs || []).forEach((c) => { if (c.flag && VOTES.has(c.flag)) ids.add(c.flag); });
+    scan(scene.c); scene.lines.forEach((l) => scan(l.c)); scene.steps.forEach((s) => { scan(s.c); Object.keys(s.alt || {}).forEach((f) => VOTES.has(f) && ids.add(f)); Object.keys(s.alt_a || {}).forEach((f) => VOTES.has(f) && ids.add(f)); });
+    return [...ids].find((f) => routes[f] == null && voteScene(f) !== scene.id) || null;
   }
 
   /* ───────── 진행 ───────── */
-  const current = () => SCENES.find((s) => !Q().done[s.id] && ok(s.c)) || null;
+  const firstScene = () => SCENES.find((s) => !Q().done[s.id] && ok(s.c, s.id)) || null;
+  const current = () => { const s = firstScene(); return s && waitingRoute(s) ? null : s; };
+  const routeWait = () => { const s = firstScene(); const f = waitingRoute(s); return f ? { scene: s, flag: f } : null; };
   const doneCount = () => SCENES.filter((s) => Q().done[s.id]).length;
   /** 다음에 열려야 할 장(지금 이어 할 장면이 없을 때) */
   function nextLocked() {
@@ -118,7 +147,7 @@
   }
   function activeStep(scene) {
     const q = Q();
-    while (q.step < scene.steps.length && !ok(scene.steps[q.step].c)) { q.step += 1; q.prog = {}; }
+    while (q.step < scene.steps.length && !ok(scene.steps[q.step].c, scene.id)) { q.step += 1; q.prog = {}; }
     return scene.steps[q.step] || null;
   }
   const parseNeed = (n) => {
@@ -130,10 +159,10 @@
   const AT_PLACE = new Set([...BUTTON]);
   const api = () => { try { return App.playApi(); } catch (_) { return null; } };
   const countOf = (id) => api()?.count(id) || 0;
-  const pickOf = (map) => { for (const [flag, by] of Object.entries(map || {})) { const v = Q().flags[flag]; if (v != null && by[v] != null) return by[v]; } return null; };
+  const pickOf = (map) => { for (const [flag, by] of Object.entries(map || {})) { const v = flagOf(flag); if (v != null && by[v] != null) return by[v]; } return null; };
   const needsOf = (st) => (st.alt ? pickOf(st.alt) || st.n || [] : st.n || []);
   const actOf = (st) => (st.alt_a ? pickOf(st.alt_a) || st.a : st.a);
-  const ruleOf = (st) => (Array.isArray(st.rule) ? st.rule[(Q().flags[Object.keys(st.alt || {})[0]] || 1) - 1] : st.rule) || '';
+  const ruleOf = (st) => (Array.isArray(st.rule) ? st.rule[(flagOf(Object.keys(st.alt || {})[0]) || 1) - 1] : st.rule) || '';
   function needState(scene, st) {
     const q = Q();
     return needsOf(st).map((raw, i) => {
@@ -295,6 +324,8 @@
     if (!App.profile()) { box.append(h('p', 'quest-box-step', '프로필을 만들면 이야기가 시작된다.')); return box; }
     const scene = current();
     if (!scene) {
+      const wait = routeWait();
+      if (wait) { const c = D.choices[wait.flag]; box.append(h('p', 'quest-box-title', `◇ ${c?.ch ? `${c.ch}장 · ` : ''}${wait.scene.title}`), h('p', 'quest-box-step', '모두의 선택이 모이는 중이다. 이야기가 어느 길로 갈지는 아직 열리지 않았다.')); return box; }
       const lock = nextLocked();
       if (lock) { box.append(h('p', 'quest-box-title', `◇ ${lock.n}장 · ${lock.title}`), h('p', 'quest-box-step', '[아직 열리지 않은 이야기입니다.]')); }
       else box.append(h('p', 'quest-box-title', '지금 열린 이야기를 모두 마쳤다'), h('p', 'quest-box-step', '산문 너머에서 다시 볼 수 있다.'));
@@ -440,7 +471,7 @@
       return p;
     }
     function show() {
-      while (at < list.length && !ok(list[at][1].c)) at += 1;
+      while (at < list.length && !ok(list[at][1].c, scene.id)) at += 1;
       if (at >= list.length) { close(); return; }
       const [idx, ln] = list[at]; const key = `${scene.id}:${idx}`;
       body.replaceChildren(); foot.replaceChildren();
@@ -690,9 +721,31 @@
           sec.append(line);
           if (list.length) sec.append(h('p', 'story-vote-who', list.map((r) => r.account || r.player_id?.slice(0, 8)).join(', ')));
         });
+        if (c.vote) sec.append(routeControls(id, c));
         votes.append(sec);
       });
     };
+    // 투표 결과로 어느 루트를 공개할지(지금 · 정한 시각 · 닫기)
+    function routeControls(id, c) {
+      const wrap = h('div', 'story-route'); const L = routeStore()[id] || {}; const srvRow = srvRoutes?.find((r) => r.flag === id);
+      const option = server ? srvRow?.option : L.option, openAt = server ? srvRow?.open_at : L.openAt;
+      const state = !option || !openAt ? '루트 미공개 — 플레이어들은 갈림길 뒤에서 기다린다' : Date.parse(openAt) <= Date.now() ? `공개 중 · ${CIRC[option - 1]} ${c.o[option - 1]}` : `공개 예정 · ${CIRC[option - 1]} · ${new Date(openAt).toLocaleString('ko-KR')}`;
+      wrap.append(h('p', 'story-route-state', `이야기 루트: ${state}`));
+      const sel = h('select'); c.o.forEach((o, i) => sel.append(new Option(`${CIRC[i]} ${o}`, String(i + 1)))); if (option) sel.value = String(option);
+      const when = h('input'); when.type = 'datetime-local'; when.className = 'story-when';
+      const set = async (opt, iso) => {
+        const all = routeStore(); all[id] = { option: opt, openAt: iso }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
+        if (server) { const r = await sync.adminRoute(adminCode(), id, opt, iso); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
+        toast('스토리 관리', !iso ? '루트를 닫았다.' : Date.parse(iso) <= Date.now() ? `${CIRC[opt - 1]} 루트를 공개했다.` : `${CIRC[opt - 1]} 루트 공개 시각을 정했다.`); refreshChapters(); App.route();
+      };
+      const acts = h('div', 'story-admin-acts');
+      acts.append(sel, btn('solid-btn codex-use', '이 루트로 지금 공개', () => { if (window.confirm(`${CIRC[sel.value - 1]} ${c.o[sel.value - 1]} — 이 루트로 모든 학생의 이야기를 이어 갈까요?`)) set(Number(sel.value), new Date().toISOString()); }),
+        when, btn('ghost-btn codex-use', '이 시각에 공개', () => { if (!when.value) { toast('스토리 관리', '공개 시각을 고른다.'); return; } set(Number(sel.value), new Date(when.value).toISOString()); }));
+      if (openAt) acts.append(btn('ghost-btn codex-use', '루트 닫기', () => set(null, null)));
+      wrap.append(acts);
+      return wrap;
+    }
+    let srvRoutes = null;
     const localVotes = () => {
       const rows = [];
       try {
@@ -704,12 +757,13 @@
       } catch (_) { /* 읽을 수 없으면 비운다 */ }
       return rows;
     };
-    if (server) sync.adminChoices().then((rows) => drawVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
+    const loadVotes = (rows) => (server ? sync.adminRoutes(adminCode()).then((r) => { srvRoutes = Array.isArray(r) ? r : []; drawVotes(rows); }).catch(() => drawVotes(rows)) : drawVotes(rows));
+    if (server) sync.adminChoices().then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
     else { drawVotes(localVotes()); votes.prepend(para('서버 연결 전 — 이 브라우저에 있는 계정들의 선택만 모았다.')); }
   }
 
   const peek = () => { const scene = current(); const st = scene && !busy ? activeStep(scene) : null; return { id: scene?.id || null, step: st ? Q().step : -1, w: st?.w || '', at: st ? atPlace(st.w) : false, needs: st ? needState(scene, st).map((n) => ({ raw: n.raw, type: n.type, arg: n.arg, have: n.have, count: n.count, done: n.done })) : [], busy, open: Object.keys(loaded).map(Number) }; };
-  window.BiryeongQuest = { renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
+  window.BiryeongQuest = { routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
   refreshChapters();
   App.route();
   drawTracker();

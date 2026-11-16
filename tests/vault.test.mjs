@@ -328,7 +328,8 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
   assert17.equal(C.items.length, 429); assert17.equal(C.psychics.length, 13); assert17.ok(C.enemies.length >= 62)
-  for (const i of C.items) { assert17.ok(i.from, i.id); assert17.ok(!/「/.test(i.from), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${i.from}`) }
+  // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
+  for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
 })
 
@@ -393,4 +394,43 @@ t195('v1.9.5: 튜토리얼 허수아비는 체력이 크고 되살리지 않는�
   assert195.ok(/data-tutorial-real-items-btn/.test(readFileSync(new URL('../index.html', import.meta.url), 'utf8')))
   const play = readFileSync(new URL('../play/play.js', import.meta.url), 'utf8')
   assert195.ok(!/내 소지품 확인하기/.test(play), '없는 버튼을 누르라는 안내가 남아 있으면 안 된다')
+})
+
+// ───────── v1.9.6 투표 루트 공개 ─────────
+import { test as t196 } from 'node:test'
+import assert196 from 'node:assert/strict'
+t196('v1.9.6: 투표 루트는 관리자가 공개해야 이어지고, 전투 안내에 정답이 없다', () => {
+  const q = readFileSync(new URL('../quest.js', import.meta.url), 'utf8')
+  assert196.ok(/function flagOf\(id, sid\)/.test(q) && /routeWait/.test(q) && /adminRoute\(/.test(q))
+  const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  assert196.ok(/create table if not exists public\.story_routes/.test(sql) && /function public\.story_admin_route\(/.test(sql) && /routes_read_open/.test(sql))
+  assert196.ok(!/한도윤\)/.test(readFileSync(new URL('../story-chapters/ch1.json', import.meta.url), 'utf8')))
+})
+
+// ───────── v1.9.7 중요한 아이템 · 본편 획득처 ─────────
+import { test as t197 } from 'node:test'
+import assert197 from 'node:assert/strict'
+t197('v1.9.7: 본편 전리품은 중요한 아이템이고, 획득처에 몇 장 어느 장면인지 적힌다', async () => {
+  const R = await import('../systems/biryeong/reskin.data.js')
+  const key = R.STORY_ITEMS.filter((i) => i.tags?.includes('중요한 아이템')).map((i) => i.id)
+  for (const id of ['st-bell302', 'st-roll', 'st-nametag', 'st-dangsan-twig']) assert197.ok(key.includes(id), id)
+  for (const id of ['st-tangerine', 'st-name-charm']) assert197.ok(!key.includes(id), `${id} 은 중요한 아이템이 아니다`)
+  const w = {}; new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(w)
+  const from = Object.fromEntries(w.BIRYEONG_CODEX.items.map((i) => [i.id, i.from]))
+  assert197.match(from['st-bell302'], /본편 1장 「.+」에서 받는다/)
+  assert197.match(from['st-roll'], /본편 1장 「.+」 — 이야기 전투 전리품/)
+  assert197.match(from['st-dangsan-twig'], /② · ③ 루트/)
+  const play = readFileSync(new URL('../play/play.js', import.meta.url), 'utf8')
+  assert197.ok(/data-key-items/.test(play) && !/취득 경로 미정/.test(play))
+})
+
+// ───────── v1.9.8 모든 아이템에 획득처 ─────────
+import { test as t198 } from 'node:test'
+import assert198 from 'node:assert/strict'
+t198('v1.9.8: 획득처가 없는 것은 본편 전용 아이템뿐 · 개척 덤은 일반 재료에만, 낮은 확률로', async () => {
+  const w = {}; new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(w)
+  const none = w.BIRYEONG_CODEX.items.filter((i) => /^아직/.test(i.from)).map((i) => i.id)
+  assert198.ok(none.every((id) => id.startsWith('st-')), `본편 전용이 아닌데 획득처가 없다: ${none.filter((id) => !id.startsWith('st-'))}`)
+  const R = await import('../systems/biryeong/reskin.data.js')
+  assert198.ok(R.HUNT_EXTRA.length === 6 && R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
 })

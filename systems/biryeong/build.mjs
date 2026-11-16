@@ -160,10 +160,18 @@ for (const l of lines('story-recipes.txt')) {
   const s = sig(inputs)
   if (seen[place].has(s)) throw new Error('본편 제작법: 재료 조합이 겹친다 ' + id + ' ↔ ' + seen[place].get(s))
   seen[place].set(s, id)
-  if (!/^(quest|boss:[a-z]+)$/.test(unlock)) throw new Error('본편 제작법 열리는 때 오류: ' + id)
+  if (!/^(quest|open|boss:[a-z]+)$/.test(unlock)) throw new Error('본편 제작법 열리는 때 오류: ' + id)
   storyRecipes.push({ id, place, result, inputs, tier: Number(tier), ...(yieldN ? { yield: Number(yieldN) } : {}), unlock })
 }
 
+// v1.9.7 중요한 아이템: 본편 이야기 도중 받거나 전리품으로 얻는 완성품(매점에서 팔지 않고 제작으로도 만들지 않는 본편 아이템).
+// 가방의 [중요한 아이템] 칸에 따로 들어가고, 소지품 칸을 차지하지 않으며, 버리거나 가방에 넣을 수 없다.
+// v1.9.8 개척 덤(hunt-extra.txt): 종|아이템|확률|개수 — 얻을 곳이 없던 아이템을 쉬운 산길의 흔한 대상에 붙인다
+const { HUNT_SPECIES } = await import('../vault/modules/game/huntSites.js')
+const huntExtra = lines('hunt-extra.txt').map((l) => { const [species, item, chance, amount] = l.split('|'); if (!HUNT_SPECIES[species]) throw new Error('개척 덤: 없는 대상 ' + species); if (!itemById[item]) throw new Error('개척 덤: 없는 아이템 ' + item); if (item.startsWith('st-')) throw new Error('개척 덤: 본편 전용 아이템은 붙이지 않는다 ' + item); return { species, item, chance: Number(chance), amount: Number(amount || 1) } })
+const huntItems = new Set(huntExtra.map((x) => x.item))
+const storyResults = new Set(storyRecipes.map((r) => r.result))
+for (const it of storyItems) if (it.price == null && !storyResults.has(it.id) && !huntItems.has(it.id)) it.tags = [...new Set([...(it.tags ?? []), '중요한 아이템'])]
 
 const out = `/* 직접 고치지 말 것 — npm run reskin:build 가 systems/biryeong/*.txt 에서 만든다. */
 export const ITEM_RESKIN = {} // v1.4: 개변 없음 — 초록동색 원래 이름 · 해설
@@ -179,6 +187,7 @@ export const RECIPE_TIERS = ${JSON.stringify(recipeTiers)}
 export const STORY_ITEMS = ${JSON.stringify(storyItems)}
 export const STORY_RECIPES = ${JSON.stringify(storyRecipes)}
 export const NEW_ITEMS = ${JSON.stringify(newItems)}
+export const HUNT_EXTRA = ${JSON.stringify(huntExtra)}
 `
 writeFileSync(join(HERE, 'reskin.data.js'), out)
 console.log(`아이템 ${Object.keys(items).length} · 적 ${Object.keys(enemies).length} · 영능력 ${Object.keys(psychics).length} · 도트 틀 ${Object.keys(templates).length}`)
