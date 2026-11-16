@@ -7,16 +7,40 @@
   const account = $('#communityAccount');
   const feedback = $('#communityFeedback');
   const headings = { social:'지신성', memos:'낮새들의 터', dm:'밤쥐들의 터' };
-  const explanations = { social:'山의 소식을 별처럼 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', memos:'낮새들이 모이는 공개 메모 게시판입니다. 이야기 아래에 댓글과 대댓글을 남겨 주세요.', dm:'밤의 밀담은 대화 당사자와 홈페이지 총괄 운영자만 열람할 수 있습니다. 종단 간 암호화 대화는 아닙니다.' };
+  const explanations = { social:'山의 소식을 별처럼 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', memos:'낮새들이 모이는 공개 메모 게시판입니다. 이야기 아래에 댓글과 대댓글을 남겨 주세요.', dm:'밤의 밀담은 대화 당사자와 홈페이지 총괄 운영자만 열람할 수 있습니다. 운영자가 열람하면 그 사실이 감사 기록에 남습니다. 종단 간 암호화 대화는 아닙니다.' };
   const errorText = { database_not_configured:'비령 전용 데이터베이스가 연결되지 않았습니다. Render의 DATABASE_URL을 설정하면 가입·게시글·대화가 활성화됩니다.',login_required:'로그인이 필요합니다.',invalid_username:'계정 ID는 영문 소문자·숫자·밑줄 3~24자로 입력해 주세요.',invalid_password:'비밀번호는 8~128자로 입력해 주세요.',invalid_display_name:'표시 이름은 1~40자로 입력해 주세요.',invalid_credentials:'아이디 또는 비밀번호가 올바르지 않습니다.',username_taken:'이미 사용 중인 계정 ID입니다.',invalid_profile:'프로필 입력값을 확인해 주세요.',invalid_post:'글은 1~500자로 작성해 주세요.',invalid_memo:'제목 또는 메모 글자 수를 확인해 주세요.',invalid_comment:'댓글은 1~1,200자로 작성해 주세요.',invalid_dm:'대화는 1~2,000자로 작성해 주세요.',too_many_requests:'요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.',bad_origin:'보안 정책에 의해 차단되었습니다.',user_not_found:'해당 사용자를 찾을 수 없습니다.',not_found:'대상을 찾을 수 없거나 접근 권한이 없습니다.',internal_error:'일시적인 서버 오류가 발생했습니다.' };
   let tab='social', me=null, authMode='login', loadedMe=false, socialRows=[], memoRows=[], activeMemo=null, activeThread=null, activeOther='', adminView=false, threads=[], dmTimer=null, initialDM=true;
-  let busy=false, dmLastId=null, dmOldestId=null;
+  let busy=false, dmLastId=null, dmOldestId=null, syncedName=false;
   function h(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el;}
   function button(label,cls,handler){const e=h('button',cls,label);e.type='button';if(handler)e.addEventListener('click',handler);return e;}
   function avatar(user) {const el=h('span','community-avatar',user.avatar_symbol||user.other_avatar_symbol||'✦');el.style.setProperty('--avatar-accent',user.accent||user.other_accent||'#d4b078');el.setAttribute('aria-hidden','true');return el;}
   function formatDate(value){try{return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}catch{return '';}}
   function setFeedback(message){feedback.hidden=!message;feedback.textContent=message||'';}
+  /* v1.9 서버(Supabase)가 연결되면 게임 계정 그대로 쓴다 — 아래 길(예전 서버의 주소)을 bry_* 함수로 옮겨 부른다. */
+  const Auth=window.BiryeongAuth, SERVER=!!(Auth&&Auth.server);
+  async function supa(path,options){
+    const method=options.method||'GET', body=options.body?JSON.parse(options.body):{};
+    const [p,query='']=path.split('?'); const qs=new URLSearchParams(query); const num=k=>qs.get(k)?Number(qs.get(k)):null; let m;
+    if(!Auth.token()){if(p==='me')return {user:null};throw new Error('다시 로그인해 주세요.');}
+    const call=(name,args)=>Auth.call(name,args);
+    if(p==='me'){const r=await call('bry_me');return r;}
+    if(p==='logout'){Auth.logout();return {};}
+    if(p==='profile')return call('bry_profile',{p_display:body.displayName,p_bio:body.bio,p_symbol:body.avatarSymbol,p_accent:body.accent});
+    if(p==='users')return call('bry_users',{p_q:qs.get('q')||''});
+    if((m=p.match(/^users\/(.+)\/posts$/)))return call('bry_posts',{p_before:num('before'),p_username:decodeURIComponent(m[1])});
+    if(p==='posts')return method==='GET'?call('bry_posts',{p_before:num('before')}):call('bry_post',{p_body:body.body});
+    if((m=p.match(/^posts\/(\d+)\/replies$/)))return method==='GET'?call('bry_replies',{p_id:Number(m[1])}):call('bry_post',{p_body:body.body,p_parent:Number(m[1])});
+    if(p==='memos')return method==='GET'?call('bry_memos',{p_before:num('before')}):call('bry_memo',{p_title:body.title,p_body:body.body});
+    if((m=p.match(/^memos\/(\d+)\/comments$/)))return method==='GET'?call('bry_memo_comments',{p_id:Number(m[1])}):call('bry_memo_comment',{p_memo:Number(m[1]),p_body:body.body,p_parent:body.parentId?Number(body.parentId):null});
+    if((m=p.match(/^delete\/(post|memo|comment)\/(\d+)$/)))return call('bry_delete',{p_kind:m[1],p_id:Number(m[2])});
+    if(p==='dm/threads')return method==='GET'?call('bry_dm_threads'):call('bry_dm_open',{p_username:body.username});
+    if((m=p.match(/^dm\/threads\/(\d+)\/messages$/)))return method==='GET'?call('bry_dm_messages',{p_thread:Number(m[1]),p_before:num('before'),p_after:num('after')}):call('bry_dm_send',{p_thread:Number(m[1]),p_body:body.body});
+    if(p==='admin/dm/threads')return call('bry_admin_dm_threads');
+    if((m=p.match(/^admin\/dm\/threads\/(\d+)\/messages$/)))return call('bry_admin_dm_messages',{p_thread:Number(m[1]),p_before:num('before'),p_after:num('after')});
+    throw new Error('알 수 없는 요청입니다.');
+  }
   async function api(path,options={}){
+    if(SERVER)return supa(path,options);
     let response;
     try {response=await fetch(`api/community/${path}`,{credentials:'same-origin',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});} catch {throw new Error('비령 커뮤니티 서버에 연결할 수 없습니다.');}
     let data;try{data=await response.json();}catch{throw new Error(response.status===404||response.status===405?'이 주소에는 비령 커뮤니티 서버가 연결되어 있지 않습니다. (GitHub Pages 같은 정적 페이지에서는 지도와 화면만 볼 수 있습니다)':'서버에서 잘못된 응답이 왔습니다.');}
@@ -30,7 +54,7 @@
   function authorHeader(item){
     const row=h('div','community-card-head');row.append(avatar(item));
     const name=button(item.display_name||item.username,'community-author',()=>openProfile(item.username));
-    name.append(h('small','',`@${item.username}`)); row.append(name,h('time','community-time',formatDate(item.created_at)));
+    name.append(h('small','',`@${item.username}`)); row.append(name);if(item.chat_title)row.append(h('span','community-chat-title',item.chat_title));row.append(h('time','community-time',formatDate(item.created_at)));
     return row;
   }
   function profileSummary(profile){
@@ -53,8 +77,11 @@
       }));
     }catch(err){host.replaceChildren(empty(err.message));}
   }
+  // 지우기: 쓴 사람 본인 또는 관리자(서버가 다시 확인한다). 서버(Supabase) 연결 때만 보인다.
+  function eraser(kind,item,after){if(!SERVER||!me||!(item.mine||me.role==='admin'))return null;
+    return button('지우기','community-mini-btn community-erase',()=>{if(!window.confirm(item.mine?'이 글을 지울까요?':`@${item.username} 의 글을 운영자 권한으로 지울까요? (감사 기록에 남는다)`))return;attempt(async()=>{await api(`delete/${kind}/${item.id}`,{method:'POST'});await after();});});}
   function postCard(item){const card=h('article','community-card');card.append(authorHeader(item),h('p','community-card-body',item.body));
-    const meta=h('div','community-card-meta');meta.append(h('span','',`답글 ${item.reply_count||0}개`),button('대화 보기 · 답글','community-mini-btn',()=>openPost(item.id)));card.append(meta);return card;}
+    const meta=h('div','community-card-meta');meta.append(h('span','',`답글 ${item.reply_count||0}개`),button('대화 보기 · 답글','community-mini-btn',()=>openPost(item.id)));const er=eraser('post',item,()=>renderSocialReset());if(er)meta.append(er);card.append(meta);return card;}
   async function openCommunity(nextTab){
     tab=nextTab;dialog.showModal();loadedMe=false;stopDmTimer();content.replaceChildren(empty('비령의 기록을 여는 중입니다.'));
     setFeedback('');await render();
@@ -65,14 +92,16 @@
     document.querySelectorAll('[data-community-tab]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.communityTab===tab)));
     if(!loadedMe){try{const data=await api('me');me=data.user;loadedMe=true;}catch(err){account.replaceChildren();content.replaceChildren(empty(err.message));return;}}
     renderAccount();content.replaceChildren();
-    if(!me){renderAuth();return;}
+    if(!me){if(SERVER){content.append(empty('서버 계정으로 로그인되어 있지 않습니다. 오른쪽 위에서 로그아웃한 뒤 같은 아이디로 다시 로그인하면 이어집니다.'));return;}renderAuth();return;}
+    if(SERVER&&!syncedName){syncedName=true;const nm=window.BiryeongApp?.profile?.()?.name;if(nm&&me.display_name===me.username&&nm!==me.username){try{me=(await post('profile',{displayName:String(nm).slice(0,40),bio:me.bio||'',avatarSymbol:me.avatar_symbol||'✦',accent:me.accent||'#d4b078'},'PATCH')).user;renderAccount();}catch{/* 이름 맞추기는 다음에 */}}}
+    window.BiryeongServer?.poll?.();
     if(tab==='social')await renderSocial();else if(tab==='memos')await renderMemos();else await renderDm();
   }
   function renderAccount(){account.replaceChildren();
     if(!me){account.append(h('span','','✦ 비령의 공동체에 참여하려면 계정을 생성하거나 로그인해 주세요.'));return;}
     const left=h('div','account-left');left.append(avatar(me));
     const identity=h('div','account-identity');identity.append(h('strong','',me.display_name),h('small','',`@${me.username}${me.role==='admin'?' · 관리자':''}`));left.append(identity);
-    const actions=h('div');actions.append(button('프로필 꾸미기','',()=>renderEditProfile()),' ',button('로그아웃','',()=>attempt(async()=>{await post('logout',{});me=null;activeThread=null;adminView=false;await render();})));
+    const actions=h('div');actions.append(button('프로필 꾸미기','',()=>renderEditProfile()),...(SERVER?[]:[' ',button('로그아웃','',()=>attempt(async()=>{await post('logout',{});me=null;activeThread=null;adminView=false;await render();}))]));
     account.append(left,actions);
   }
   function renderAuth(){
@@ -116,7 +145,7 @@
       content.append(h('h3','community-stack-title',`이어진 이야기 · ${data.replies.length}개`));
       const replies=h('div');
       if(!data.replies.length)replies.append(empty('아직 이어진 답글이 없습니다.'));
-      for(const reply of data.replies){const card=h('article','community-comment');card.append(authorHeader(reply),h('p','community-card-body',reply.body));replies.append(card);}
+      for(const reply of data.replies){const card=h('article','community-comment');card.append(authorHeader(reply),h('p','community-card-body',reply.body));const er=eraser('post',reply,()=>openPost(id));if(er)card.append(er);replies.append(card);}
       content.append(replies,h('h3','community-stack-title','이야기에 답하기'),composer('이 글에 이어 이야기를 남겨 주세요…',500,'답글 남기기',async text=>{await post(`posts/${id}/replies`,{body:text});await openPost(id);}));
     }catch(err){content.replaceChildren(empty(err.message),button('← 돌아가기','community-back',()=>renderSocialReset()));}
   }
@@ -137,7 +166,7 @@
     content.append(list);
   }catch(err){setFeedback(err.message);}}
   function memoCard(item){const card=h('article','community-card');card.append(authorHeader(item),h('h3','community-card-title',item.title),h('p','community-card-body',item.body));
-    const meta=h('div','community-card-meta');meta.append(h('span','',`댓글 ${item.comment_count||0}개`),button('메모 읽기 · 댓글','community-mini-btn',()=>openMemo(item.id)));card.append(meta);return card;
+    const meta=h('div','community-card-meta');meta.append(h('span','',`댓글 ${item.comment_count||0}개`),button('메모 읽기 · 댓글','community-mini-btn',()=>openMemo(item.id)));const er=eraser('memo',item,()=>renderMemosReset());if(er)meta.append(er);card.append(meta);return card;
   }
   async function renderMemos(){activeMemo=null;memoRows=[];addIntro(explanations.memos);
     const form=h('form','community-form'),title=h('input');title.placeholder='메모 제목';title.required=true;title.maxLength=100;
@@ -164,7 +193,7 @@
       function depth(comment){let n=0,seen=new Set([String(comment.id)]),current=comment;while(current.parent_id && n<3){if(seen.has(String(current.parent_id)))break;seen.add(String(current.parent_id));n++;current=map.get(String(current.parent_id));if(!current)break;}return n;}
       data.comments.forEach(comment=>{const node=h('article','community-comment');node.style.setProperty('--indent',depth(comment));node.append(authorHeader(comment),h('p','community-card-body',comment.body));
         if(comment.parent_id){const parent=map.get(String(comment.parent_id));if(parent)node.append(h('small','community-counter',`↳ @${parent.username}에게 답글`));}
-        const toolbar=h('div','community-comments-toolbar');toolbar.append(button('↳ 답글','community-mini-btn',()=>{node.querySelector('form')?.remove();node.append(composer('대댓글을 입력하세요…',1200,'대댓글 남기기',async text=>{await post(`memos/${id}/comments`,{body:text,parentId:comment.id});await openMemo(id);}));}));node.append(toolbar);tree.append(node);
+        const toolbar=h('div','community-comments-toolbar');toolbar.append(button('↳ 답글','community-mini-btn',()=>{node.querySelector('form')?.remove();node.append(composer('대댓글을 입력하세요…',1200,'대댓글 남기기',async text=>{await post(`memos/${id}/comments`,{body:text,parentId:comment.id});await openMemo(id);}));}));const er=eraser('comment',comment,()=>openMemo(id));if(er)toolbar.append(er);node.append(toolbar);tree.append(node);
       });if(!data.comments.length)tree.append(empty('아직 댓글이 없습니다.'));
       content.append(tree,h('h3','community-stack-title','댓글 남기기'),composer('메모에 이어 이야기를 남겨 주세요…',1200,'댓글 게시',async text=>{await post(`memos/${id}/comments`,{body:text});await openMemo(id);}));
     }catch(err){content.replaceChildren(empty(err.message),button('← 돌아가기','community-back',()=>renderMemosReset()));}
@@ -183,7 +212,7 @@
       for(const t of threads){const label=adminView?`${t.user_low} ↔ ${t.user_high}`:t.other_display_name||t.other_username;
         const row=button(label,'community-dm-item',()=>{activeThread=String(t.id);activeOther=label;initialDM=true;dmLastId=null;dmOldestId=null;renderDm();});
         row.setAttribute('aria-current',String(String(t.id)===String(activeThread)));
-        row.append(h('small','',adminView?`${t.message_count}개 대화`:t.last_body||`@${t.other_username} · 대화를 시작하세요`));list.append(row);
+        row.append(h('small','',adminView?`${t.message_count}개 대화`:t.last_body||`@${t.other_username} · 대화를 시작하세요`));if(t.unread&&String(t.id)!==String(activeThread))row.dataset.unread='1';list.append(row);
       }
       const current=threads.find(t=>String(t.id)===String(activeThread));
       if(!current){chat.append(empty('왼쪽에서 대화를 선택해 주세요.'));activeThread=null;return;}
@@ -241,7 +270,8 @@
     }
     if(shouldScroll)list.scrollTop=list.scrollHeight;initialDM=false;
   }
-  fetch('health',{cache:'no-store'}).then(r=>r.ok?r.json().catch(()=>null):null).then(info=>{
+  if(SERVER){const status=$('#communityConnectionStatus');Auth.rpc('bry_status').then(()=>{if(status)status.textContent='비령 내부 통신 연결';}).catch(()=>{if(status)status.textContent='학당 통신 · 서버 설정 필요';});}
+  else fetch('health',{cache:'no-store'}).then(r=>r.ok?r.json().catch(()=>null):null).then(info=>{
     const status=$('#communityConnectionStatus');if(status)status.textContent=!info?'학당 통신 · 서버 미연결':info.database==='configured'?'비령 내부 통신 연결':'학당 통신 · 서버 설정 필요';
   }).catch(()=>{const status=$('#communityConnectionStatus');if(status)status.textContent='학당 통신 · 서버 미연결';});
   document.querySelectorAll('[data-community]').forEach(btn=>btn.addEventListener('click',()=>openCommunity(btn.dataset.community)));

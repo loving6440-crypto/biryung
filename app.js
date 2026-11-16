@@ -371,7 +371,9 @@
   /* ───────── 관리자 (#/admin). 서버가 필요한 것은 서버가 붙으면 열린다. ───────── */
   function renderAdmin(tab) {
     openPage('管理 / ADMIN', '관리자 도구', 'simple');
-    setTabs(panelTabs, [{ id: 'tools', label: '관리자 도구' }, { id: 'story', label: '스토리 관리' }], tab === 'story' ? 'story' : 'tools', (id) => go(id === 'story' ? '#/admin/story' : '#/admin'));
+    const tabId = ['story', 'server'].includes(tab) ? tab : 'tools';
+    setTabs(panelTabs, [{ id: 'tools', label: '관리자 도구' }, { id: 'story', label: '스토리 관리' }, { id: 'server', label: '서버 관리' }], tabId, (id) => go(id === 'tools' ? '#/admin' : `#/admin/${id}`));
+    if (tab === 'server') { if (window.BiryeongServer) window.BiryeongServer.renderAdmin(panelBody); else panelBody.append(para('불러오는 중이다.')); return; }
     if (tab === 'story') { if (window.BiryeongQuest) window.BiryeongQuest.renderAdminStory(panelBody); else panelBody.append(para('이야기를 불러오는 중이다.')); return; }
     const api = playApi()?.admin, g = () => playApi()?.player;
     if (!profile()) { panelBody.append(needProfile()); }
@@ -417,7 +419,9 @@
     panelBody.append(h('div', 'panel-rule'), h('p', 'panel-label', '관리자 계정에 늘 적용되는 것'));
     const ul = h('ul', 'admin-list');
     ['매점: 값을 치르지 않고 산다.', '공작소 · 조리실: 제작법대로 만들 때 재료가 줄지 않는다.', '무구보관소: 강화 · 특수 강화 · 도깨비 토큰 교환에 재료가 들지 않는다.', '육조 스탯: 상한(50)을 넘겨 999까지 올릴 수 있다.', '패 놀이터 · 수업 꾸미기: 횟수 제한과 잠금이 풀린다.'].forEach((t) => ul.append(h('li', '', t)));
-    panelBody.append(ul, h('div', 'panel-rule'), h('p', 'panel-label', `회원 목록 — 이 브라우저 (${Auth.list().length}명)`));
+    panelBody.append(ul);
+    if (Auth.server) { panelBody.append(h('div', 'panel-rule'), para('회원 · 하사 · 공지 · 밀담 감사 · 감사 기록은 [서버 관리] 탭에 있다.')); return; }
+    panelBody.append(h('div', 'panel-rule'), h('p', 'panel-label', `회원 목록 — 이 브라우저 (${Auth.list().length}명)`));
     const me = Auth.session();
     const list = h('div', 'codex-list');
     Auth.list().forEach((u) => {
@@ -431,10 +435,7 @@
       }
       r.append(h('span', 'codex-mark', u.admin ? '◆' : '◇'), t, side); list.append(r);
     });
-    panelBody.append(list, h('div', 'panel-rule'), h('p', 'panel-label', '서버가 붙으면 열리는 도구'));
-    const later = h('ul', 'admin-list is-later');
-    ['전체 회원 목록 · 접속 현황', '채팅 칭호 달아 주기', '다른 회원의 수치 고치기(당사자 동의 후 적용)', '배경음악 재생 목록', '우편 감사', '급식실 사연 검토'].forEach((t) => later.append(h('li', '', t)));
-    panelBody.append(later, h('p', 'panel-fine', '지금은 계정과 기록이 이 브라우저에만 있어, 위 도구는 서버(Render)를 붙인 뒤에 쓸 수 있다. 관리자 코드는 서버의 ADMIN_CODE 환경변수로 확인한다.'));
+    panelBody.append(list, para('지금은 서버가 연결되지 않아 계정과 기록이 이 브라우저에만 있다. Supabase 를 연결하면 [서버 관리] 탭에서 전체 회원 · 하사 · 공지 · 밀담 감사를 다룬다. 연결 순서: supabase/README.md'));
   }
 
   /* ───────── 바로 실행 페이지 (#/go/…) ───────── */
@@ -518,6 +519,7 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   const UPDATE_NOTES = [
+    { v: 'v1.9', date: '2026-11-16', lines: ['서버(Supabase)를 연결하면 계정과 기록이 서버에 보관된다. 어느 기기에서든 같은 아이디로 이어서 한다.', '지신성 · 낮새들의 터 · 밤쥐들의 터가 게임 계정 그대로 열린다. 자기 글은 지울 수 있고, 안 읽은 밀담은 단추에 숫자로 뜬다.', '관리자 › 서버 관리: 공지(속보 띠) · 하사(냥 · 영력 · 아이템) · 회원 관리(칭호 · 글쓰기 정지 · 계정 정지 · 비밀번호 초기화 · 기록 열람) · 밀담 감사 · 감사 기록.', '본편 이야기는 배경 그림과 장면 그림 없이, 보던 화면 위의 대사 창에서 대사를 넘기며 진행한다.'] },
     { v: 'v1.8', date: '2026-11-16', lines: ['본편 이야기를 새 원고로 다시 짰다 — 1권 「신공강림」 프롤로그 · 1장 「불리지 않은 이름」 · 2장 「저 이승의 장례식」.', '프롤로그는 튜토리얼이다. 프로필을 만들면 바로 이어지고, 별관 강당 · 뒷산 무구보관소를 지나 유품을 무구로 받는다.', '1장부터는 공개된 장만 열린다. 열리기 전에는 권과 장의 이름만 보이고 [아직 열리지 않은 이야기입니다.]라고 적혀 있다.', '이야기 화면이 바뀌었다 — 장소마다 배경이 깔리고, 종소리 · 문틈 빛 · 꺼진 촛불 · 단말기의 붉은 빛 · 먹물 · 흔들림 · 뉴스 화면 · 장 표제가 화면으로 흐른다. 글자로 나오는 것은 대사와 지문뿐이다.', '선택은 서버에 모인다. 산문 너머 › 모두의 선택에서 내가 고른 것과 다른 학생들의 비율을 본다. 2장의 당산신 선택은 고른 것에 따라 싸우는 상대와 뒷이야기가 달라진다.', '바깥 지역 「서울」이 「강릉」(강릉 시내)이 되었다. 속보 띠 · 사건 개요의 연도를 2035~2036년으로 맞췄다.', '지도 제목 뒤의 꼬리말(IS …)을 지웠다.'] },
     { v: 'v1.7', date: '2026-11-16', lines: ['업적 / 도감에 [아이템] [영능력] [적] 칸이 생겼다.', '아이템 — 한 번이라도 손에 넣은 것은 도트 · 효과 · 해설 · 설명 · 획득처가 모두 보인다. 아직 손에 넣지 못한 것은 이름과 획득처만 보인다.', '영능력 — 익히기 전에는 이름만 보인다.', '적 — 직접 만나 본 상대만 적힌다. 등장 위치 · 영능력(둘이면 둘 다, 효과까지) · 떨어뜨리는 것 · 수치를 볼 수 있지만, 안목이 상대의 영력보다 낮으면 일부 수치와 영능력은 가려져 있다.'] },
     { v: 'v1.6', date: '2026-11-16', lines: ['명부 등록 직후, 화면 전체를 채우는 오프닝이 흐른다(섣달그믐의 화면들 → 정확도 100% → 문틈의 손 → 제야의 종 → 빈 안방 → 괴담 → 비령산 → 산문 단말기). 끝나면 「내 프로필 만들기」로 이어진다. 프로필 화면의 [오프닝 다시 보기]로 다시 볼 수 있다.', '지도는 지금 있는 곳의 것만 보인다 — 본관에선 본관, 뒷산에선 뒷산. 지도를 눌러 옮겨 가는 기능은 없앴다. 대신 마지막으로 들른 곳이 「지금 여기」로 깜빡인다.', '오방 지도의 사당 그림을 다른 네 구역과 같은 결의 도트 그림으로 새로 그렸다.', '아이템 시트(v3) 반영 — 붉은여우 부적이 바뀌었다: 일행(파티) 상태에서만 쓰고, 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다). 느타리 전골 · 매깃 철릭 · 붉은 지네 부적의 해설이 바뀌었다.', '칭호 40개의 이름을 고쳤다(기밀 열람자 → 열람자, 공방 단골 → 망치질 단골, 운동하는 학생 → 붉은 피 …). 업적 「밥 짓는 사람」은 「늘 밥을 해줬어」가 되었다.', '관리자 코드: GitHub 의 ADMIN_CODE 를 Secret 으로도 Variable 로도 읽는다. 사이트가 아직 임시 코드를 쓰고 있으면 로그인 화면이 그렇다고 알려 준다.'] },
@@ -594,7 +596,7 @@
     const foot = h('div', 'profile-actions');
     foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => go('#/codex/titles')));
     if (window.BiryeongOpening) foot.append(btn('ghost-btn', '오프닝 다시 보기', () => window.BiryeongOpening.play({ replay: true })));
-    panelBody.append(foot, h('p', 'panel-fine', '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
+    panelBody.append(foot, h('p', 'panel-fine', Auth.server ? '프로필과 진행 기록은 비령 서버에 함께 보관됩니다. 다른 기기에서도 같은 아이디로 이어집니다.' : '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
   function renderProfileForm(p) {
     const creating = !p;

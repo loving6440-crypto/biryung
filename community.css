@@ -72,3 +72,9 @@
 .community-editor{max-width:510px}.community-editor .community-form{margin-top:16px}
 @media(max-width:780px){.community-shortcuts small{display:none}.community-shortcuts{gap:6px}.community-shortcuts button{gap:4px;font-size:11px}.community-dialog{height:calc(100dvh - 12px);max-height:calc(100dvh - 12px)}.community-content{padding:13px}.community-window-head{padding:12px 15px}.community-account{padding:9px 13px}.community-dm-layout{grid-template-columns:1fr;min-height:0}.community-dm-sidebar{max-height:205px}.community-dm-chat{min-height:360px}}
 @media(max-width:480px){.community-shortcuts button{font-size:10px;min-height:44px}.shortcut-mark{font-size:13px}.map-legend{font-size:8px}.community-tabs button{font-size:10px;padding:12px 2px}.community-window-head h2{font-size:18px}.community-account{flex-wrap:wrap}.community-card{padding:11px}.community-time{font-size:9px}}
+/* v1.9 서버 연결: 칭호 · 안 읽은 밀담 · 지우기 */
+.community-chat-title{flex:none;padding:1px 7px;border:1px solid #d4b078;color:#f2d24a;font-size:11px;letter-spacing:.04em}
+.community-erase{margin-left:6px;border-color:#7a4a48 !important;color:#e2b3ae !important;background:#2a1d1f !important}
+[data-community][data-unread],[data-community-tab][data-unread]{position:relative}
+[data-community][data-unread]::after,[data-community-tab][data-unread]::after{content:attr(data-unread);position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;display:grid;place-items:center;background:#b8403a;color:#fff;font:11px 'Galmuri9',sans-serif;border:1px solid #0e1928}
+.community-dm-item[data-unread]{border-left:3px solid #b8403a}

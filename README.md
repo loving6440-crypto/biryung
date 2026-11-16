@@ -139,6 +139,7 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
   - 원고 읽는 규칙 · 줄마다 붙는 연출(FX) · 트리거 → 단계 대응은 build_v4.py 머리말과 표(NARR · FX · TRIG)에 있다.
 - 이야기 화면(`quest.js`): 연출은 글자가 아니라 화면 효과다(배경 · 장면 그림 · 흔들림 · 붉은 빛 · 먹물 · 뉴스 · 단말기 타자 · 구석 속삭임 · 장 표제 · 방울 소리). 글자로 나오는 것은 대사와 지문(행동지문 칸의 괄호 밖 글)뿐.
 - 장 공개: 서버(Supabase)가 있으면 `story_chapters` 표 + `story_admin_list` · `story_admin_set`(관리자 코드 확인) — 공개 전 내용은 서버가 학생에게 내주지 않는다. 없으면 이 브라우저에만 적용.
+- v1.9 서버(Supabase) 한 벌: 계정 · 기록(어느 기기에서든 이어 하기) · 지신성 · 낮새들의 터 · 밤쥐들의 터 · 관리자 › 서버 관리(공지 · 하사 · 회원 · 감사 기록). 화면 쪽은 `auth.js` · `community.js` · `server.js`, 서버 쪽은 `supabase/schema.sql` 의 `bry_*` 함수. Render 서버 없이 GitHub Pages + Supabase 만으로 돈다. 연결 순서: `supabase/README.md`
 - 선택: 모든 선택이 `story_choices` 에 올라간다. 관리자 › 스토리 관리에서 선택지별 인원 · 누가 무엇을 골랐는지 본다. 2장 당산신 선택(C2-3)은 투표로 표시되고 마지막 전투 상대와 뒷대사가 바뀐다.
 - 새 배경: `assets/city_scene.png`(강릉) · `assets/village_scene.png`(청암리) — `systems/art/story_scenes.py`.
 - 오프닝 자막은 원고의 첫 줄들(행 2 · 3 · 4 · 5 · 7)이고, 프롤로그는 그 다음 줄부터 잇는다.

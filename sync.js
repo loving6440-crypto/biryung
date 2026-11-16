@@ -8,8 +8,8 @@
  * 올리는 것  choice(분기, 고른 번호)   — 본편의 주요 선택(B1-1 … B15-2). 한 사람당 분기마다 한 줄(다시 고르면 덮어쓴다)
  *            contrib(사건, 양)         — 공동 사건 기여(B7-2 쌍응수 · erased-map 지워진 지도 · B12-1 신격 레이드 · final 오방 결전)
  *            progress(끝낸 장면 수)    — 진행도
- *            saveCloud(기록)           — 기록 전체 백업(다른 기기에서 이어 하기용)
- * 읽는 것    tally()                   — 분기별 선택 집계(세계 탭)   contribTotals() — 사건별 합계   loadCloud()
+ * 읽는 것    tally()                   — 분기별 선택 집계(세계 탭)   contribTotals() — 사건별 합계
+ * 계정 · 기록 · 소통 공간 · 관리자 도구는 auth.js(로그인 · 기록) · community.js · server.js 가 bry_* 함수로 다룬다.
  *
  * 누구인지: 계정마다 무작위 player_id(uuid)를 하나 만들어 이 브라우저에 둔다(biryeong-sync-id:<아이디>).
  * 정식 로그인(Supabase Auth)으로 바꿀 때는 playerId() 만 auth.uid() 로 바꾸고 schema.sql 의 정책을 좁히면 된다.
@@ -49,8 +49,6 @@
     choice: (branch, option) => (enabled ? upsert('story_choices', { player_id: playerId(), account: account(), branch, option, updated_at: now() }, 'player_id,branch') : null),
     contrib: (event, amount = 1) => (enabled ? quiet(call('story_contrib', { method: 'POST', body: { player_id: playerId(), account: account(), event, amount }, prefer: 'return=minimal' })) : null),
     progress: (scenes) => (enabled ? upsert('story_progress', { player_id: playerId(), account: account(), scenes, updated_at: now() }, 'player_id') : null),
-    saveCloud: (data) => (enabled ? upsert('cloud_saves', { player_id: playerId(), account: account(), data, updated_at: now() }, 'player_id') : null),
-    loadCloud: async () => { if (!enabled) return null; const rows = await call(`cloud_saves?player_id=eq.${playerId()}&select=data,updated_at`); return rows?.[0] ?? null; },
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),
     // v1.8 본편 장 공개: 공개된 장만 서버가 내준다(행 수준 보안). 관리자 쓰기는 관리자 코드를 받는 함수(RPC)로만.
     openChapters: async () => (enabled ? call('story_chapters?select=ch,title,content&order=ch') : []),

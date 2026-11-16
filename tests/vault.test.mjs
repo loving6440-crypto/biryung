@@ -319,7 +319,7 @@ test('v1.6: 아이템 시트 수정 — 붉은여우 부적은 일행 전용 · 
 test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자료(아이템 · 영능력 · 적)가 있다', async () => {
   const assert17 = (await import('node:assert/strict')).default
   const { readFileSync } = await import('node:fs')
-  const files = ['index.html', 'app.js', 'auth.js', 'config.js', 'styles.css', 'community.js', 'community.css', 'game-data.js', 'titles.js', 'titles2.js', 'story.js', 'story-data.js', 'sync.js', 'quest.js', 'opening.js', 'codex-data.js', 'play/play.js', 'play/play.css']
+  const files = ['index.html', 'app.js', 'auth.js', 'config.js', 'styles.css', 'community.js', 'community.css', 'game-data.js', 'titles.js', 'titles2.js', 'story.js', 'story-data.js', 'sync.js', 'quest.js', 'opening.js', 'codex-data.js', 'server.js', 'play/play.js', 'play/play.css']
   for (const f of files) {
     const t = readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
     assert17.ok(!/초록동색|草綠|창록|昌綠|chorok|changnok|C\.01/i.test(t), `${f} 에 옛 이름이 남았다`)
@@ -343,4 +343,32 @@ test('v1.8: 1 · 2장 장 파일은 사이트에 올라가지 않는다(관리�
   const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
   assert18.ok(/chapters_read_open[\s\S]*open_at <= now\(\)/.test(sql), '공개 전 장은 서버가 내주지 않는다')
   assert18.ok(/story_admin_set/.test(sql) && /option between 1 and 12/.test(sql))
+})
+
+// ───────── v1.9 서버(Supabase): 계정 · 기록 · 소통 공간 · 관리자 / 이야기 화면은 그림 없이 ─────────
+import { test as t19 } from 'node:test'
+import assert19 from 'node:assert/strict'
+t19('v1.9: 서버 함수가 모두 있고, 표는 공개 키로 직접 닿지 않는다', () => {
+  const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  const used = new Set()
+  for (const f of ['auth.js', 'community.js', 'server.js']) for (const m of readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').matchAll(/'(bry_[a-z_]+)'/g)) used.add(m[1])
+  assert19.ok(used.size >= 25, `화면이 부르는 서버 함수 ${used.size}개`)
+  for (const fn of used) assert19.ok(new RegExp(`create or replace function public\\.${fn}\\(`).test(sql), `schema.sql 에 ${fn} 이 없다`)
+  assert19.ok(/revoke all on all tables in schema biryeong_private from anon, authenticated/.test(sql))
+  assert19.ok(/revoke all on public\.cloud_saves from anon/.test(sql), '예전 기록 백업 표는 닫는다')
+  assert19.ok(/crypt\(p_password, gen_salt\('bf'/.test(sql), '비밀번호는 bcrypt 해시로만')
+  for (const fn of ['bry_admin_users', 'bry_admin_user_set', 'bry_admin_dm_messages', 'bry_admin_grant', 'bry_admin_notice', 'bry_admin_audit', 'bry_admin_save'])
+    assert19.ok(new RegExp(`function public\\.${fn}\\([\\s\\S]{0,400}?:= adm\\(p_token\\)`).test(sql), `${fn} 은 관리자만`)
+})
+t19('v1.9: 새 키(sb_publishable_)는 Authorization 에 넣지 않는다 · server.js 가 배포된다', () => {
+  for (const f of ['auth.js', 'sync.js']) assert19.ok(/\^eyJ/.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')), f)
+  assert19.ok(/server\.js/.test(readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8')))
+  assert19.ok(/'server\.js'/.test(readFileSync(new URL('../server/index.mjs', import.meta.url), 'utf8')))
+  assert19.ok(/src="server\.js"/.test(readFileSync(new URL('../index.html', import.meta.url), 'utf8')))
+})
+t19('v1.9: 이야기 화면에 배경 · 장면 그림이 없다', () => {
+  const q = readFileSync(new URL('../quest.js', import.meta.url), 'utf8')
+  assert19.ok(!/vn-bg|vn-stage|vn-fx|_scene\.png|BiryeongOpening\?*\.stage/.test(q), '이야기 화면은 대사 창만')
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
+  assert19.ok(!/\.vn-bg|\.vn-stage|\.vn-tint|\.vn-crack|\.vn-ink/.test(css))
 })

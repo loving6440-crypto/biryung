@@ -378,16 +378,12 @@
   }
 
   /* ───────── 이야기 화면 ─────────
-   * 배경(장면 · 단계의 장소) 위에 대사 창. 연출은 글자로 나오지 않고 화면 효과가 된다. */
-  const BG = {
-    north: 'assets/north_scene.png', east: 'assets/east_scene.png', west: 'assets/west_scene.png', south: 'assets/south_scene.png', center: 'assets/center_scene.png',
-    city: 'assets/city_scene.png', village: 'assets/village_scene.png',
-  };
-  const bgOfPlace = (w) => (/^out:gangneung/.test(w) ? 'city' : /^out:cheongam/.test(w) ? 'village' : /^(annex|mainHall|infirmary)/.test(w) ? 'east' : /^dorm/.test(w) ? 'west' : /^gym/.test(w) ? 'south' : /^shrine/.test(w) ? 'center' : w === 'north' ? 'north' : '');
+   * v1.9: 그림 연출 없이, 지금 보던 화면 위의 대사 창에서 대사를 넘기기만 한다(배경 · 장면 그림 없음).
+   *       남기는 것은 창 자체의 흔들림 · 번쩍임 · 붉은 테두리 · 방울 소리 · 기울인 글씨뿐이다. */
   let layer = null;
   function ensureLayer() {
     if (layer) return layer;
-    layer = h('div', 'scene-layer vn'); layer.id = 'sceneLayer'; layer.hidden = true; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-label', '이야기');
+    layer = h('div', 'scene-layer'); layer.id = 'sceneLayer'; layer.hidden = true; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-label', '이야기');
     document.body.append(layer);
     return layer;
   }
@@ -407,49 +403,22 @@
     const q = Q(), L = ensureLayer();
     const list = [];
     for (let i = from; i < to; i++) { const ln = scene.lines[i]; if (ln.op && !replay && scene.id === 'P-1') continue; list.push([i, ln]); }
-    let at = 0, typing = null, bgNow = '', stageNow = '';
-    const st = scene.steps.find((x) => x.l && x.l[0] <= from && from < x.l[1]) || scene.steps.find((x) => x.pre && x.pre[0] <= from && from < x.pre[1]);
-    const bgBase = (st && bgOfPlace(st.w)) || scene.bg || '';
-    const bgEl = h('div', 'vn-bg'), tint = h('div', 'vn-tint'), stageEl = h('div', 'vn-stage'), fxEl = h('div', 'vn-fx'), corner = h('div', 'vn-corner'), cardEl = h('div', 'vn-card');
-    const win = h('div', 'scene-win vn-win');
+    let at = 0, typing = null;
+    const win = h('div', 'scene-win');
     const head = h('div', 'scene-head'); head.append(h('span', '', `${scene.ch ? `${scene.ch}장` : '프롤로그'} · ${scene.title}`), h('small', '', `${scene.place} · ${scene.time}`));
     const body = h('div', 'scene-body'), foot = h('div', 'scene-foot');
     win.append(head, body, foot);
-    L.className = 'scene-layer vn'; L.replaceChildren(bgEl, tint, stageEl, fxEl, corner, cardEl, win); L.hidden = false; document.body.classList.add('is-scene'); drawTracker();
-    const setBg = (key) => {
-      const [base, mood] = String(key || '').split('-');
-      if (key === bgNow) return; bgNow = key;
-      bgEl.style.backgroundImage = BG[base] ? `url('${BG[base]}')` : 'none';
-      bgEl.dataset.mood = mood || (base === 'night' ? 'night' : ''); bgEl.dataset.base = base || '';
-      bgEl.classList.remove('is-in'); void bgEl.offsetWidth; bgEl.classList.add('is-in');
-    };
-    setBg(bgBase);
+    L.className = 'scene-layer'; L.replaceChildren(win); L.hidden = false; document.body.classList.add('is-scene'); drawTracker();
     const close = () => { clearInterval(typing); L.hidden = true; L.replaceChildren(); document.body.classList.remove('is-scene'); document.removeEventListener('keydown', onKey); persist(); onEnd && onEnd(); setTimeout(flushCards, 200); };
     const onKey = (e) => { if (L.hidden || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return; if (e.key === 'Enter' || e.key === ' ') { const b = foot.querySelector('.scene-next'); if (b) { e.preventDefault(); b.click(); } } };
     document.addEventListener('keydown', onKey);
     function pulse(cls, ms) { L.classList.remove(cls); void L.offsetWidth; L.classList.add(cls); setTimeout(() => L.classList.remove(cls), ms); }
     function applyFx(fx) {
-      const keep = [];
-      let stage = '';
-      (fx || []).forEach((f) => {
-        const [k, v] = f.split(':');
-        if (k === 'bg') setBg(v);
-        else if (k === 'stage') stage = v;
-        else if (k === 'shake') pulse('fx-shake', 600);
-        else if (k === 'flash') pulse('fx-flash', 450);
-        else if (k === 'bell') { const r = h('i', 'vn-ring'); fxEl.append(r); setTimeout(() => r.remove(), 2200); bellSound(1); }
-        else if (k === 'crack') { const c = h('i', 'vn-crack'); fxEl.append(c); setTimeout(() => c.remove(), 2400); }
-        else if (k === 'rope') { const c = h('i', 'vn-rope'); fxEl.append(c); setTimeout(() => c.remove(), 1600); }
-        else if (k === 'ink') { for (let i = 0; i < 9; i++) { const d = h('i', 'vn-ink'); d.style.left = `${8 + Math.random() * 84}%`; d.style.top = `${6 + Math.random() * 60}%`; d.style.animationDelay = `${Math.random() * 0.5}s`; fxEl.append(d); setTimeout(() => d.remove(), 2600); } keep.push('ink'); }
-        else if (['dim', 'cold', 'warm', 'red', 'red2', 'distort', 'mist', 'water', 'tv', 'radio', 'ticker', 'paper', 'name', 'italic', 'vote'].includes(k)) keep.push(k);
-      });
-      tint.className = `vn-tint ${keep.map((k) => `is-${k}`).join(' ')}`;
-      L.dataset.fx = keep.join(' ');
-      if (stage !== stageNow) {
-        stageNow = stage; stageEl.replaceChildren();
-        if (stage) { const s = h('div', `op-scene op-scene-${stage}`); stageEl.append(s); if (!window.BiryeongOpening?.stage(stage, s)) stageEl.replaceChildren(); }
-        L.classList.toggle('has-stage', !!stage && stageEl.children.length > 0);
-      }
+      const list = (fx || []).map((f) => f.split(':')[0]);
+      if (list.includes('shake')) pulse('fx-shake', 600);
+      if (list.includes('flash')) pulse('fx-flash', 450);
+      if (list.includes('bell')) bellSound(1);
+      win.classList.toggle('is-red', list.includes('red') || list.includes('red2'));
     }
     function nextBtn(label) {
       const next = btn('solid-btn scene-next', label || (at >= list.length - 1 ? '닫는다' : '다음'), () => {
@@ -474,24 +443,19 @@
       while (at < list.length && !ok(list[at][1].c)) at += 1;
       if (at >= list.length) { close(); return; }
       const [idx, ln] = list[at]; const key = `${scene.id}:${idx}`;
-      body.replaceChildren(); foot.replaceChildren(); corner.replaceChildren(); cardEl.replaceChildren(); L.classList.remove('is-card', 'is-cornered');
+      body.replaceChildren(); foot.replaceChildren();
       applyFx(ln.fx);
       if (ln.t === 'choice') { choice(ln, key); return; }
       if (ln.t === 'end') { endCard(ln.ch); return; }
       const fx = ln.fx || [];
-      if (fx.includes('corner')) { // 화면 구석에 작게 — 대사 창 밖, 구석에 떠오른다
-        L.classList.add('is-cornered');
-        const c = h('div', `vn-corner-text is-${ln.t}`); c.append(h('b', '', ln.t === 'b' ? '秘靈' : (ln.w || ''))); const p = h('p', ''); c.append(p); corner.append(c); typeInto(p, fill(ln.x), 45);
-        nextBtn(); return;
-      }
-      const row = h('div', `scene-line is-${ln.t}`);
+      const row = h('div', `scene-line is-${ln.t}${fx.includes('corner') ? ' is-small' : ''}`);
       if (ln.t === 'say' || ln.t === 'news') {
         const shown = ln.unk ? '??' : fill(ln.w || '');
         row.append(portrait(ln.w || '', shown));
         const tx = h('div', 'scene-text'); tx.append(h('b', 'scene-name', shown), textEl('', fill(ln.x), fx));
         if (ln.a) tx.append(h('p', 'scene-action', fill(ln.a)));
         row.append(tx);
-        if (ln.t === 'news') { row.classList.add('is-news'); row.prepend(h('span', 'vn-onair', 'LIVE')); }
+        if (ln.t === 'news') row.classList.add('is-news');
       } else if (ln.t === 'b') {
         row.append(portrait('비령', '비령'));
         const tx = h('div', 'scene-text'); const p = h('p', 'scene-term'); tx.append(h('b', 'scene-name', '비령'), p); row.append(tx);
@@ -501,11 +465,10 @@
         const c = h('div', 'vn-system'); c.append(h('span', '', '◆'), textEl('', fill(ln.x), fx)); row.append(c);
       } else if (ln.t === 'i') {
         const c = h('div', 'vn-inspect'); c.append(h('b', '', `「${itemName('st-bell302')}」`), textEl('', fill(ln.x), fx)); row.append(c);
-        applyFx([...(ln.fx || []), 'bell']);
+        bellSound(1);
       } else {
         const tx = h('div', 'scene-text is-narr');
-        if (fx.includes('paper')) { const pc = h('div', 'vn-paper'); pc.append(textEl('', fill(ln.x), fx)); tx.append(pc); }
-        else tx.append(textEl('', fill(ln.x), fx));
+        tx.append(textEl('', fill(ln.x), fx));
         if (ln.a) tx.append(h('p', 'scene-action', fill(ln.a)));
         row.append(tx);
       }
@@ -514,9 +477,8 @@
     }
     function endCard(ch) {
       const c = chapterOf(ch);
-      L.classList.add('is-card');
       const box = h('div', 'vn-title is-end'); box.append(h('small', '', `${volOf(c.vol).title ? `제${c.vol}권 · ${volOf(c.vol).title}` : ''}`), h('b', '', `${ch}장 ─ ${c.title}`), h('span', 'vn-title-seal', '終'));
-      cardEl.append(box); nextBtn('닫는다');
+      body.append(box); nextBtn('닫는다');
     }
     function choice(ln, key) {
       const already = q.picked[key];
@@ -547,10 +509,9 @@
     const firstOfChapter = SCENES.find((s) => s.ch === scene.ch) === scene && from === 0;
     if (firstOfChapter && !replay) {
       const c = chapterOf(scene.ch);
-      L.classList.add('is-card');
       const box = h('div', 'vn-title'); box.append(h('small', '', `제${c.vol}권 · ${volOf(c.vol).title}${volOf(c.vol).hanja ? ` (${volOf(c.vol).hanja})` : ''}`), h('b', '', scene.ch ? `${scene.ch}장 ─ ${c.title}` : c.title));
-      cardEl.append(box);
-      foot.append(btn('solid-btn scene-next', '시작한다', () => { L.classList.remove('is-card'); cardEl.replaceChildren(); show(); }));
+      body.append(box);
+      foot.append(btn('solid-btn scene-next', '시작한다', () => show()));
       foot.querySelector('button').focus();
     } else show();
   }
@@ -651,13 +612,15 @@
   /* ───────── 관리자 [스토리 관리] (#/admin/story) ─────────
    * 장 파일 올리기 · 지금 공개 · 공개 시각 정하기 · 닫기 / 선택 집계(선택지마다 몇 명) · 누가 무엇을 골랐는지. */
   const codeKey = 'biryeong-admin-code-session';
-  const adminCode = () => { try { return sessionStorage.getItem(codeKey) || ''; } catch (_) { return ''; } };
+  // 관리자 계정으로 서버에 로그인해 있으면 코드를 다시 묻지 않는다(계정의 표로 통과).
+  const adminToken = () => { const A = window.BiryeongAuth; return A?.server && A.isAdmin() && A.token() ? `token:${A.token()}` : ''; };
+  const adminCode = () => { if (adminToken()) return adminToken(); try { return sessionStorage.getItem(codeKey) || ''; } catch (_) { return ''; } };
   function renderAdminStory(body) {
     const sync = Sync(); const server = !!sync?.enabled;
     body.append(para(server
       ? '서버(Supabase)에 연결되어 있다. 장을 공개하면 모든 학생에게 열린다. 공개 전 장의 내용은 서버가 학생에게 내주지 않는다.'
       : '서버가 연결되지 않았다. 여기서 올리고 공개한 장은 이 브라우저(이 기기의 모든 계정)에만 적용된다. config.js 에 Supabase 를 연결하면 모두에게 공개된다.'));
-    if (server) {
+    if (server && !adminToken()) {
       const f = h('form', 'admin-form story-code'); const inp = h('input'); inp.type = 'password'; inp.placeholder = '관리자 코드 (이 탭이 닫힐 때까지 기억)'; inp.value = adminCode(); inp.autocomplete = 'off';
       const b = h('button', 'ghost-btn', '코드 기억'); b.type = 'submit'; f.append(h('span', 'panel-label', '서버에 쓰려면 관리자 코드가 한 번 더 필요하다'), inp, b);
       f.addEventListener('submit', (e) => { e.preventDefault(); try { sessionStorage.setItem(codeKey, inp.value.trim()); } catch (_) { /* 무시 */ } toast('스토리 관리', '관리자 코드를 기억했다.'); App.route(); });
