@@ -338,7 +338,7 @@
     $('#mapDialogTitle').textContent = `${m.name} 지도`;
     const here = hereOf(m);
     const board = h('div', `pxmap pxmap-${m.color}`);
-    const title = h('div', 'pxmap-title'); title.append(h('b', '', m.hanja), h('span', '', m.name), h('i', '', 'IS'), h('em', '', m.id === 'gym' ? '금역' : m.id === 'shrine' ? '금지' : '학당'));
+    const title = h('div', 'pxmap-title'); title.append(h('b', '', m.hanja), h('span', '', m.name));
     board.append(title);
     board.append(h('p', 'pxmap-note', here.level ? '■ 깜빡이는 칸이 지금 있는 곳이다. 지도는 보기만 할 수 있다 — 걸어서 가야 한다.' : '지도는 보기만 할 수 있다 — 걸어서 가야 한다.'));
     const levels = m.id === 'gym' || m.id === 'shrine' ? m.levels : m.levels.slice().reverse(); // 건물은 위층이 위에
@@ -368,9 +368,11 @@
   $('#mapClose').addEventListener('click', () => mapDialog.close());
   mapDialog.addEventListener('click', (event) => { if (event.target === mapDialog) mapDialog.close(); });
 
-  /* ───────── 관리자 (#/admin) — 초록동색 관리자 도구와 같은 일. 서버가 필요한 것은 서버가 붙으면 열린다. ───────── */
-  function renderAdmin() {
+  /* ───────── 관리자 (#/admin). 서버가 필요한 것은 서버가 붙으면 열린다. ───────── */
+  function renderAdmin(tab) {
     openPage('管理 / ADMIN', '관리자 도구', 'simple');
+    setTabs(panelTabs, [{ id: 'tools', label: '관리자 도구' }, { id: 'story', label: '스토리 관리' }], tab === 'story' ? 'story' : 'tools', (id) => go(id === 'story' ? '#/admin/story' : '#/admin'));
+    if (tab === 'story') { if (window.BiryeongQuest) window.BiryeongQuest.renderAdminStory(panelBody); else panelBody.append(para('이야기를 불러오는 중이다.')); return; }
     const api = playApi()?.admin, g = () => playApi()?.player;
     if (!profile()) { panelBody.append(needProfile()); }
     else if (!api) panelBody.append(para('실행 화면을 불러오는 중이다. 잠시 뒤 다시 열어 주세요.'));
@@ -464,7 +466,7 @@
     head.append(h('p', 'story-chapter', STORY.chapter), h('p', 'panel-count', `진행 ${current < 0 ? STORY.steps.length : current} / ${STORY.steps.length}${save.story.heirloom ? ` · 유품: ${HEIRLOOM[save.story.heirloom]?.name ?? ''}` : ''}`));
     panelBody.append(head);
     const pre = h('details', 'story-premise'); pre.open = current <= 0;
-    pre.append(h('summary', '', '2046 · 비령'), ...STORY.premise.map((t) => para(t)));
+    pre.append(h('summary', '', '2035 · 비령'), ...STORY.premise.map((t) => para(t)));
     panelBody.append(pre);
     STORY.steps.forEach((step, i) => {
       const done = !!save.story.done[step.id], now = i === current;
@@ -496,7 +498,7 @@
 
   /* ───────── 사건 기록 · 소지금 · 업데이트 노트 ───────── */
   function renderCase() {
-    openPage('檔案 001 / 2046 · 무속인 전원 실종 사건', '그날 사라진 사람들', 'simple');
+    openPage('檔案 001 / 2036 · 무속인 실종 사건', '그날 사라진 사람들', 'simple');
     STORY.premise.forEach((t) => panelBody.append(para(t)));
     ['무당들이 사라진 이후 전국에서는 기이한 현상이 발생하기 시작한다. 사당의 신들이 모습을 드러내고, 오래전에 죽은 사람들이 살아 돌아오며, 인간의 기억 속에만 존재하던 괴담이 현실이 된다.',
       '실종된 무당들의 자녀에게는 공통점이 있었다. 모두 실종 직전 부모에게 정체불명의 물건을 하나씩 받았다는 것. 방울, 부채, 거울, 칼, 오색천.',
@@ -516,17 +518,19 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   const UPDATE_NOTES = [
+    { v: 'v1.8', date: '2026-11-16', lines: ['본편 이야기를 새 원고로 다시 짰다 — 1권 「신공강림」 프롤로그 · 1장 「불리지 않은 이름」 · 2장 「저 이승의 장례식」.', '프롤로그는 튜토리얼이다. 프로필을 만들면 바로 이어지고, 별관 강당 · 뒷산 무구보관소를 지나 유품을 무구로 받는다.', '1장부터는 공개된 장만 열린다. 열리기 전에는 권과 장의 이름만 보이고 [아직 열리지 않은 이야기입니다.]라고 적혀 있다.', '이야기 화면이 바뀌었다 — 장소마다 배경이 깔리고, 종소리 · 문틈 빛 · 꺼진 촛불 · 단말기의 붉은 빛 · 먹물 · 흔들림 · 뉴스 화면 · 장 표제가 화면으로 흐른다. 글자로 나오는 것은 대사와 지문뿐이다.', '선택은 서버에 모인다. 산문 너머 › 모두의 선택에서 내가 고른 것과 다른 학생들의 비율을 본다. 2장의 당산신 선택은 고른 것에 따라 싸우는 상대와 뒷이야기가 달라진다.', '바깥 지역 「서울」이 「강릉」(강릉 시내)이 되었다. 속보 띠 · 사건 개요의 연도를 2035~2036년으로 맞췄다.', '지도 제목 뒤의 꼬리말(IS …)을 지웠다.'] },
+    { v: 'v1.7', date: '2026-11-16', lines: ['업적 / 도감에 [아이템] [영능력] [적] 칸이 생겼다.', '아이템 — 한 번이라도 손에 넣은 것은 도트 · 효과 · 해설 · 설명 · 획득처가 모두 보인다. 아직 손에 넣지 못한 것은 이름과 획득처만 보인다.', '영능력 — 익히기 전에는 이름만 보인다.', '적 — 직접 만나 본 상대만 적힌다. 등장 위치 · 영능력(둘이면 둘 다, 효과까지) · 떨어뜨리는 것 · 수치를 볼 수 있지만, 안목이 상대의 영력보다 낮으면 일부 수치와 영능력은 가려져 있다.'] },
     { v: 'v1.6', date: '2026-11-16', lines: ['명부 등록 직후, 화면 전체를 채우는 오프닝이 흐른다(섣달그믐의 화면들 → 정확도 100% → 문틈의 손 → 제야의 종 → 빈 안방 → 괴담 → 비령산 → 산문 단말기). 끝나면 「내 프로필 만들기」로 이어진다. 프로필 화면의 [오프닝 다시 보기]로 다시 볼 수 있다.', '지도는 지금 있는 곳의 것만 보인다 — 본관에선 본관, 뒷산에선 뒷산. 지도를 눌러 옮겨 가는 기능은 없앴다. 대신 마지막으로 들른 곳이 「지금 여기」로 깜빡인다.', '오방 지도의 사당 그림을 다른 네 구역과 같은 결의 도트 그림으로 새로 그렸다.', '아이템 시트(v3) 반영 — 붉은여우 부적이 바뀌었다: 일행(파티) 상태에서만 쓰고, 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다). 느타리 전골 · 매깃 철릭 · 붉은 지네 부적의 해설이 바뀌었다.', '칭호 40개의 이름을 고쳤다(기밀 열람자 → 열람자, 공방 단골 → 망치질 단골, 운동하는 학생 → 붉은 피 …). 업적 「밥 짓는 사람」은 「늘 밥을 해줬어」가 되었다.', '관리자 코드: GitHub 의 ADMIN_CODE 를 Secret 으로도 Variable 로도 읽는다. 사이트가 아직 임시 코드를 쓰고 있으면 로그인 화면이 그렇다고 알려 준다.'] },
-    { v: 'v1.5', date: '2026-11-15', lines: ['업적이 120개가 됐다 — 새 묶음 「본교 — 학당 생활」 10개. 초록동색 원래 업적 셋(직업은 학생, 취미는 운동 · 신의 주시 · 나는야 모범생)이 도감에 올라오고, 일곱 개를 새로 더했다(유품 등록 · 망친 것도 공부 · 남의 사물함 · 가방 속 박물관 · 이름을 부른 밤 · 새 장부 · 장부를 다 채웠다). 업적마다 칭호가 하나씩 붙는다.', '한 아이템에 제작법이 둘 있던 79종을 하나로 정리했다 — 초록동색 원래 제작법만 남는다.', '빈자리(겹치던 v1.0 제작법 81개)는 새 아이템 81종이 채운다. 재료 · 단계 · 나오는 수는 그대로다(천 한지 · 주묵 · 잣기름 · 매듭 팔찌 · 오색 부적첩 · 팔물탕 · 송이 죽 …).', '1단계 새 바탕 17종은 모두 다른 새 아이템의 재료로 쓰인다(천 한지 → 천 부적 꾸러미, 주묵 → 붉은 지네 부적 …).', '새 아이템마다 도트 아이콘이 따로 있다. 횃불 · 팔찌 · 도장 · 죽 · 사탕 · 모깃불 · 전골 · 벽돌 서낭단 · 숫돌 · 부꾸미 틀 10개를 새로 찍었다.'] },
-    { v: 'v1.4', date: '2026-11-15', lines: ['아이템 이름과 해설을 초록동색 원래 것으로 되돌렸다(사과맛 피크닉 · 에너지드링크 · 부채 · 단검 …). 학교 이름만 비령 임시학당으로 바뀐다.', '요괴와 영능력도 원래 이름 · 소개로 돌아왔다(허수아비 잡귀 · 묵은 원귀 · 생존본능 · 업인과보 …).', '사이버펑크 풍을 걷어 냈다 — 별전 칭호 이름(학당 훈장 · 보부상 · 장원급제 …), 본편 아이템 해설, 아이콘의 네온 색까지. 한국 전통에 근미래(단말기 · 관측동)만 남겼다.', '유품 무구 이름도 원래대로 — 무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기.'] },
+    { v: 'v1.5', date: '2026-11-15', lines: ['업적이 120개가 됐다 — 새 묶음 「본교 — 학당 생활」 10개. 학당 생활 업적 셋(직업은 학생, 취미는 운동 · 신의 주시 · 나는야 모범생)이 도감에 올라오고, 일곱 개를 새로 더했다(유품 등록 · 망친 것도 공부 · 남의 사물함 · 가방 속 박물관 · 이름을 부른 밤 · 새 장부 · 장부를 다 채웠다). 업적마다 칭호가 하나씩 붙는다.', '한 아이템에 제작법이 둘 있던 79종을 하나로 정리했다 — 아이템마다 제작법은 하나다.', '빈자리(겹치던 v1.0 제작법 81개)는 새 아이템 81종이 채운다. 재료 · 단계 · 나오는 수는 그대로다(천 한지 · 주묵 · 잣기름 · 매듭 팔찌 · 오색 부적첩 · 팔물탕 · 송이 죽 …).', '1단계 새 바탕 17종은 모두 다른 새 아이템의 재료로 쓰인다(천 한지 → 천 부적 꾸러미, 주묵 → 붉은 지네 부적 …).', '새 아이템마다 도트 아이콘이 따로 있다. 횃불 · 팔찌 · 도장 · 죽 · 사탕 · 모깃불 · 전골 · 벽돌 서낭단 · 숫돌 · 부꾸미 틀 10개를 새로 찍었다.'] },
+    { v: 'v1.4', date: '2026-11-15', lines: ['아이템 이름과 해설을 다듬었다(사과맛 피크닉 · 에너지드링크 · 부채 · 단검 …).', '요괴와 영능력의 이름 · 소개도 다듬었다(허수아비 잡귀 · 묵은 원귀 · 생존본능 · 업인과보 …).', '사이버펑크 풍을 걷어 냈다 — 별전 칭호 이름(학당 훈장 · 보부상 · 장원급제 …), 본편 아이템 해설, 아이콘의 네온 색까지. 한국 전통에 근미래(단말기 · 관측동)만 남겼다.', '유품 무구 이름 — 무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기.'] },
     { v: 'v1.3', date: '2026-11-15', lines: ['유품이 10종이 되었다 — 게임의 무구 10종(무당방울 · 철퇴 · 부채 · 석장 · 활 · 창 · 칼 · 낫 · 단검 · 악기)과 하나씩 짝지어진다. 둘씩 다섯 계통.', '입소식 뒤 무구보관소에서 고른 유품을 실제 무구로 받는다(부모의 손길 — 강화 1). 장착까지가 튜토리얼.', '본편 보스 14종에 고유 패턴이 붙었다 — 이름 부르기 · 진정 · 뿌리 · 모습 · 되감기 · 눈 · 두 머리 · 목소리 · 번갈아 오는 신탁 · 안개 · 부모들의 자리 · 형태 변화. 전투 아래 [이야기 전투] 칸에서 계기판과 전용 행동을 쓴다.', '보스를 이기면 전리품이 나오고, 그 전리품으로 만드는 장비 · 부적 제작법이 열린다. 이야기 전투는 져도 쇠약이 남지 않는다.', '본편 새 아이템 36종 · 새 제작법 16종. 302호의 방울 · 흐린 영정 조각 · 기도 쪽지 묶음 · 귤 · 가곡면 감자가 소지품에 들어오고, 미역국 · 관측 차단 봉투 · 결계 말뚝 · 거점 기둥은 퀘스트가 가르쳐 준 대로 직접 만든다.', '장면을 마치면 완료 띠가, 장을 마치면 장 완료 카드가 뜬다. 산문 너머 › 나의 기록에 본편 도감(퇴마한 신탁 · 본편 물건 · 본편 제작법)이 생겼다.'] },
-    { v: 'v1.2', date: '2026-11-14', lines: ['본편 이야기 3권 15장이 열렸다. 산문 › 산문 너머에서 장면 퀘스트 97개를 차례로 진행한다.', '퀘스트는 한 페이지에서 끝나지 않는다 — 단계마다 실제 장소로 가서 탐사 · 전투 · 개척 · 제작 · 수업을 해야 다음으로 넘어간다. 오른쪽 상태 창에 지금 할 일과 [그곳으로] 단추가 뜬다.', '산문 너머의 바깥 지역(서울 · 청암리 · 물치항 · 관측 밖)과 거대한 문 너머 · 경계가 이야기를 따라 열린다.', '대사 창에 인물 칸이 생겼다. 지금은 머리색 인장이고, 초상 그림을 넣을 자리다.', '이야기를 따라 칭호 18개를 얻는다. 엔딩은 다섯 가지.', '서버(Supabase)를 연결하면 모든 학생의 선택이 「세계」 탭에 모인다. 연결 전에는 이 브라우저의 값만 쓴다.'] },
+    { v: 'v1.2', date: '2026-11-14', lines: ['본편 이야기 3권 15장이 열렸다. 산문 › 산문 너머에서 장면 퀘스트 97개를 차례로 진행한다.', '퀘스트는 한 페이지에서 끝나지 않는다 — 단계마다 실제 장소로 가서 탐사 · 전투 · 개척 · 제작 · 수업을 해야 다음으로 넘어간다. 오른쪽 상태 창에 지금 할 일과 [그곳으로] 단추가 뜬다.', '산문 너머의 바깥 지역(강릉 · 청암리 · 물치항 · 관측 밖)과 거대한 문 너머 · 경계가 이야기를 따라 열린다.', '대사 창에 인물 칸이 생겼다. 지금은 머리색 인장이고, 초상 그림을 넣을 자리다.', '이야기를 따라 칭호 18개를 얻는다. 엔딩은 다섯 가지.', '서버(Supabase)를 연결하면 모든 학생의 선택이 「세계」 탭에 모인다. 연결 전에는 이 브라우저의 값만 쓴다.'] },
     { v: 'v1.1', date: '2026-11-14', lines: ['아이템 도트를 전부 새로 짰다. 312개 아이템이 저마다 다른 도트를 가진다(틀 109개 · 색 30가지, 겹치는 것 없음).'] },
     { v: 'v1.0', date: '2026-11-14', lines: ['로그인(명부 등록)이 생겼다. 계정마다 기록이 따로 남는다. 계정과 기록은 아직 이 브라우저에만 보관된다.', '오방 지도: 가운데에 사당이 생겼다. [내부 지도]로 본관 · 별관 · 뒷산 · 사당의 안쪽을 볼 수 있다.', '구역 얼개를 바꿨다. 그 자리에 가면 그 자리의 기능이 나온다 — 별관 탐사에서 공작소 · 조리실 · 동아리 부실(가입), 본관 탐사에서 물품보관소 · 양호실, 산 탐사에서 무구보관소 · 텃밭 · 도깨비 놀이.', '추가전투를 퇴마 실습장으로 옮겼다.', '접속을 끊은 동안에도 영력이 차오른다(수련 · 잠 · 휴식도 흐른다).', '칭호 50개 추가(모두 114개). 모든 칭호에 소소한 기능이 붙었다 — 달고 있는 칭호 하나의 기능만 듣는다.', '제작법 113개 추가(모두 247개). 1단계 바탕 → 2단계 완성품 → 3단계 상급 공정.', '관리자 도구(로그인 화면의 「비령」을 다섯 번 누르면 관리자 코드 칸이 나온다).'] },
-    { v: 'v0.9', date: '2026-11-12', lines: ['창이 뜨던 화면을 모두 페이지로 바꿈. 어느 페이지든 머리글 · 배너 · 나의 상태는 그대로, [뒤로가기] 로 돌아온다.', '전투 · 개척 · 제작 · 수업 · 매점 등이 구역 페이지 안에서 바로 열린다. 화면 색을 비령에 맞춤.', '나의 상태에서 육조 스탯을 바로 올릴 수 있다.', '아이템 312종 · 상대 57종 · 영능력 13종의 이름과 설명을 2046년 비령 세계관으로 고치고, 아이템에 도트 아이콘을 붙임.', '업적 60개 · 칭호 64개로 다시 짬(둘러보기 · 하루 · 며칠 · 꾸준히 · 한 달 · 극).', '산문에 스토리 퀘스트 제1장 「사라진 자들의 아이들」.'] },
+    { v: 'v0.9', date: '2026-11-12', lines: ['창이 뜨던 화면을 모두 페이지로 바꿈. 어느 페이지든 머리글 · 배너 · 나의 상태는 그대로, [뒤로가기] 로 돌아온다.', '전투 · 개척 · 제작 · 수업 · 매점 등이 구역 페이지 안에서 바로 열린다. 화면 색을 비령에 맞춤.', '나의 상태에서 육조 스탯을 바로 올릴 수 있다.', '아이템 312종 · 상대 57종 · 영능력 13종의 이름과 설명을 비령 세계관으로 고치고, 아이템에 도트 아이콘을 붙임.', '업적 60개 · 칭호 64개로 다시 짬(둘러보기 · 하루 · 며칠 · 꾸준히 · 한 달 · 극).', '산문에 스토리 퀘스트 제1장 「사라진 자들의 아이들」.'] },
     { v: 'v0.8', date: '2026-11-12', lines: ['전투 · 개척 · 제작 · 수업 미니게임을 실행할 수 있게 연결.'] },
     { v: 'v0.7', date: '2026-11-12', lines: ['내 프로필, 나의 상태, 구역 데이터, 배너 다섯 쪽, 칭호와 업적.'] },
-    { v: 'v0.6', date: '2026-11-12', lines: ['초록동색 C.01 콘텐츠 보관고(NPC · 퀘스트 제외), GitHub Pages 대응.'] },
+    { v: 'v0.6', date: '2026-11-12', lines: ['게임 콘텐츠를 한데 모았다. GitHub Pages 대응.'] },
   ];
   function renderNotes() {
     openPage('報 / UPDATE NOTES', '업데이트 노트', 'simple');
@@ -714,11 +718,135 @@
   function refreshStoryGoal() { const i = storyIndex(); if (i < 0) return; const ok = met(STORY.steps[i].goal.when); const b = $('.story-step.is-now .solid-btn'); if (b && b.disabled === ok) route(); }
 
   /* ───────── 업적 / 도감 ───────── */
+  /* ───────── 도감 자료(codex-data.js) · 플레이어 기록으로 가리기 ───────── */
+  const CODEX = window.BIRYEONG_CODEX || { items: [], psychics: [], enemies: [], templates: {}, palettes: {} };
+  const dexPlayer = () => playApi()?.player || game() || {};
+  const dexAll = () => Auth.isAdmin() && save.adminDexAll === true; // 관리자가 [모두 보기]를 켰을 때만 다 보인다
+  const iconCache = {};
+  /** 아이템 도트: 틀(12×12 글자) · 색(a b c d = 바탕 · 그림자 · 밝은 · 강조, k = 테두리)을 캔버스에 찍는다. */
+  function itemIcon(px, size = 36) {
+    const wrap = h('span', 'dex-icon');
+    if (!px || !CODEX.templates[px.t]) { wrap.classList.add('is-unknown'); wrap.textContent = '?'; return wrap; }
+    const key = `${px.t}:${px.p}`;
+    if (!iconCache[key]) {
+      const rows = CODEX.templates[px.t], pal = CODEX.palettes[px.p] || [], cv = document.createElement('canvas');
+      cv.width = rows[0].length; cv.height = rows.length; const c = cv.getContext('2d');
+      const col = { a: pal[0], b: pal[1], c: pal[2], d: pal[3], k: '#14101a' };
+      rows.forEach((row, y) => [...row].forEach((ch, x) => { if (col[ch]) { c.fillStyle = col[ch]; c.fillRect(x, y, 1, 1); } }));
+      iconCache[key] = cv.toDataURL();
+    }
+    const img = h('img'); img.src = iconCache[key]; img.alt = ''; img.width = size; img.height = size; wrap.append(img);
+    return wrap;
+  }
+  /** 적에 대해 무엇이 보이나 — 전투 화면 밖 목록과 같은 규칙(만난 횟수 · 안목 > 상대 영력). */
+  function revealEnemy(e, p) {
+    const fights = p.seen?.[e.id] || 0;
+    const insight = (playApi()?.effStats?.() || p.stats || {}).insight || 0;
+    const sharp = insight > (e.spirit || 0), again = fights >= 1;
+    if (dexAll()) return { hp: true, atk: true, act: true, spirit: true, sharp: true };
+    return { hp: again || sharp, atk: again && sharp, act: again && sharp, spirit: again && sharp, sharp };
+  }
+  const Q = '???';
+  const dexLine = (label, text, cls = '') => { const p = h('p', `dex-line ${cls}`); p.append(h('b', '', label), h('span', '', text)); return p; };
+
+  function renderDexItems(body) {
+    const p = dexPlayer(), known = (id) => dexAll() || !!p.codex?.items?.[id];
+    const got = CODEX.items.filter((i) => known(i.id)).length;
+    const KINDS = ['전체', '재료', '완성품', '장비', '본편'];
+    const kindOf = (i) => (i.id.startsWith('st-') ? '본편' : i.kind === '재료' ? '재료' : /무구|장비|장신구/.test(i.kind) ? '장비' : '완성품');
+    const f = save.dexItemKind && KINDS.includes(save.dexItemKind) ? save.dexItemKind : '전체';
+    const chips = h('div', 'dex-chips');
+    KINDS.forEach((k) => { const b = btn(`dex-chip${k === f ? ' is-on' : ''}`, k, () => { save.dexItemKind = k; persist(); route(); }); chips.append(b); });
+    body.append(h('p', 'panel-label codex-group', `아이템 · 손에 넣어 본 것 ${got} / ${CODEX.items.length}`), chips);
+    const list = h('div', 'dex-list');
+    CODEX.items.filter((i) => f === '전체' || kindOf(i) === f).forEach((i) => {
+      const k = known(i.id), card = h('div', `dex-card${k ? ' is-got' : ''}`);
+      card.dataset.dexItem = i.id; card.dataset.known = k ? '1' : '0';
+      const head = h('div', 'dex-head'); head.append(k ? itemIcon(i.px) : itemIcon(null), h('strong', '', i.name), h('small', '', k ? i.kind : ''));
+      card.append(head);
+      if (k) card.append(dexLine('효과', i.effect), dexLine('해설', i.desc || '—', 'is-lore'), dexLine('설명', i.use));
+      else card.append(dexLine('해설', Q, 'is-hidden'), dexLine('설명', Q, 'is-hidden'));
+      card.append(dexLine('획득처', i.from, 'is-from'));
+      list.append(card);
+    });
+    body.append(list);
+  }
+
+  function renderDexPsychics(body) {
+    const p = dexPlayer(), mine = new Set(p.psychics || []);
+    const known = (x) => dexAll() || x.always || mine.has(x.id);
+    body.append(h('p', 'panel-label codex-group', `영능력 · 익힌 것 ${CODEX.psychics.filter(known).length} / ${CODEX.psychics.length}`));
+    const list = h('div', 'dex-list');
+    CODEX.psychics.forEach((x) => {
+      const k = known(x), card = h('div', `dex-card${k ? ' is-got' : ''}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
+      const head = h('div', 'dex-head'); const mark = h('span', 'dex-icon is-skill', '術'); head.append(mark, h('strong', '', x.name), h('small', '', k ? (x.always ? '처음부터' : '익힘') : ''));
+      card.append(head);
+      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail || x.note), dexLine('영향받는 스탯', x.affects), dexLine('익히는 조건', x.always ? '모두가 처음부터 안다' : x.cond));
+      else card.append(h('p', 'dex-note is-hidden', Q), dexLine('의지력 소모', Q, 'is-hidden'), dexLine('상세 설명', Q, 'is-hidden'), dexLine('영향받는 스탯', Q, 'is-hidden'), dexLine('익히는 조건', Q, 'is-hidden'));
+      list.append(card);
+    });
+    body.append(list);
+  }
+
+  function renderDexEnemies(body) {
+    const p = dexPlayer();
+    const met = CODEX.enemies.filter((e) => dexAll() || (p.seen?.[e.id] || 0) > 0); // 만나지 않은 적은 아예 보이지 않는다
+    body.append(h('p', 'panel-label codex-group', `적 · 만나 본 것 ${met.length}`));
+    if (!met.length) { body.append(emptyBox('妖', '아직 마주친 상대가 없다.', '전투 실습 · 개척 · 둘레길에서 처음 만나면 여기에 적힌다.')); return; }
+    const groups = [...new Set(met.map((e) => e.group))];
+    groups.forEach((g) => {
+      body.append(h('p', 'panel-label codex-group', g));
+      const list = h('div', 'dex-list');
+      met.filter((e) => e.group === g).forEach((e) => {
+        const rv = e.story ? { hp: false, atk: false, act: false, spirit: false, sharp: true } : revealEnemy(e, p);
+        const card = h('div', 'dex-card is-got is-enemy'); card.dataset.dexEnemy = e.id;
+        const head = h('div', 'dex-head'); head.append(h('span', 'dex-icon is-enemy', e.tierLabel[0]), h('strong', '', e.name), h('small', '', [e.tierLabel, e.boss ? '보스' : '', e.party > 1 ? `일행 ${e.party}명` : ''].filter(Boolean).join(' · ')));
+        card.append(head, h('p', 'dex-note', e.blurb || '—'), dexLine('등장 위치', e.where));
+        if (e.story) card.append(dexLine('수치', '장면마다 다르다'));
+        else {
+          const stats = h('div', 'dex-stats');
+          [['체력', rv.hp, e.hp], ['공격력', rv.atk, e.atk], ['행동력', rv.act, e.act], ['영력', rv.spirit, e.spirit]].forEach(([l, ok, v]) => { const c = h('span', ok ? '' : 'is-hidden'); c.append(h('b', '', l), document.createTextNode(` ${ok ? v : Q}`)); stats.append(c); });
+          card.append(stats);
+          if (!rv.sharp) card.append(h('p', 'dex-hint', `안목이 이 상대의 영력보다 높아야 나머지 수치와 영능력이 드러난다.`));
+        }
+        const sp = h('div', 'dex-specials'); sp.append(h('p', 'dex-sub', e.specials.length > 1 ? `영능력 ${e.specials.length}가지` : '영능력'));
+        e.specials.forEach((x) => {
+          const open = dexAll() || e.story || rv.sharp || !!p.specials?.[x.key];
+          const item = h('div', `dex-special${open ? '' : ' is-hidden'}`);
+          item.append(h('strong', '', open ? x.name : Q), h('p', '', open ? x.note : Q));
+          if (open && x.rate) item.append(h('small', '', x.rate));
+          sp.append(item);
+        });
+        const anyOpen = dexAll() || e.story || rv.sharp || e.specials.some((x) => p.specials?.[x.key]);
+        if (anyOpen && (e.effects.length || e.gimmicks.length)) { const fx = h('ul', 'dex-fx'); [...e.effects, ...e.gimmicks].forEach((t) => fx.append(h('li', '', t))); sp.append(fx); }
+        card.append(sp);
+        if (e.drops.length) card.append(dexLine('떨어뜨리는 것', e.drops.join(' · ')));
+        list.append(card);
+      });
+      body.append(list);
+    });
+  }
+
   function renderCodex(tab) {
-    const current = tab === 'titles' ? 'titles' : 'achievements';
+    const TABS = ['achievements', 'titles', 'items', 'psychics', 'enemies'];
+    const current = TABS.includes(tab) ? tab : 'achievements';
     openPage('圖鑑 / CODEX', '업적 / 도감', 'codex');
     addTo('pages', `codex/${current}`);
-    setTabs(panelTabs, [{ id: 'achievements', label: `업적 ${Object.keys(save.achievements).length} / ${ACHIEVEMENTS.length}` }, { id: 'titles', label: `칭호 ${ownedTitles().length} / ${TITLES.length}` }], current, (id) => go(id === 'titles' ? '#/codex/titles' : '#/codex'));
+    const p = dexPlayer();
+    setTabs(panelTabs, [
+      { id: 'achievements', label: `업적 ${Object.keys(save.achievements).length} / ${ACHIEVEMENTS.length}` },
+      { id: 'titles', label: `칭호 ${ownedTitles().length} / ${TITLES.length}` },
+      { id: 'items', label: `아이템 ${CODEX.items.filter((i) => dexAll() || p.codex?.items?.[i.id]).length} / ${CODEX.items.length}` },
+      { id: 'psychics', label: `영능력 ${CODEX.psychics.filter((x) => dexAll() || x.always || (p.psychics || []).includes(x.id)).length} / ${CODEX.psychics.length}` },
+      { id: 'enemies', label: `적 ${CODEX.enemies.filter((e) => dexAll() || (p.seen?.[e.id] || 0) > 0).length}` },
+    ], current, (id) => go(id === 'achievements' ? '#/codex' : `#/codex/${id}`));
+    if (Auth.isAdmin() && ['items', 'psychics', 'enemies'].includes(current)) {
+      const bar = h('div', 'dex-admin'); bar.append(btn('ghost-btn codex-use', dexAll() ? '관리자: 내 기록대로 보기' : '관리자: 모두 보기', () => { save.adminDexAll = !dexAll(); persist(); route(); }));
+      panelBody.append(bar);
+    }
+    if (current === 'items') { renderDexItems(panelBody); return; }
+    if (current === 'psychics') { renderDexPsychics(panelBody); return; }
+    if (current === 'enemies') { renderDexEnemies(panelBody); return; }
     const row = (got, name, text, side) => { const r = h('div', `codex-row${got ? ' is-got' : ''}`); const t = h('div', 'codex-text'); t.append(h('strong', '', name), h('p', '', text)); r.append(h('span', 'codex-mark', got ? '◆' : '◇'), t, side); return r; };
     if (current === 'achievements') {
       ACH_GROUPS.forEach((group) => {
@@ -762,7 +890,7 @@
     else if (head === 'notes') renderNotes();
     else if (head === 'case') renderCase();
     else if (head === 'money') renderMoney();
-    else if (head === 'admin' && Auth.isAdmin()) renderAdmin();
+    else if (head === 'admin' && Auth.isAdmin()) renderAdmin(rest[0]);
     else if (head === 'out' && window.BiryeongQuest) window.BiryeongQuest.renderPlace(rest[0], rest[1]); // 산문 너머의 바깥 지역 · 새 층
     else { location.replace('#/'); return; }
     window.dispatchEvent(new CustomEvent('biryeong:route', { detail: { hash: location.hash, parts } }));
@@ -842,7 +970,7 @@
   window.BiryeongApp = {
     h, btn, para, go, back, route, openPage, setTabs, toast, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
     get save() { return save; }, get body() { return panelBody; }, get tabs() { return panelTabs; }, get chips() { return panelChips; },
-    profile, game, zones: DATA.zones, heirloomNames: Object.fromEntries(Object.entries(HEIRLOOM).map(([k, v]) => [k, v.name])),
+    profile, game, isAdmin: () => Auth.isAdmin(), zones: DATA.zones, heirloomNames: Object.fromEntries(Object.entries(HEIRLOOM).map(([k, v]) => [k, v.name])),
     grantTitle(id) { if (!titleById[id] || save.titles[id]) return false; save.titles[id] = Date.now(); persist(); toast('칭호', `「${titleById[id].name}」을(를) 얻었다.`); checkAchievements(); return true; },
   };
 

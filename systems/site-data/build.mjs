@@ -114,7 +114,7 @@ const maps = [
 const { TEXT_SWAPS } = await import('../biryeong/reskin.data.js')
 const swapText = (v) => typeof v === 'string' ? TEXT_SWAPS.reduce((t, [x, y]) => t.split(x).join(y), v) : Array.isArray(v) ? v.map(swapText) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapText(x)])) : v
 const data = swapText(npcFill({
-  generatedFrom: 'systems/vault (초록동색 C.01 콘텐츠 보관고)',
+  generatedFrom: 'systems/vault',
   rules: {
     statKeys: C.STAT_KEYS,
     stats: Object.fromEntries(C.STAT_KEYS.map((k) => [k, { label: C.STAT_META[k].label, en: C.STAT_META[k].en, hint: C.STAT_META[k].hint, detail: C.STAT_META[k].detail }])),

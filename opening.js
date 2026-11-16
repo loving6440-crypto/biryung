@@ -1,10 +1,10 @@
 /* 秘靈 · 비령 — 오프닝 (v1.6)
  * 명부 등록(회원가입) 직후, 프로필이 아직 없는 계정에 한 번 화면 전체를 채워 흐른다. 끝나면 「내 프로필 만들기」 창으로 넘어간다.
- * 초록동색 가입 전 오프닝처럼: 어둠 속 제호 → 컷마다 그림 연출 + 한두 줄 → 빛이 번지며 다음 화면.
- * 글자만 지나가지 않도록 컷마다 도트 무대가 있다(화면 격자 · 정확도 계기 · 문틈 빛 · 종 울림 · 꺼진 촛불 · 괴담 · 산문 · 단말기 인증).
+ * 어둠 속 제호 → 컷마다 그림 연출 + 한두 줄 → 빛이 번지며 다음 화면.
+ * 글자만 지나가지 않도록 컷마다 도트 무대가 있다(화면 격자 · 정확도 계기 · 뉴스 화면 · 문틈 빛). 무대 그림은 본편 이야기 화면도 함께 쓴다(BiryeongOpening.stage).
  * 클릭 · Space · Enter · → 로 넘기고, Esc · [건너뛰기]로 끝낸다. 컷마다 8초 뒤 저절로 넘어간다.
  * 다시 보기: window.BiryeongOpening.play({ replay: true })
- * 연도는 적지 않는다(세계관 문서 · 본편 스크립트가 바뀌어도 어긋나지 않게).
+ * 자막은 스토리 스크립트 v4 의 첫 줄들 그대로다. 프로필을 만들면 본편 프롤로그가 그 다음 줄부터 잇는다.
  */
 (() => {
   const AUTO_MS = 8000, TITLE_MS = 3600, BLOOM_MS = 1600;
@@ -14,101 +14,77 @@
   const rnd = (a, b) => a + Math.random() * (b - a);
 
   /* ── 컷: stage(무대 그리기) · lines(자막) · type(타자기로 찍을 문장, 선택) ── */
+  /* ── 도트 무대(장면 그림) — 오프닝과 본편 이야기 화면(quest.js 의 stage:… 연출)이 함께 쓴다 ── */
+  const STAGES = {
+    screens(s) {
+      const grid = h('div', 'op-screens');
+      for (let i = 0; i < 48; i++) { const c = h('i', 'op-screen'); c.style.animationDelay = `${(i % 8) * 0.07 + Math.floor(i / 8) * 0.11 + rnd(0, 0.25)}s`; grid.append(c); }
+      s.append(grid, h('div', 'op-vignette'));
+    },
+    gauge(s) {
+      const box = h('div', 'op-gauge');
+      const num = h('b', 'op-gauge-num', '0'); const pct = h('span', 'op-gauge-pct', '%');
+      const bar = h('div', 'op-gauge-bar'); const fill = h('i'); bar.append(fill);
+      box.append(h('small', '', '秘靈 · 統合 神託'), h('div', 'op-gauge-row'), bar);
+      box.children[1].append(num, pct);
+      s.append(h('div', 'op-scan'), box);
+      const t0 = performance.now(), dur = reduced() ? 1 : 4200;
+      const tick = (t) => {
+        const k = Math.min(1, (t - t0) / dur), v = Math.round(100 * (1 - Math.pow(1 - k, 3)));
+        num.textContent = String(v); fill.style.width = `${v}%`;
+        if (k < 1 && s.isConnected) requestAnimationFrame(tick); else box.classList.add('is-full');
+      };
+      requestAnimationFrame(tick);
+    },
+    news(s) {
+      const tv = h('div', 'op-tv'); const screen = h('div', 'op-tv-screen');
+      screen.append(h('div', 'op-tv-desk'), h('i', 'op-tv-anchor'), h('b', 'op-tv-logo', '秘靈 뉴스'));
+      const lower = h('div', 'op-tv-lower'); lower.append(h('em', '', 'LIVE'), h('span', '', '전국 412개 신격 응답 통합 · 정확도 100%'));
+      screen.append(lower); tv.append(screen); s.append(tv, h('div', 'op-scan'));
+    },
+    door(s) {
+      const room = h('div', 'op-room');
+      const door = h('div', 'op-door'); door.append(h('i', 'op-door-light'));
+      const hand = h('div', 'op-hand'); hand.append(h('i', 'op-relic'));
+      room.append(door, hand); s.append(room);
+    },
+    bell(s) {
+      const bell = h('div', 'op-bell'); bell.append(h('i', 'op-bell-body')); s.append(bell);
+      const count = h('small', 'op-bell-count', ''); s.append(count);
+      let n = 0;
+      const ring = () => {
+        if (!s.isConnected || n >= 33) return;
+        n += 1; const r = h('i', 'op-ring'); bell.append(r); setTimeout(() => r.remove(), 2400);
+        count.textContent = `${n} / 33`;
+        setTimeout(ring, reduced() ? 0 : n < 6 ? 620 : 150);
+      };
+      setTimeout(ring, 300);
+    },
+    empty(s) {
+      const altar = h('div', 'op-altar');
+      for (let i = 0; i < 5; i++) { const c = h('i', 'op-candle'); c.style.left = `${14 + i * 18}%`; c.style.height = `${rnd(26, 52)}px`; const sm = h('b', 'op-smoke'); sm.style.animationDelay = `${i * 0.4}s`; c.append(sm); altar.append(c); }
+      s.append(altar);
+    },
+    tales(s) {
+      s.append(h('div', 'op-pan op-pan-hero'));
+      for (let i = 0; i < 7; i++) { const g = h('i', 'op-ghost'); g.style.left = `${rnd(6, 90)}%`; g.style.top = `${rnd(38, 72)}%`; g.style.animationDelay = `${rnd(0, 3)}s`; s.append(g); }
+      s.append(h('div', 'op-glitch'));
+    },
+    mountain(s) { s.append(h('div', 'op-pan op-pan-north'), h('div', 'op-mist'), h('div', 'op-mist op-mist-2')); },
+    gate(s) {
+      const term = h('div', 'op-term');
+      const face = h('div', 'op-face'); face.append(h('i', 'op-face-scan'));
+      term.append(h('small', '', '秘靈 · 入山 認證'), face, h('em', 'op-term-ok', '一致'));
+      s.append(term);
+    },
+  };
+
+  /* ── 오프닝 컷: 스토리 스크립트의 첫 줄들(행 2 · 3 · 4 · 5 · 7). 이어지는 줄은 프로필을 만든 뒤 본편 프롤로그가 잇는다. ── */
   const CUTS = [
-    {
-      id: 'screens',
-      lines: ['섣달그믐 밤, 전국의 모든 화면이 한꺼번에 켜졌다.'],
-      type: '모든 신들의 응답을 하나로 수렴했습니다.',
-      stage(s) {
-        const grid = h('div', 'op-screens');
-        for (let i = 0; i < 48; i++) { const c = h('i', 'op-screen'); c.style.animationDelay = `${(i % 8) * 0.07 + Math.floor(i / 8) * 0.11 + rnd(0, 0.25)}s`; grid.append(c); }
-        s.append(grid, h('div', 'op-vignette'));
-      },
-    },
-    {
-      id: 'gauge',
-      lines: ['산신 · 용왕 · 조상신 — 사백열두 신격의 대답이 단 하나의 결과로 합쳐졌다.', '예측 정확도,'],
-      stage(s) {
-        const box = h('div', 'op-gauge');
-        const num = h('b', 'op-gauge-num', '0'); const pct = h('span', 'op-gauge-pct', '%');
-        const bar = h('div', 'op-gauge-bar'); const fill = h('i'); bar.append(fill);
-        box.append(h('small', '', '秘靈 · 統合 神託'), h('div', 'op-gauge-row'), bar);
-        box.children[1].append(num, pct);
-        s.append(h('div', 'op-scan'), box);
-        const t0 = performance.now(), dur = reduced() ? 1 : 4200;
-        const tick = (t) => {
-          const k = Math.min(1, (t - t0) / dur), v = Math.round(100 * (1 - Math.pow(1 - k, 3)));
-          num.textContent = String(v); fill.style.width = `${v}%`;
-          if (k < 1 && s.isConnected) requestAnimationFrame(tick); else { box.classList.add('is-full'); }
-        };
-        requestAnimationFrame(tick);
-      },
-    },
-    {
-      id: 'door',
-      lines: ['그날 밤, 잠든 줄 알았던 아이의 방문이 조용히 열렸다.', '“누가 대신 대답해 준다고 해도, 네 대답은 네가 해.”'],
-      stage(s) {
-        const room = h('div', 'op-room');
-        const door = h('div', 'op-door'); door.append(h('i', 'op-door-light'));
-        const hand = h('div', 'op-hand'); hand.append(h('i', 'op-relic'));
-        room.append(door, hand);
-        s.append(room);
-      },
-    },
-    {
-      id: 'bell',
-      lines: ['제야의 종이 서른세 번 울렸다.', '무구를 쥔 아이들은 그 소리를 저마다 다른 방에서, 똑같이 잠든 채 들었다.'],
-      stage(s) {
-        const bell = h('div', 'op-bell'); bell.append(h('i', 'op-bell-body'));
-        s.append(bell);
-        let n = 0;
-        const ring = () => {
-          if (!s.isConnected || n >= 33) return;
-          n += 1; const r = h('i', 'op-ring'); bell.append(r); setTimeout(() => r.remove(), 2400);
-          count.textContent = `${n} / 33`;
-          setTimeout(ring, reduced() ? 0 : n < 6 ? 620 : 150);
-        };
-        const count = h('small', 'op-bell-count', ''); s.append(count);
-        setTimeout(ring, 300);
-      },
-    },
-    {
-      id: 'empty',
-      lines: ['새해 아침, 안방은 비어 있었다. 이불은 개어져 있고, 촛불은 끝까지 타 있었다.', '그날 아침, 신력 있는 무당들이 한꺼번에 사라졌다.'],
-      stage(s) {
-        const altar = h('div', 'op-altar');
-        for (let i = 0; i < 5; i++) { const c = h('i', 'op-candle'); c.style.left = `${14 + i * 18}%`; c.style.height = `${rnd(26, 52)}px`; const sm = h('b', 'op-smoke'); sm.style.animationDelay = `${i * 0.4}s`; c.append(sm); altar.append(c); }
-        const news = h('div', 'op-ticker'); news.append(h('span', '', '속보 · 전국에서 무속인 실종 신고 잇따라 · 같은 시각 일제히 · 행방 묘연 · 속보 · 전국에서 무속인 실종 신고 잇따라 ·'));
-        s.append(altar, news);
-      },
-    },
-    {
-      id: 'tales',
-      lines: ['겨울 내내, 사당의 신이 모습을 드러내고 죽은 이가 돌아왔다.', '괴담이 하나씩, 현실이 되었다.'],
-      stage(s) {
-        const bg = h('div', 'op-pan op-pan-hero'); s.append(bg);
-        for (let i = 0; i < 7; i++) { const g = h('i', 'op-ghost'); g.style.left = `${rnd(6, 90)}%`; g.style.top = `${rnd(38, 72)}%`; g.style.animationDelay = `${rnd(0, 3)}s`; s.append(g); }
-        s.append(h('div', 'op-glitch'));
-      },
-    },
-    {
-      id: 'mountain',
-      lines: ['봄. 정부는 사라진 무당의 아이들을 한곳에 모았다.', '영기가 가장 짙은 산 — 비령산.'],
-      stage(s) {
-        s.append(h('div', 'op-pan op-pan-north'), h('div', 'op-mist'), h('div', 'op-mist op-mist-2'));
-      },
-    },
-    {
-      id: 'gate',
-      lines: ['산문 앞 단말기가 당신의 얼굴을 훑는다.'],
-      type: '후손 확인. 명부에 이름을 남기십시오.',
-      stage(s) {
-        const term = h('div', 'op-term');
-        const face = h('div', 'op-face'); face.append(h('i', 'op-face-scan'));
-        term.append(h('small', '', '秘靈 · 入山 認證'), face, h('em', 'op-term-ok', '一致'));
-        s.append(term);
-      },
-    },
+    { id: 'screens', lines: ['2035년 12월 31일 23시. 비령 서비스 10년째의 마지막 밤, 전국의 모든 화면에 같은 문장이 떠올랐다.'], type: '모든 신들의 응답을 하나로 수렴했습니다. 오늘부터 여러분은 신의 대답을 기다리지 않아도 됩니다.' },
+    { id: 'gauge', lines: ['“정부 모처의 비령 운영단은 산신 · 용왕 · 조상신을 포함한 전국 412개 신격의 응답을 단일 결과로 통합한 「신탁」을 새해 0시부터 적용한다고 밝혔습니다. 응답 정확도는 100퍼센트입니다.”'] },
+    { id: 'news', lines: ['“지난 10년 동안 비령은 점사와 재난 예측, 고인의 목소리 재현까지 맡아 왔습니다. 무속인 협회는 오늘 밤 성명을 내지 않았습니다.”'] },
+    { id: 'door', lines: ['같은 시각, 전국의 무당 집마다 같은 일이 있었다. 수십 개의 방문이 조용히 열렸다 닫혔다.', '아이들은 저마다 다른 것을 쥐고, 서로를 모르는 채 같은 일을 겪었다.'] },
   ];
 
   function play({ replay = false, onDone } = {}) {
@@ -139,7 +115,7 @@
       if (i >= CUTS.length) { finish(); return; }
       at = i; const c = CUTS[i];
       stage.replaceChildren(); cap.replaceChildren();
-      const scene = h('div', `op-scene op-scene-${c.id}`); stage.append(scene); c.stage(scene);
+      const scene = h('div', `op-scene op-scene-${c.id}`); stage.append(scene); STAGES[c.id](scene);
       c.lines.forEach((t, k) => { const p = h('p', 'op-line', t); p.style.animationDelay = `${0.5 + k * 1.1}s`; cap.append(p); });
       if (c.type) {
         const tp = h('p', 'op-type'); const cur = h('i', 'op-cursor'); tp.append(h('span'), cur); cap.append(tp);
@@ -174,6 +150,6 @@
     play({ onDone() { try { localStorage.setItem(seenKey(id), '1'); } catch (_) { /* 다음에 또 보면 그만 */ } location.hash = '#/profile'; } });
   }
 
-  window.BiryeongOpening = { play, cuts: CUTS.length };
+  window.BiryeongOpening = { play, cuts: CUTS.length, stage: (id, el) => { if (!STAGES[id]) return false; STAGES[id](el); return true; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', maybeAutoplay); else maybeAutoplay();
 })();

@@ -91,13 +91,13 @@
     ACH.push({ id, group: 'neo', name: aName, desc, hint, when, title: `t-${id}` });
   }
 
-  // ── v1.5 본교 — 학당 생활: 초록동색 원래 업적 셋(보관고가 판정 · 원래 보상도 그대로 나온다) + 새 업적 일곱 ──
+  // ── v1.5 본교 — 학당 생활: 실행 화면이 판정하는 업적 셋(보상도 함께 나온다) + 새 업적 일곱 ──
   //   when.vault: 실행 화면 플레이어의 보관고 업적(game.achievements)을 읽는다.   extra: 칭호 말고 따로 받는 보상(표에만 적는다)
   GROUPS.push({ id: 'home', name: '본교 — 학당 생활' });
   const H = [
-    ['student-exercise', '붉은 피', '천 꽂힌 램프를 들고 아침 체조를 한다.', '직업은 학생, 취미는 운동', '학생은 튼튼하게 사는 것이 미덕이다. 그런 의미에서 우리 모두 운동을 하자. 천 꽂힌 램프로 무슨 운동을 하냐고? 지금 서로 말하는 운동이 다른 거 아냐?', '무언가멋진천이꽂힌알코올램프를 제작한다.', { vault: 'student-exercise' }, 1, ['stat', 'endurance'], '영력 20 (초록동색 원래 보상)'],
-    ['gods-gaze', '신 아래의 인간', '첫날부터 누군가 지켜보고 있었다.', '신의 주시', '오늘은 비령 임시학당에 전학을 온 기념비적인 날이다. 이제부터 평범한 나날은 안녕이라고 봐도 좋겠지.', '캐릭터를 생성하고 24시간이 지난다.', { vault: 'gods-gaze' }, 1, 'regen', '영력 20 (초록동색 원래 보상)'],
-    ['model-student', '장원급제', '출석부 맨 윗줄, 주간 순위표 세 번째 줄 안.', '나는야 모범생', '한 주 내내 어느 수업에서건 주간 랭킹 3위 안의 자리를 지켜냈다. 다음 주로 넘어가는 순간까지 그 자리는 흔들리지 않았다.', '어느 수업이건 주간 랭킹 3위 안에 든 채로 다음 주로 넘어간다.', { vault: 'model-student' }, 3, 'lessonSpirit', '20냥 · 2048 스킨 「황금빛 백일몽」 (초록동색 원래 보상)'],
+    ['student-exercise', '붉은 피', '천 꽂힌 램프를 들고 아침 체조를 한다.', '직업은 학생, 취미는 운동', '학생은 튼튼하게 사는 것이 미덕이다. 그런 의미에서 우리 모두 운동을 하자. 천 꽂힌 램프로 무슨 운동을 하냐고? 지금 서로 말하는 운동이 다른 거 아냐?', '무언가멋진천이꽂힌알코올램프를 제작한다.', { vault: 'student-exercise' }, 1, ['stat', 'endurance'], '영력 20'],
+    ['gods-gaze', '신 아래의 인간', '첫날부터 누군가 지켜보고 있었다.', '신의 주시', '오늘은 비령 임시학당에 전학을 온 기념비적인 날이다. 이제부터 평범한 나날은 안녕이라고 봐도 좋겠지.', '캐릭터를 생성하고 24시간이 지난다.', { vault: 'gods-gaze' }, 1, 'regen', '영력 20'],
+    ['model-student', '장원급제', '출석부 맨 윗줄, 주간 순위표 세 번째 줄 안.', '나는야 모범생', '한 주 내내 어느 수업에서건 주간 랭킹 3위 안의 자리를 지켜냈다. 다음 주로 넘어가는 순간까지 그 자리는 흔들리지 않았다.', '어느 수업이건 주간 랭킹 3위 안에 든 채로 다음 주로 넘어간다.', { vault: 'model-student' }, 3, 'lessonSpirit', '20냥 · 2048 스킨 「황금빛 백일몽」'],
     ['h-heir', '상속자', '관측동 명부에 유품과 이름이 나란히 올랐다.', '유품 등록', '부모가 남긴 물건 하나를 학당 명부에 올렸다. 이제 그건 무구다.', '본편에서 부모의 유품을 고른다.', { flag: 'heirloomChosen' }, 1, 'winMoney'],
     ['h-fails', '그을린 소매', '망친 것들이 소매 끝에 냄새로 남았다.', '망친 것도 공부', '제작법에 없는 조합을 열다섯 번 올렸다. 실패작 상자가 꽉 찼다.', '공작소 · 조리실 칸에서 제작에 15번 실패한다.', { count: 'craftFails', n: 15 }, 2, 'craftBonus'],
     ['h-locker', '도둑이야', '열쇠 없이 여는 법을 안다. 여는 이유는 묻지 마라.', '남의 사물함', '카드키 한 장으로 남의 물품보관함을 세 번 열었다. 안에 든 건 대개 남의 사정이었다.', '본관 3층에서 카드키로 남의 물품보관함을 3번 연다.', { count: 'lockerUses', n: 3 }, 2, 'itemSave'],
@@ -109,7 +109,7 @@
   for (const [id, name, desc, aName, aDesc, hint, when, tier, perk, extra] of H) {
     const tid = `t-${id.startsWith('h-') ? id : 'o-' + id}`
     TITLES.push({ id: tid, name, desc, from: 'achievement', tier, perkSeed: perk });
-    ACH.push({ id: id.startsWith('h-') ? id : 'o-' + id, group: 'home', name: aName, desc: aDesc, hint, when, title: tid, ...(extra ? { extra } : {}), ...(when.vault ? { origin: '초록동색' } : {}) });
+    ACH.push({ id: id.startsWith('h-') ? id : 'o-' + id, group: 'home', name: aName, desc: aDesc, hint, when, title: tid, ...(extra ? { extra } : {}), ...(when.vault ? { origin: 'play' } : {}) });
   }
 
   // ── 모든 칭호에 기능 달기 ──

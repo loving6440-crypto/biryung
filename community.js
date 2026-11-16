@@ -76,7 +76,7 @@
     account.append(left,actions);
   }
   function renderAuth(){
-    addIntro('지신성 · 낮새들의 터 · 밤쥐들의 터는 비령 자체 계정으로 이용합니다. 초록동색 계정과는 연결되지 않습니다.');
+    addIntro('지신성 · 낮새들의 터 · 밤쥐들의 터는 비령 자체 계정으로 이용합니다.');
     const outer=h('div','community-auth-layout');const nav=h('div','community-auth-toggle');
     for(const mode of ['login','register']){const b=button(mode==='login'?'입산자 로그인':'새 계정 만들기',authMode===mode?'active':'',()=>{authMode=mode;renderAuthReset();});nav.append(b);}outer.append(nav);
     const form=h('form','community-auth-form');

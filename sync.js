@@ -28,14 +28,14 @@
       return id;
     } catch (_) { return '00000000-0000-4000-8000-000000000000'; }
   }
-  async function call(path, { method = 'GET', body, prefer } = {}) {
+  async function call(path, { method = 'GET', body, prefer, read } = {}) {
     if (!enabled) return null;
     const res = await fetch(`${base}/${path}`, {
       method, headers: { apikey: C.supabaseAnonKey, Authorization: `Bearer ${C.supabaseAnonKey}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error(`supabase ${res.status}`);
-    return res.status === 204 || method !== 'GET' ? null : res.json();
+    return res.status === 204 || (method !== 'GET' && !read) ? null : res.json();
   }
   const quiet = (p) => p.catch((error) => { console.warn('[비령] 서버 전송 실패(게임은 계속된다)', error.message); return null; });
   const upsert = (table, row, onConflict) => quiet(call(`${table}?on_conflict=${onConflict}`, { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' }));
@@ -49,6 +49,11 @@
     saveCloud: (data) => (enabled ? upsert('cloud_saves', { player_id: playerId(), account: account(), data, updated_at: now() }, 'player_id') : null),
     loadCloud: async () => { if (!enabled) return null; const rows = await call(`cloud_saves?player_id=eq.${playerId()}&select=data,updated_at`); return rows?.[0] ?? null; },
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),
+    // v1.8 본편 장 공개: 공개된 장만 서버가 내준다(행 수준 보안). 관리자 쓰기는 관리자 코드를 받는 함수(RPC)로만.
+    openChapters: async () => (enabled ? call('story_chapters?select=ch,title,content&order=ch') : []),
+    adminList: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_list', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
+    adminSet: async (code, ch, title, content, openAt, mode) => { if (!enabled) return null; try { await call('rpc/story_admin_set', { method: 'POST', body: { p_code: code, p_ch: ch, p_title: title, p_content: content, p_open_at: openAt, p_mode: mode } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
+    adminChoices: async () => (enabled ? call('story_choices?select=account,branch,option,updated_at,player_id&order=updated_at.desc') : []),
     contribTotals: async () => (enabled ? call('story_contrib_totals?select=event,total,players') : []),
   };
 })();

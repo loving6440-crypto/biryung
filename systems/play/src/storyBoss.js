@@ -19,7 +19,7 @@ const shuffle = (arr, seed) => { const a = [...arr]; let x = seed * 9301 + 49297
 // ───────── 상대별 설정 ─────────
 // pattern: 패턴 이름 · hp: 바탕 상대 체력 배율 · drop: [아이템, 개수] · rules: 싸움 전에 보여 주는 규칙 · say: 계기에 맞춘 한마디
 export const STORY_FOES = {
-  myeongbugwi: { pattern: 'names', hp: 1.25, drop: ['st-roll', 1], rules: ['[이름을 부른다] — 302호 학생의 이름을 세 번 바르게 부르면 방어가 무너진다(받는 피해 ×2, 막지 못함).', '틀린 이름을 부르면 명부귀가 그 이름을 먹고 체력을 되찾는다.', '302호의 방울을 지니고 있으면 맞는 이름 쪽에서 방울이 운다.'],
+  myeongbugwi: { pattern: 'names', hp: 1.25, drop: ['st-roll', 1], rules: ['[이름을 부른다] — 사감 선생의 이름을 세 번 바르게 부르면 방어가 무너진다(받는 피해 ×2, 막지 못함).', '틀린 이름을 부르면 명부의 귀신이 그 이름을 먹고 체력을 되찾는다.', '303호의 방울을 지니고 있으면 맞는 이름 쪽에서 방울이 운다.'],
     say: { start: '이름… 부르지 않은 이름은… 주인이 없다…', broken: '그 이름은… 내 것… 아니었나…' } },
   heard: { pattern: 'calm', hp: 1.2, drop: ['st-nametag', 1], rules: ['이 사람은 쓰러뜨리지 않고 진정시킬 수 있다 — 평온이 100이 되면 이야기 승리.', '[이름을 묻는다] 평온 +35 (세 번째부터 +10) · [곁에 앉는다] 평온 +15, 막기와 같다 · [영정 조각을 보인다] 평온 +30 (한 번).', '공격하면 평온 −20. 평온이 50을 넘으면 그 사람의 공격이 절반으로 줄어든다.'],
     say: { start: '나… 죽었대. 방금 들었어. 근데 나 여기 있잖아.', calm: '…내 이름은, 그래. 그거였어.' } },
@@ -170,7 +170,7 @@ export function afterPlayer(prev, r, action) {
   const ev = [...(r.events || [])]
   const sb = s.sb, p = pat(s)
   const dealt = Math.max(0, prev.ehp - s.ehp)
-  if (p === 'names' && sb.broken) rescaleDealt(prev, s, dealt, 2, ev, '방어가 무너진 명부귀')
+  if (p === 'names' && sb.broken) rescaleDealt(prev, s, dealt, 2, ev, '방어가 무너진 명부의 귀신')
   if (p === 'calm' && OFFENSE.has(action) && dealt > 0) { sb.calm = Math.max(0, sb.calm - 20); ev.push({ kind: 'warn', text: `그 사람이 더 크게 운다. 평온 −20 (지금 ${sb.calm})` }) }
   if (p === 'roots') rescaleDealt(prev, s, dealt, sb.roots > 0 ? 1 - 0.2 * sb.roots : 1.3, ev, sb.roots > 0 ? `뿌리 ${sb.roots}개가 받아 낸다` : '뿌리째 드러난 당산신')
   if (p === 'forms' && !sb.freeze) {
@@ -290,9 +290,9 @@ export function act(state, id, arg, ctx = {}) {
     if (arg === '한도윤') {
       sb.hits += 1
       const d = hitEnemy(s, pctOf(s, 0.08))
-      ev.push({ kind: 'info', text: `"한도윤!" — 이름이 제자리를 찾는다. 명부귀가 움찔한다. (피해 ${d} · ${sb.hits}/3)` })
-      if (sb.hits >= 3 && !sb.broken) { sb.broken = true; ev.push({ kind: 'warn', text: '✦ 명부귀의 방어가 무너졌다! 이제 받는 피해 ×2, 막지 못한다.' }); const l = say(s, 'broken'); if (l) ev.push(l) }
-    } else { const h = healEnemy(s, pctOf(s, 0.1)); ev.push({ kind: 'warn', text: `"${arg}" — 명부귀가 그 이름을 삼켰다. 체력 +${h}` }) }
+      ev.push({ kind: 'info', text: `"한도윤!" — 이름이 제자리를 찾는다. 명부의 귀신이 움찔한다. (피해 ${d} · ${sb.hits}/3)` })
+      if (sb.hits >= 3 && !sb.broken) { sb.broken = true; ev.push({ kind: 'warn', text: '✦ 명부의 귀신의 방어가 무너졌다! 이제 받는 피해 ×2, 막지 못한다.' }); const l = say(s, 'broken'); if (l) ev.push(l) }
+    } else { const h = healEnemy(s, pctOf(s, 0.1)); ev.push({ kind: 'warn', text: `"${arg}" — 명부의 귀신이 그 이름을 삼켰다. 체력 +${h}` }) }
     return { state: s, events: ev }
   }
   if (p === 'calm') {
@@ -373,8 +373,9 @@ export function Panel({ b, myTurn, onAct }) {
   const acts = []
   if (p === 'names') {
     meter = <p>이름 <Dots n={sb.hits} max={3} /> {sb.broken && <Chip on>방어 붕괴</Chip>}</p>
-    const opts = shuffle(['한도윤', '한도연', ['윤진서', '한도율', '서창현'][(b.round + sb.hits) % 3]], b.round + sb.hits)
-    for (const n of opts) acts.push(<ActBtn key={n} disabled={off} onClick={() => onAct('name', n)} label={`"${n}" 하고 부른다`} note={story.has?.['st-bell302'] && n === '한도윤' ? '♪ 302호의 방울이 운다' : '이름 부르기'} />)
+    const wrong = ['한도율', '한도임', '한도영'], wi = (b.round + sb.hits) % 3
+    const opts = shuffle(['한도윤', wrong[wi], wrong[(wi + 1) % 3]], b.round + sb.hits)
+    for (const n of opts) acts.push(<ActBtn key={n} disabled={off} onClick={() => onAct('name', n)} label={`"${n}" 하고 부른다`} note={story.has?.['st-bell302'] && n === '한도윤' ? '♪ 303호의 방울이 운다' : '이름 부르기'} />)
   } else if (p === 'calm') {
     meter = <div><p>평온 {sb.calm} / 100</p><div className="mt-1 h-1.5 w-full rounded bg-edge/15"><div className="h-1.5 rounded bg-gold" style={{ width: `${sb.calm}%` }} /></div></div>
     acts.push(<ActBtn key="ask" disabled={off} onClick={() => onAct('ask')} label="이름을 묻는다" note={sb.asked < 2 ? '평온 +35' : '평온 +10'} />)

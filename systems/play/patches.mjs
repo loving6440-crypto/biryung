@@ -38,6 +38,14 @@ export const SOURCE_PATCHES = [
       ["  add('charcoal', { type: '제작 실패', where: '조리실', what: '제작법에 없는 조합으로 만들면', level: 0 })", "  add('charcoal', { type: '제작 실패', where: '조리실', what: '제작법에 없는 조합으로 만들면', level: 0 })\n  for (const it of __SI) if (it.price == null) add(it.id, { type: '본편', where: '본편 퀘스트', what: it.tags?.includes('전리품') ? '이야기 전투에서 이기면' : '퀘스트가 준다', level: 0 })"],
     ],
   },
+  // ── v1.8 본편: 소지품에서 [조사한다] — 본편이 '조사하라'고 한 물건에만 단추가 생긴다 ──
+  {
+    file: 'ui/components/InventoryModal.jsx',
+    edits: [
+      ["                {picked && !inBattle && <button type=\"button\" onClick={() => setDiscardConfirm(true)} className=\"flat-btn-ghost min-w-[4.5rem] !py-1 text-xs\">버리기</button>}",
+       "                {picked && !inBattle && globalThis.__BRY_INSPECT?.can(picked.id) && <button type=\"button\" data-inspect onClick={() => { const id = picked.id; closeAll(); globalThis.__BRY_INSPECT.run(id) }} className=\"flat-btn !py-1 text-xs\">조사한다</button>}\n                {picked && !inBattle && <button type=\"button\" onClick={() => setDiscardConfirm(true)} className=\"flat-btn-ghost min-w-[4.5rem] !py-1 text-xs\">버리기</button>}"],
+    ],
+  },
   // ── v1.6 붉은여우 부적: 다인 전투에서 다른 일행이 가진 영능력을 한 번 빌려 쓴다(의지력은 똑같이 든다) ──
   {
     file: 'game/mbattle.js',

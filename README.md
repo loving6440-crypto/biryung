@@ -131,6 +131,25 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 
 임시 관리자 코드는 `biryeong-admin-2046` 이다(`config.js`). 서버에 `ADMIN_CODE` 를 넣은 뒤에는 `adminCodeHash` 를 비워 임시 코드를 없앤다.
 
+## v1.8 (2026-11-16) — 본편 스크립트 v4
+
+- 원고: `systems/story/v4/script_v4.xlsx`(「비령_스토리 스크립트 v4」) → `python3 systems/story/v4/build_v4.py`
+  - `story-data.js`: 프롤로그(튜토리얼) + 권 · 장 목록 + 상대 · 바깥 지역(강릉 · 청암리) · 유품 · 선택 목록 · 장 칭호 3개
+  - `story-chapters/ch1.json`, `ch2.json`: 1장 · 2장. **사이트에 올리지 않는다**(배포 목록에 없다). 관리자 › 스토리 관리에서 파일을 올리고 공개한다.
+  - 원고 읽는 규칙 · 줄마다 붙는 연출(FX) · 트리거 → 단계 대응은 build_v4.py 머리말과 표(NARR · FX · TRIG)에 있다.
+- 이야기 화면(`quest.js`): 연출은 글자가 아니라 화면 효과다(배경 · 장면 그림 · 흔들림 · 붉은 빛 · 먹물 · 뉴스 · 단말기 타자 · 구석 속삭임 · 장 표제 · 방울 소리). 글자로 나오는 것은 대사와 지문(행동지문 칸의 괄호 밖 글)뿐.
+- 장 공개: 서버(Supabase)가 있으면 `story_chapters` 표 + `story_admin_list` · `story_admin_set`(관리자 코드 확인) — 공개 전 내용은 서버가 학생에게 내주지 않는다. 없으면 이 브라우저에만 적용.
+- 선택: 모든 선택이 `story_choices` 에 올라간다. 관리자 › 스토리 관리에서 선택지별 인원 · 누가 무엇을 골랐는지 본다. 2장 당산신 선택(C2-3)은 투표로 표시되고 마지막 전투 상대와 뒷대사가 바뀐다.
+- 새 배경: `assets/city_scene.png`(강릉) · `assets/village_scene.png`(청암리) — `systems/art/story_scenes.py`.
+- 오프닝 자막은 원고의 첫 줄들(행 2 · 3 · 4 · 5 · 7)이고, 프롤로그는 그 다음 줄부터 잇는다.
+
+## v1.7 (2026-11-16)
+
+- 화면 · 배포 파일에서 옛 이름(원본 게임 이름 · 저장 키 · 스킨 id)을 모두 걷어 냈다. `systems/play/build.mjs` 가 play.js 를 만든 뒤 한 번 더 걸러 내고, 남아 있으면 빌드가 멈춘다. 시험도 배포 파일 전부를 훑는다.
+- 도감 [아이템] [영능력] [적]: 자료는 `systems/codex/build.mjs` → `codex-data.js`. 가리기는 app.js 가 플레이어 기록(codex.items · psychics · seen · specials · 안목)으로 한다.
+  아이템 획득처는 짧게(영물 · 요괴 이름 없이 터만) — `systems/sheets/export.mjs` 의 `sourceSimple`.
+- 실행 화면은 모든 변경에서 `syncCodex` 를 돌려, 한 번이라도 손에 넣은 아이템이 도감에 남는다.
+
 ## v1.6 (2026-11-16)
 
 - 오프닝(`opening.js`): 명부 등록 직후 · 프로필이 없는 계정에 한 번, 화면 전체 연출 8컷 → 「내 프로필 만들기」. 프로필 화면에서 다시 보기.

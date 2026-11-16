@@ -42,7 +42,7 @@ import { readSave, writeHost } from './store.js'
 import { bridge } from './bridge.js'
 import { makeStoryEnemy, dropOf, bossRecipes, STORY_FOES } from './storyBoss.js'
 import { STORY_ITEMS, STORY_RECIPES } from '../../biryeong/reskin.data.js'
-import { baseIdOf } from '@vault/game/items.js'
+import { baseIdOf, enhTotal } from '@vault/game/items.js'
 
 const LOG_MAX = 80
 const COOK_IDS = { has: (id) => COOKS_ALL.some((r) => r.id === id) }
@@ -122,7 +122,7 @@ export function usePlayHost() {
   /** 모든 변경은 여기를 거친다(소지품 칸 수 · 가방 · 영력 상한을 마지막으로 지킨다). */
   const commit = useCallback((next) => {
     const prev = playerRef.current
-    const safe = clampSpirit(protectBags(prev, limitNewGains(prev, next)))
+    const safe = syncCodex(clampSpirit(protectBags(prev, limitNewGains(prev, next)))) // 한 번이라도 손에 넣은 아이템은 도감에 남는다
     playerRef.current = safe
     setPlayerState(safe)
     peak('moneyPeak', Math.floor(safe.money || 0))
@@ -457,7 +457,7 @@ export function usePlayHost() {
   const breakHeadband = () => { const cur = playerRef.current; if (trinketFx(cur) !== 'headband') return; commit(breakTrinket(cur, equipOf(cur).trinket)); addLog('기합의 띠가 끊어졌다. (장신구 칸이 비었다)') }
   const giveItem = (id, n = 1) => { const cur = playerRef.current; commit({ ...cur, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }) }
   const TUTORIAL_LABEL = { basic: '#1 기본 전투', psychic: '#2 영능력', gear: '#3 무구와 아이템', group: '#4 단체 전투' }
-  const onTutorialDone = (key) => { const cur = playerRef.current; if (cur.tutorialDone?.[key]) return; collect('tutorials', key); commit({ ...cur, tutorialDone: { ...(cur.tutorialDone ?? {}), [key]: true } }); addLog(`전투 튜토리얼 '${TUTORIAL_LABEL[key] ?? key}'을 마쳤다.`) }
+  const onTutorialDone = (key) => { const cur = playerRef.current; if (cur.tutorialDone?.[key]) return; collect('tutorials', key); bridge.quest('tutorial', key); commit({ ...cur, tutorialDone: { ...(cur.tutorialDone ?? {}), [key]: true } }); addLog(`전투 튜토리얼 '${TUTORIAL_LABEL[key] ?? key}'을 마쳤다.`) }
   const onClaimTutorialReward = (weaponId) => {
     const cur = playerRef.current
     if (cur.tutorialRewardTaken || !['basic', 'psychic', 'gear', 'group'].every((k) => cur.tutorialDone?.[k])) return
@@ -573,6 +573,7 @@ export function usePlayHost() {
   // ───── 탐사(본관 · 별관 · 뒷산 · 사당) — 초록동색과 같은 처리. 퀘스트만 뺐다. ─────
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
+  globalThis.__BRY_INSPECT = { can: (id) => !!globalThis.BiryeongQuest?.inspectable?.(baseIdOf(id)), run: (id) => bridge.quest('inspect', baseIdOf(id)) }
   const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
   const lockerMove = (mode, grade, id, n) => {
     const cur = playerRef.current
@@ -758,10 +759,12 @@ export function usePlayHost() {
   }
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, spendMp,
+    save: persist, storyBattle, spendMp, effStats: () => effStats, // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
     itemName: (id) => itemOf(id)?.name ?? id, count: countOfId, equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
-    take, giveHeirloom, unlockRecipes, equip, heirloomWeapon: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id && (cur.inventory?.[id] || equipOf(cur).weapon === id) ? id : null }, knows: (id) => !!playerRef.current?.storyRecipes?.[id],
+    tutorialCount: () => Object.keys(playerRef.current?.tutorialDone ?? {}).length, // 본편: [전투 안내] 몇 단계까지 마쳤나
+    heirloomEnh: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id ? enhTotal(cur, id) : 0 }, // 본편: 유품 무구 강화 수
+        take, giveHeirloom, unlockRecipes, equip, heirloomWeapon: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id && (cur.inventory?.[id] || equipOf(cur).weapon === id) ? id : null }, knows: (id) => !!playerRef.current?.storyRecipes?.[id],
     storyDex: () => ({
       items: STORY_ITEMS.map((it) => ({ id: it.id, name: it.name, kind: it.kind, tags: it.tags ?? [], text: it.effectText || '', desc: it.desc, have: countOfId(it.id) })),
       recipes: STORY_RECIPES.map((r) => ({ id: r.id, name: itemOf(r.result)?.name ?? r.result, place: r.place, unlock: r.unlock, open: !!playerRef.current?.storyRecipes?.[r.id] })),

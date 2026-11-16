@@ -66,3 +66,62 @@ end $$;
 grant select, insert, update on public.story_choices, public.story_progress, public.cloud_saves to anon;
 grant select, insert on public.story_contrib to anon;
 grant select on public.story_tally, public.story_contrib_totals to anon;
+
+-- ───────── v1.8 본편 장 공개 · 선택 열람 ─────────
+-- 선택지가 10개인 선택(유품 고르기)이 있어 option 범위를 넓힌다.
+alter table public.story_choices drop constraint if exists story_choices_option_check;
+alter table public.story_choices add constraint story_choices_option_check check (option between 1 and 12);
+
+-- 장 파일(story-chapters/chN.json). 공개 시각(open_at)이 지난 장만 학생이 읽을 수 있다 — 공개 전 내용은 서버가 내주지 않는다.
+create table if not exists public.story_chapters (
+  ch         smallint    primary key,
+  title      text        not null default '',
+  content    jsonb,
+  open_at    timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table public.story_chapters enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where policyname = 'chapters_read_open') then
+    create policy chapters_read_open on public.story_chapters for select to anon using (open_at is not null and open_at <= now() and content is not null);
+  end if;
+end $$;
+grant select on public.story_chapters to anon;
+
+-- 관리자 코드: 아래 한 줄의 '여기에 관리자 코드' 를 실제 코드로 바꿔 한 번 실행한다(코드 자체는 저장하지 않고 SHA-256 만 남는다).
+--   insert into biryeong_private.admin_secret (id, code_hash) values (1, encode(sha256(convert_to('여기에 관리자 코드', 'UTF8')), 'hex'))
+--     on conflict (id) do update set code_hash = excluded.code_hash;
+create schema if not exists biryeong_private;
+create table if not exists biryeong_private.admin_secret (id smallint primary key default 1 check (id = 1), code_hash text not null);
+revoke all on schema biryeong_private from anon, authenticated;
+
+create or replace function public.story_admin_ok(p_code text) returns boolean
+  language sql security definer set search_path = public, biryeong_private as $$
+  select exists (select 1 from biryeong_private.admin_secret where code_hash = encode(sha256(convert_to(coalesce(p_code, ''), 'UTF8')), 'hex'));
+$$;
+
+-- 장 목록(관리자): 공개 여부 · 시각 · 파일 유무
+create or replace function public.story_admin_list(p_code text)
+  returns table (ch smallint, title text, open_at timestamptz, has_content boolean, updated_at timestamptz)
+  language plpgsql security definer set search_path = public, biryeong_private as $$
+begin
+  if not public.story_admin_ok(p_code) then raise exception 'admin code mismatch'; end if;
+  return query select c.ch, c.title, c.open_at, c.content is not null, c.updated_at from public.story_chapters c order by c.ch;
+end $$;
+
+-- 장 올리기 · 공개 시각 정하기 · 닫기(관리자). p_mode: 'content'(파일만 바꾼다) · 'open'(공개 시각만 바꾼다, null 이면 닫기)
+create or replace function public.story_admin_set(p_code text, p_ch smallint, p_title text, p_content jsonb, p_open_at timestamptz, p_mode text)
+  returns void language plpgsql security definer set search_path = public, biryeong_private as $$
+begin
+  if not public.story_admin_ok(p_code) then raise exception 'admin code mismatch'; end if;
+  if p_mode = 'content' then
+    insert into public.story_chapters (ch, title, content, updated_at) values (p_ch, coalesce(p_title, ''), p_content, now())
+      on conflict (ch) do update set title = excluded.title, content = excluded.content, updated_at = now();
+  elsif p_mode = 'open' then
+    insert into public.story_chapters (ch, title, open_at, updated_at) values (p_ch, coalesce(p_title, ''), p_open_at, now())
+      on conflict (ch) do update set open_at = excluded.open_at, updated_at = now();
+  else raise exception 'unknown mode'; end if;
+end $$;
+revoke all on function public.story_admin_ok(text) from anon;
+grant execute on function public.story_admin_list(text) to anon;
+grant execute on function public.story_admin_set(text, smallint, text, jsonb, timestamptz, text) to anon;

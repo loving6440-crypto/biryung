@@ -200,71 +200,63 @@ t10('v1.5 칭호 124개 모두에 기능이 있고, 업적 120개 — 업적 하
 })
 
 // ── v1.2: 본편 퀘스트 데이터 ──
-t10('v1.2 본편 데이터: 장면 97개 · 모든 단계에 갈 곳이 있고 · 상대 · 지점 · 분기가 맞물린다', () => {
+t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 장 파일에 — 모든 단계에 갈 곳 · 상대 · 지점 · 분기가 맞물린다', async () => {
   const window = {}
   for (const f of ['../titles.js', '../titles2.js', '../story-data.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
   const D = window.BIRYEONG_QUESTS
-  assert10.equal(D.scenes.length, 97)
-  const ids = new Set(D.scenes.map((s) => s.id)); assert10.equal(ids.size, 97)
+  assert10.deepEqual(D.scenes.map((s) => s.id), ['P-1', 'P-2', 'P-3'])
+  assert10.ok(D.scenes.every((s) => s.ch === 0), '사이트에는 프롤로그만')
+  const chapters = [1, 2].map((n) => JSON.parse(read10(new URL(`../story-chapters/ch${n}.json`, import.meta.url), 'utf8')))
+  chapters.forEach((c, i) => { assert10.equal(c.format, 'biryeong-chapter'); assert10.equal(c.ch, i + 1); assert10.ok(c.scenes.every((s) => s.ch === i + 1)) })
+  const all = [...D.scenes, ...chapters.flatMap((c) => c.scenes)]
+  assert10.equal(all.length, 16)
   const spots = new Set(Object.entries(D.regions).flatMap(([r, v]) => v.spots.map((s) => `${r}/${s.id}`)))
-  for (const s of D.scenes) {
+  const { ITEMS } = await import('../systems/vault/modules/game/items.js')
+  const { STORY_ITEMS } = await import('../systems/biryeong/reskin.data.js')
+  const ids = new Set([...ITEMS, ...STORY_ITEMS].map((i) => i.id))
+  const choiceIds = new Set()
+  for (const s of all) {
     assert10.ok(s.steps.length > 0, s.id)
     const covered = new Set()
     for (const st of s.steps) {
       assert10.ok(st.w, `${s.id} 갈 곳`)
       if (st.w.startsWith('out:')) assert10.ok(spots.has(st.w.slice(4)), `${s.id} ${st.w}`)
-      for (const n of st.n ?? []) {
-        if (n.startsWith('battle:')) assert10.ok(D.foes[n.slice(7).split('×')[0].split('|')[0]], `${s.id} ${n}`)
-        if (n.startsWith('spot:')) assert10.ok(spots.has(n.slice(5)), `${s.id} ${n}`)
+      const needs = [...(st.n ?? []), ...Object.values(st.alt ?? {}).flatMap((by) => Object.values(by).flat())]
+      for (const n of needs) {
+        if (n.startsWith('battle:')) assert10.ok(D.foes[n.slice(7).split('|')[0]], `${s.id} ${n}`)
+        const m = /^(make|inspect):(.+)$/.exec(n); if (m) assert10.ok(ids.has(m[2]), `${s.id} ${n}`)
       }
-      if (st.l) for (let i = st.l[0]; i < st.l[1]; i++) covered.add(i)
+      for (const r of [st.l, st.pre]) if (r) for (let i = r[0]; i < r[1]; i++) covered.add(i)
     }
     assert10.equal(covered.size, s.lines.length, `${s.id} 의 모든 대사가 어느 단계에 들어 있어야 한다`)
-    for (const ln of s.lines) if (ln.t === 'choice') { assert10.ok(ln.o.length >= 2, `${s.id} 선택지`); assert10.equal(ln.e.length, ln.o.length) }
+    for (const ln of s.lines) {
+      assert10.ok(!('d' in ln), `${s.id} 연출 글(d)이 줄에 남았다`)
+      if (ln.x) assert10.ok(!/^\(.*\)$/.test(ln.x.trim()), `${s.id} 괄호 연출이 대사로 나온다: ${ln.x}`)
+      if (ln.t === 'choice') { assert10.ok(ln.o.length >= 2); choiceIds.add(ln.id); assert10.ok(D.choices[ln.id], ln.id) }
+      if (ln.c) for (const c of ln.c) assert10.ok(choiceIds.has(c.flag), `${s.id} 분기 조건 ${c.flag} 는 앞에서 고른 것이어야 한다`)
+      if (ln.op) assert10.equal(s.id, 'P-1')
+    }
   }
-  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 18)
+  assert10.deepEqual([...choiceIds].sort(), Object.keys(D.choices).sort())
+  assert10.ok(D.choices['C2-3'].vote, '당산신 선택은 투표')
+  // 2장 마지막 전투는 고른 것에 따라 상대가 바뀐다
+  const last = chapters[1].scenes.at(-1).steps.find((st) => st.alt)
+  assert10.deepEqual(last.alt['C2-3'], { 1: ['battle:effigy'], 2: ['battle:dangsan'], 3: ['battle:dangsan'] })
+  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 3)
+  assert10.ok(!JSON.stringify(D.regions).includes('서울'), '바깥 지역 서울은 강릉으로')
 })
 
-// ── v1.3: 유품 10종 · 본편 아이템 · 제작법 · 보스 패턴이 퀘스트와 맞물린다 ──
-t10('v1.3 본편: 유품 10종 = 무구 10종, 퀘스트가 쓰는 아이템 · 제작법 · 보스가 모두 있다', async () => {
+t10('v1.8 본편: 유품 10종 = 무구 10종(시트 순서) · 무구보관소에서 실제로 준다', async () => {
   const window = {}
   for (const f of ['../titles.js', '../titles2.js', '../story-data.js']) new Function('window', read10(new URL(f, import.meta.url), 'utf8'))(window)
   const D = window.BIRYEONG_QUESTS
   const { ITEMS } = await import('../systems/vault/modules/game/items.js')
-  const { STORY_ITEMS, STORY_RECIPES, NEW_RECIPES } = await import('../systems/biryeong/reskin.data.js')
-  const { RECIPES } = await import('../systems/vault/modules/game/crafting.js')
-  const { COOK_RECIPES } = await import('../systems/vault/modules/game/cooking.js')
-  const ids = new Set([...ITEMS, ...STORY_ITEMS].map((i) => i.id))
   const weapons = ITEMS.filter((i) => i.kind === 'gear' && i.slot === 'weapon').map((i) => i.id).sort()
-  // 유품 10종이 게임의 무구 10종과 하나씩 맞고, 다섯 계통에 둘씩
   assert10.equal(D.heirlooms.length, 10)
   assert10.deepEqual(D.heirlooms.map((h) => h.weapon).sort(), weapons)
-  for (const k of ['bell', 'fan', 'mirror', 'blade', 'cloth']) assert10.equal(D.heirlooms.filter((h) => h.key === k).length, 2, k)
-  const b11 = D.scenes.find((s) => s.id === '1-01').lines.find((l) => l.id === 'B1-1')
-  assert10.equal(b11.o.length, 10)
-  for (const h of D.heirlooms) assert10.ok(b11.o.some((o) => o.includes(h.name)), h.name)
-  // 무구를 실제로 주는 단계와 장착 단계가 있다
-  const s103 = D.scenes.find((s) => s.id === '1-03')
-  assert10.ok(s103.steps.some((st) => st.heir), '1-03 무구 지급')
-  assert10.ok(s103.steps.some((st) => (st.n ?? []).includes('equip:heir')), '1-03 장착')
-  // 퀘스트가 쓰는 아이템 · 제작법이 모두 있다
-  const madeBy = new Set([...RECIPES, ...COOK_RECIPES, ...NEW_RECIPES.W, ...NEW_RECIPES.K, ...STORY_RECIPES].map((r) => r.result))
-  for (const s of D.scenes) for (const st of s.steps) {
-    const needs = [...(st.n ?? []), ...Object.values(st.alt ?? {}).flatMap((by) => Object.values(by).flat())]
-    for (const n of needs) {
-      const m = /^(make|have|use):([^*×]+)/.exec(n)
-      if (!m) continue
-      assert10.ok(ids.has(m[2]), `${s.id} ${n} — 없는 아이템`)
-      if (m[1] === 'make') assert10.ok(madeBy.has(m[2]), `${s.id} ${n} — 만드는 제작법이 없다`)
-    }
-    for (const id of Object.keys({ ...(st.give ?? {}), ...(st.kit ?? {}) })) assert10.ok(ids.has(id), `${s.id} give/kit ${id}`)
-    for (const id of st.learn ?? []) assert10.ok(STORY_RECIPES.some((r) => r.id === id && r.unlock === 'quest'), `${s.id} learn ${id}`)
-  }
-  // 퀘스트로 배우는 제작법은 모두 어느 단계가 가르친다
-  for (const r of STORY_RECIPES.filter((x) => x.unlock === 'quest')) assert10.ok(D.scenes.some((s) => s.steps.some((st) => (st.learn ?? []).includes(r.id))), `${r.id} 를 가르치는 단계`)
-  // 격파로 열리는 제작법의 상대는 본편 상대다
-  for (const r of STORY_RECIPES.filter((x) => x.unlock.startsWith('boss:'))) assert10.ok(D.foes[r.unlock.slice(5)], r.id)
-  assert10.equal(Object.keys(D.recipeResult).length, STORY_RECIPES.length)
+  const pick = D.scenes[0].lines.find((l) => l.id === D.heirChoice)
+  assert10.deepEqual(pick.o, D.heirlooms.map((h) => h.name))
+  assert10.ok(D.scenes.find((s) => s.id === 'P-3').steps.some((st) => st.heir), '무구보관소에서 무구 지급')
 })
 
 test('v1.5: 아이템마다 제작법은 하나뿐이고, 겹치던 자리는 새 아이템 81종이 채운다(도트도 따로)', async () => {
@@ -322,4 +314,33 @@ test('v1.6: 아이템 시트 수정 — 붉은여우 부적은 일행 전용 · 
   assert16.equal(canUseItem(item, { inBattle: true, isParty: false, countNow: 1 }).ok, false)
   const P = (await import('../systems/play/patches.mjs')); const list = P.default ?? P.PATCHES ?? Object.values(P).find(Array.isArray)
   assert16.ok(list.some((x) => x.file === 'game/mbattle.js' && x.edits.some(([, b]) => b.includes('borrowPsychic'))))
+})
+
+test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자료(아이템 · 영능력 · 적)가 있다', async () => {
+  const assert17 = (await import('node:assert/strict')).default
+  const { readFileSync } = await import('node:fs')
+  const files = ['index.html', 'app.js', 'auth.js', 'config.js', 'styles.css', 'community.js', 'community.css', 'game-data.js', 'titles.js', 'titles2.js', 'story.js', 'story-data.js', 'sync.js', 'quest.js', 'opening.js', 'codex-data.js', 'play/play.js', 'play/play.css']
+  for (const f of files) {
+    const t = readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
+    assert17.ok(!/초록동색|草綠|창록|昌綠|chorok|changnok|C\.01/i.test(t), `${f} 에 옛 이름이 남았다`)
+  }
+  const window = {}
+  new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
+  const C = window.BIRYEONG_CODEX
+  assert17.equal(C.items.length, 429); assert17.equal(C.psychics.length, 13); assert17.ok(C.enemies.length >= 62)
+  for (const i of C.items) { assert17.ok(i.from, i.id); assert17.ok(!/「/.test(i.from), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${i.from}`) }
+  assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
+})
+
+test('v1.8: 1 · 2장 장 파일은 사이트에 올라가지 않는다(관리자가 올리고 공개한다)', async () => {
+  const assert18 = (await import('node:assert/strict')).default
+  const { readFileSync } = await import('node:fs')
+  const yml = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8')
+  const srv = readFileSync(new URL('../server/index.mjs', import.meta.url), 'utf8')
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  for (const t of [yml, srv, html]) assert18.ok(!/story-chapters/.test(t), '배포 목록에 장 파일이 있으면 안 된다')
+  assert18.ok(/codex-data\.js/.test(yml) && /opening\.js/.test(yml))
+  const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+  assert18.ok(/chapters_read_open[\s\S]*open_at <= now\(\)/.test(sql), '공개 전 장은 서버가 내주지 않는다')
+  assert18.ok(/story_admin_set/.test(sql) && /option between 1 and 12/.test(sql))
 })

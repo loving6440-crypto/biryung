@@ -70,6 +70,16 @@ const result = await esbuild.build({
   plugins: [vaultPlugin], metafile: true, logLevel: 'warning',
 })
 
+// ── 1-1. 화면에 남으면 안 되는 옛 이름(저장 키 · 스킨 id 등)을 걷어 낸다 — 비령은 비령 그 자체다 ──
+{
+  const out = join(OUT, 'play.js')
+  let js = readFileSync(out, 'utf8')
+  js = js.replaceAll('chorokYtapi', 'bryYtapi').replaceAll('chorok-', 'bry-').replaceAll('changnok', 'biryeong')
+  const left = js.match(/chorok|changnok|\\uCD08\\uB85D\\uB3D9\\uC0C9|\\uCC3D\\uB85D|초록동색|창록/gi)
+  if (left) throw new Error('play.js 에 옛 이름이 남았다: ' + [...new Set(left)].join(', '))
+  writeFileSync(out, js)
+}
+
 // ── 2. 스타일: Tailwind 컴파일 → .play-scope 안에 가두기 ──
 const sources = [...walk(VAULT), ...walk(join(HERE, 'src'))].filter((p) => /\.(m?js|jsx)$/.test(p))
 const candidates = new Set()

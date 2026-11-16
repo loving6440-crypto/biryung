@@ -29,7 +29,7 @@ jobs:
       - name: 화면 파일 모으기
         run: |
           mkdir -p _site
-          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js opening.js .nojekyll _site/
+          cp index.html app.js auth.js config.js styles.css community.js community.css game-data.js titles.js titles2.js story.js story-data.js sync.js quest.js opening.js codex-data.js .nojekyll _site/
           cp -r assets fonts play _site/
       # 관리자 코드: 저장소 Settings → Secrets and variables → Actions (또는 Environments → github-pages) 에 ADMIN_CODE 를 넣는다.
       # Secret 으로 넣어도, Variable 로 넣어도 읽는다. 코드 자체는 올리지 않고 SHA-256 만 config.js 에 적는다.
