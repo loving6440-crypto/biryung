@@ -309,10 +309,10 @@
     card: '.#####. .#...#. .#.#.#. .#...#. .#.#.#. .#...#. .#####.', water: '...#... ..###.. ..###.. .#####. .#####. .#####. ..###..',
   };
   const PIX_RULES = [
-    [/양호/, 'cross', '#f08a8a'], [/보관|창고|사물/, 'box', '#e6b450'], [/공작|작업/, 'tool', '#f0a35c'], [/조리|급식|주방|부엌/, 'pot', '#f0a35c'], [/패 놀이|놀이터|오광|보드/, 'card', '#f37fb1'],
-    [/동아리|부실/, 'flag', '#f37fb1'], [/옥상|달/, 'moon', '#f2e68a'], [/계단|층계/, 'stair', '#c9d2ee'], [/교실|강의|도서|서고|장서|서당|학/, 'book', '#7fd4e8'], [/체력|단련|실습|무구|병기/, 'sword', '#f08a8a'],
-    [/사당|제단|신당|기와|문지기/, 'roof', '#f2d24a'], [/표지판|안내/, 'card', '#f2d24a'], [/도깨비|불/, 'flame', '#7fe0a0'], [/텃밭|비닐|밭|숲|나무|길|산|둘레|야영|교외/, 'tree', '#7fe0a0'], [/샘|연못|호수|개울|물/, 'water', '#7fd4e8'],
-    [/숙|침|방$/, 'bed', '#c8a6f0'], [/문|현관|입구|로비/, 'door', '#f2e68a'],
+    [/양호/, 'cross', '#d56b69'], [/보관|창고|사물/, 'box', '#d4b078'], [/공작|작업/, 'tool', '#c99a62'], [/조리|급식|주방|부엌/, 'pot', '#c99a62'], [/패 놀이|놀이터|오광|보드/, 'card', '#c98a96'],
+    [/동아리|부실/, 'flag', '#c98a96'], [/옥상|달/, 'moon', '#efe6ce'], [/계단|층계/, 'stair', '#a0b2b3'], [/교실|강의|도서|서고|장서|서당|학/, 'book', '#68a9b9'], [/체력|단련|실습|무구|병기/, 'sword', '#d56b69'],
+    [/사당|제단|신당|기와|문지기/, 'roof', '#d4b078'], [/표지판|안내/, 'card', '#d4b078'], [/도깨비|불/, 'flame', '#6fae9f'], [/텃밭|비닐|밭|숲|나무|길|산|둘레|야영|교외/, 'tree', '#6fae9f'], [/샘|연못|호수|개울|물/, 'water', '#68a9b9'],
+    [/숙|침|방$/, 'bed', '#9fb0c8'], [/문|현관|입구|로비/, 'door', '#efe6ce'],
   ];
   function pix(name, color) {
     const NS = 'http://www.w3.org/2000/svg';
@@ -320,7 +320,7 @@
     (PIX[name] || PIX.star).split(/\s+/).forEach((row, y) => [...row].forEach((c, x) => { if (c !== '#') return; const r = document.createElementNS(NS, 'rect'); r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', 1); r.setAttribute('height', 1); r.setAttribute('fill', color); svg.append(r); }));
     return svg;
   }
-  const iconFor = (name) => { const rule = PIX_RULES.find(([re]) => re.test(name)); return rule ? pix(rule[1], rule[2]) : pix('star', '#c9d2ee'); };
+  const iconFor = (name) => { const rule = PIX_RULES.find(([re]) => re.test(name)); return rule ? pix(rule[1], rule[2]) : pix('star', '#a0b2b3'); };
   // v1.6 — 지도는 지금 있는 곳의 것만 보인다(본관에선 본관, 뒷산에선 뒷산). 눌러서 옮겨 가지 않고, 어디쯤인지 보기만 한다.
   const MAP_OF = { mainHall: 'mainHall', infirmary: 'mainHall', annex: 'annex', gym: 'gym', shrine: 'shrine' };
   /** 마지막으로 들른 탐사 지점(실행 화면이 counts.lastSpot 에 적는다 — 'mainHall:f1:lobby' 꼴)에서 지금 있는 층 · 방을 찾는다. */
@@ -356,7 +356,7 @@
         cell.title = `${m.name} ${lv.name} · ${r.name}`;
         plan.append(cell);
       });
-      const hall = h('div', 'pxhall'); hall.append(pix(m.id === 'gym' ? 'tree' : m.id === 'shrine' ? 'roof' : 'stair', '#8f9cc8'), h('span', '', m.id === 'gym' ? '산길' : m.id === 'shrine' ? '마당' : '복도 · 계단'), pix(m.id === 'gym' ? 'tree' : m.id === 'shrine' ? 'roof' : 'stair', '#8f9cc8'));
+      const hall = h('div', 'pxhall'); hall.append(pix(m.id === 'gym' ? 'tree' : m.id === 'shrine' ? 'roof' : 'stair', '#6f8496'), h('span', '', m.id === 'gym' ? '산길' : m.id === 'shrine' ? '마당' : '복도 · 계단'), pix(m.id === 'gym' ? 'tree' : m.id === 'shrine' ? 'roof' : 'stair', '#6f8496'));
       plan.append(hall);
       floor.append(plan); wrap.append(floor);
     });
@@ -586,11 +586,9 @@
     const log = (save.playLog || []).slice(-25).reverse();
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
-  // vB.01 부터: 예전 노트는 모두 지웠다. 이 다음 노트는 관리자가 [업데이트 노트] 화면에서 직접 쓴다(서버 bry_notes — 서버가 없으면 이 브라우저에만).
-  const UPDATE_NOTES = [
-    { v: 'vB.01', date: '2026-11-16', lines: ['비령 vB.01.', '소통 공간: 지신성이 없어지고, 낮새들의 터가 타임라인이 되었다. 밤쥐들의 터(밀담)는 그대로다.', '조사(본관 · 별관 · 뒷산 · 사당 탐사) 글을 새로 다듬었다.', '수업 랭킹 창이 멈추던 문제를 고쳤다. 서버가 연결되면 과목마다 이번 주 랭킹이 쌓인다.', '느린 전투 · 수업 대기 · 휴식처럼 시간이 드는 행동 중에 다른 페이지로 나가려 하면 한 번 더 묻는다.'] },
-  ];
-  const NOTES_KEY = 'biryeong-notes-v1';
+  // vC.01: 지금까지의 노트는 모두 비웠다. 노트는 관리자가 [업데이트 노트] 화면에서 직접 쓴다(공지처럼. 서버 bry_notes — 서버가 없으면 이 브라우저에만).
+  const UPDATE_NOTES = [];
+  const NOTES_KEY = 'biryeong-notes-v2';
   const notesLocal = () => { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch (_) { return []; } };
   const notesApi = {
     list: async () => (Auth.server && Auth.token() ? (await Auth.call('bry_notes')).notes : notesLocal().slice().sort((x, y) => y.id - x.id)),
@@ -606,10 +604,10 @@
     openPage('報 / UPDATE NOTES', '업데이트 노트', 'simple');
     addTo('pages', 'notes');
     if (App.isAdmin()) {
-      const f = h('form', 'admin-form note-form'); const vIn = h('input'); vIn.placeholder = '버전 (예: vB.02)'; vIn.maxLength = 20; vIn.required = true;
+      const f = h('form', 'admin-form note-form'); const vIn = h('input'); vIn.placeholder = '버전 (예: vC.01)'; vIn.maxLength = 20; vIn.required = true;
       const ta = h('textarea'); ta.rows = 4; ta.maxLength = 3000; ta.placeholder = '바뀐 점 — 한 줄에 하나씩 적으면 줄마다 한 항목이 된다'; ta.required = true;
       const sb = h('button', 'solid-btn', '노트 올리기'); sb.type = 'submit';
-      const d = h('details', 'notice-write'); d.append(h('summary', '', '＋ 업데이트 노트 쓰기 (관리자)'), f); f.append(vIn, ta, sb); panelBody.append(d);
+      const d = h('details', 'notice-write'); d.open = true; d.append(h('summary', '', '＋ 업데이트 노트 쓰기 (관리자)'), f); f.append(vIn, ta, sb); panelBody.append(d);
       if (!Auth.server) panelBody.append(para('서버가 연결되지 않아, 여기 올린 노트는 이 브라우저에서만 보인다.'));
       f.addEventListener('submit', async (e) => { e.preventDefault(); sb.disabled = true; try { await notesApi.post(vIn.value.trim(), ta.value.trim()); toast('업데이트 노트', '노트를 올렸다.'); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); sb.disabled = false; } });
     }
@@ -619,6 +617,7 @@
       rows.forEach((r) => list.append(noteBox(r.version, dateOnly(r.created_at), String(r.body).split('\n').map((x) => x.trim()).filter(Boolean),
         App.isAdmin() ? async () => { if (!window.confirm(`${r.version} 노트를 지울까요?`)) return; try { await notesApi.remove(r.id); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); } } : null)));
       UPDATE_NOTES.forEach((n) => list.append(noteBox(n.v, n.date, n.lines)));
+      if (!rows.length && !UPDATE_NOTES.length) list.append(emptyBox('報', '아직 올라온 업데이트 노트가 없다.', App.isAdmin() ? '위의 칸에 버전과 바뀐 점을 적어 올리면 여기에 쌓인다.' : '새 소식이 올라오면 여기에 쌓인다.'));
     };
     draw([]);
     notesApi.list().then(draw).catch(() => draw([]));
@@ -1039,7 +1038,18 @@
   hero.addEventListener('pointerup', (event) => {
     if (!swipe) return;
     const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y; swipe = null;
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) goHero(heroPage + (dx < 0 ? 1 : -1));
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { goHero(heroPage + (dx < 0 ? 1 : -1)); swiped = Date.now(); }
+  });
+  // vC.01 배너를 누르면: 적 = 비령 통합안내사항, 황 = 비령 카페(새 창). 그 밖의 쪽(청 · 백 · 흑)은 어디에 있든 맨 첫 화면으로 돌아간다.
+  let swiped = 0;
+  const HERO_LINKS = { red: 'https://docs.google.com/document/d/1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4/edit?tab=t.0', yellow: 'https://cafe.naver.com/occultblue' };
+  hero.addEventListener('click', (event) => {
+    if (event.target.closest('button, a, .hero-bottom') || Date.now() - swiped < 400) return;
+    const colour = heroTrack.children[heroPage]?.dataset.colour, url = HERO_LINKS[colour];
+    if (url) { window.open(url, '_blank', 'noopener'); return; }
+    goHero(0);
+    if (location.hash && location.hash !== '#/' && location.hash !== '#') location.hash = '#/'; // 시간을 들이는 행동 중이면 나가기 확인창이 먼저 뜬다
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   hero.addEventListener('pointercancel', () => { swipe = null; });
 

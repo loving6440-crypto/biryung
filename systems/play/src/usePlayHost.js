@@ -30,6 +30,7 @@ import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { noteKill } from './steal.js'
+import { spiritWinsLeft } from './spiritCap.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
 import { sellItem } from '@vault/game/sell.js'
 import { benchCraft, knownCraft, markMade, PLACE_RECIPES } from '@vault/game/freeCraft.js'
@@ -397,6 +398,14 @@ export function usePlayHost() {
   }
   huntActionRef.current = huntAction
   /** 전투 승리 기록(업적용): 횟수 · 가장 높은 단계 · 보스 · 서로 다른 상대 */
+  // vC.01 영능력(쇠 갉아먹기)으로 상대에게서 앗아온 영력. 승리 횟수로 세지는 않지만, 하루 영력 전투 3번을 다 받은 뒤에는 늘지 않는다.
+  const stealSpirit = (n) => {
+    const cur = playerRef.current; if (!(n > 0) || !cur) return
+    // 하루 영력 전투 3번을 다 받은 뒤에는 앗아와도 내 영력은 늘지 않는다(상대의 영력만 줄어든다) — 하루 제한을 비껴가지 않게.
+    if (spiritWinsLeft(cur) <= 0) { addLog(`상대의 영력 ${Math.floor(n)}을(를) 앗았지만, 오늘 전투로 얻는 영력은 모두 받아 흩어져 버렸다.`); return }
+    commit({ ...cur, spirit: (cur.spirit || 0) + Math.floor(n) }); addLog(`상대의 영력 ${Math.floor(n)}을(를) 앗아왔다.`)
+  }
+  globalThis.__BRY_SPIRIT_STEAL = stealSpirit
   const countWin = (enemy) => {
     bump('battleWins')
     if (!enemy) return
@@ -694,6 +703,7 @@ export function usePlayHost() {
     const calm = !!enemy?.calmed
     let drop = null, recipes = []
     if (result.cancelled) { persist(); return } // 고르는 창에서 물러났다 — 아무 일도 없었다
+    if (result.spiritStolen > 0) stealSpirit(result.spiritStolen) // vC.01 일행 전투에서 영능력으로 앗아온 영력
     if (result.win) {
       finishBattle({ ...result, enemy })
       if (result.party) { const cur = playerRef.current; commit({ ...cur, hp: Math.max(1, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) }) }

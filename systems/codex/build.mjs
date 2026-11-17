@@ -16,6 +16,11 @@ const { PSYCHICS: VAULT_PSYCHICS, ALL_ENEMIES, specialEffects, SPECIAL_PERCENT }
 // vB.03: 빼앗은 영능력(실행 화면에서는 patches.mjs 가 PSYCHICS 뒤에 붙인다)도 도감에 싣는다.
 const { stolenPsychics } = await import(join(ROOT, 'systems/play/src/steal.js'))
 const PSYCHICS = [...VAULT_PSYCHICS, ...stolenPsychics(ALL_ENEMIES)]
+// vC.01: 추가전투 6~10단계 재조정(실행 화면은 reskin.js 가 같은 함수를 부른다)
+const { rescaleEnemy, TIER_REC } = await import(join(ROOT, 'systems/play/src/tierScale.js'))
+const { BESTIARY_ENEMIES: __BE, REC_STATS: __RS } = await imp('battle.js')
+for (const e of __BE) rescaleEnemy(e)
+Object.assign(__RS, { 1: '3~4', 2: '6~8', 3: '10', 4: '15', 5: '18~20' }, TIER_REC)
 const { yogoeList } = await imp('codex.js')
 const { HUNT_SITES } = await imp('huntSites.js')
 const { TIER_HANJA } = await imp('constants.js')

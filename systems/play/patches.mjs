@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 /**
  * 비령 — 보관고(초록동색 원본) 코드에 묶을 때만 끼우는 조각들.
  *
@@ -6,109 +7,6 @@
  *   @story/…    → systems/play/src/…   (비령 쪽 모듈)
  *   @biryeong/… → systems/biryeong/…
  */
-const STOLEN_FN = `/** vB.03 빼앗은 영능력(steal-…) 한 번 쓰기. 칸의 뜻은 systems/play/src/steal.js 머리말. */
-function stolenTurn(state, s, id, ctx, rng, stats, mpNow0) {
-  const def = PSYCHICS.find((p) => p.id === id)
-  const k = def?.k
-  if (!k) return { state, events: [{ kind: 'warn', text: '쓸 수 없는 영능력이다.' }], mpCost: 0, invalid: true }
-  const mpCost = mpCostOf(stats, k.mp || 0)
-  if (mpCost > mpNow0) return { state, events: [{ kind: 'warn', text: \`의지력이 모자라 쓸 수 없다! (필요 \${mpCost}, 지금 \${mpNow0})\` }], mpCost: 0, invalid: true }
-  const bits = []
-  const hpMax = s.phpMax || maxHp(stats)
-  const maxRoll = 2 * Math.max(1, Math.floor(stats.aggression || 0)) + Math.floor(stats.insight || 0) + 1
-  if (k.sh) {
-    const pay = Math.min(Math.max(0, Math.floor(s.php) - 1), Math.ceil(hpMax * k.sh))
-    s.php = Math.floor(s.php) - pay
-    if (pay) bits.push(\`체력 \${pay}을(를) 바쳤다\`)
-  }
-  let dealt = 0
-  if (k.m) {
-    const braced = !k.p && s.queue?.[0] === 'guard'
-    let mult = 1
-    if (k.es) {
-      const used = s.stealUses?.[id] || 0
-      mult *= Math.min(3, 1 + k.es * used)
-      s.stealUses = { ...(s.stealUses || {}), [id]: used + 1 }
-    }
-    const exec = k.ex && s.ehp <= s.enemy.hp * k.ex
-    if (exec) mult *= 2
-    const rolls = []
-    for (let i = 0; i < (k.n || 1); i++) rolls.push(Math.max(1, Math.ceil(attackRoll(stats, rng, true).dmg * k.m * atkMult(stats) * mult)))
-    let dmg = rolls.reduce((x, y) => x + y, 0)
-    if (k.a) dmg += Math.floor((k.a[0] === 'max' ? Math.max(...STAT6.map((x) => Number(stats[x]) || 0)) : Number(stats[k.a[0]]) || 0) * k.a[1])
-    if (k.rb) dmg += Math.min(30, k.rb * Math.max(0, (s.round || 1) - 1))
-    if (k.pc) dmg += Math.min(maxRoll, Math.floor(s.ehp * k.pc))
-    if (k.back) dmg += Math.min(maxRoll * 2, Math.floor(Math.max(0, hpMax - s.php) * k.back))
-    if (braced) dmg = Math.ceil(dmg / 2)
-    dealt = Math.min(s.ehp, dmg)
-    s.ehp = Math.max(0, s.ehp - dmg)
-    bits.push(\`\${rolls.length > 1 ? \`\${rolls.length}번 연달아(\${rolls.join('+')}) \` : ''}\${dmg} 피해\${exec ? ' (약해진 틈 · 2배)' : ''}\${mult > 1 && !exec ? \` (×\${Math.round(mult * 10) / 10})\` : ''}\${braced ? ' (방어에 절반으로 막힘)' : ''}\`)
-  }
-  let heal = 0
-  if (k.ls && dealt) heal += Math.ceil(dealt * k.ls)
-  if (k.h) heal += Math.ceil(hpMax * k.h)
-  if (heal) {
-    const before = Math.floor(s.php)
-    s.php = Math.min(hpMax, before + heal)
-    if (s.php > before) bits.push(\`체력 +\${s.php - before}\`)
-  }
-  if (k.eq) {
-    const mine = s.php / hpMax, theirs = s.ehp / Math.max(1, s.enemy.hp)
-    if (mine < theirs) {
-      // 한 번에 크게 뒤집지 않게: 상대는 최대 체력의 10%까지만 깎이고, 나는 20%까지만 차오른다.
-      const avg = (mine + theirs) / 2
-      const nm = Math.min(avg, mine + 0.2), nt = Math.max(avg, theirs - 0.1)
-      const before = Math.floor(s.php), ebefore = s.ehp
-      s.php = Math.max(1, Math.min(hpMax, Math.round(hpMax * nm)))
-      s.ehp = Math.max(1, Math.min(s.ehp, Math.round(s.enemy.hp * nt)))
-      dealt += Math.max(0, ebefore - s.ehp)
-      bits.push(\`되비춰 체력 +\${Math.max(0, s.php - before)}, 상대 체력 -\${Math.max(0, ebefore - s.ehp)}\`)
-    } else bits.push('되비출 것이 없었다(내가 더 멀쩡하다)')
-  }
-  if (k.cl) {
-    const had = Object.keys(s.ps || {}).length || s.curse > 0
-    s.ps = {}
-    s.curse = 0
-    s.bound = false
-    if (had) bits.push('몸에 걸린 것을 모두 털어냈다')
-  }
-  if (k.gd && !s.bound) { s.guard = true; bits.push('막기 자세를 잡았다') }
-  if (k.dz && s.ehp > 0) {
-    const chance = k.dc >= 100 ? 100 : Math.floor(s.enemy.boss ? k.dc / 2 : k.dc)
-    const roll = 1 + Math.floor(rng() * 100)
-    if (roll <= chance) {
-      s.queue = [k.dz, ...(s.queue ?? []).slice(1)]
-      bits.push(\`상대의 다음 행동이 \${INTENTS[k.dz]?.label ?? k.dz}(으)로 바뀌었다\${chance < 100 ? \` (확률 \${chance}%, d100 = \${roll})\` : ''}\`)
-    } else bits.push(\`상대가 버텨 냈다 (확률 \${chance}%, d100 = \${roll})\`)
-  }
-  if (k.rv) {
-    const q = [...(s.queue ?? [])]
-    while (q.length < k.rv) q.push(rollIntent(q[q.length - 1] ?? null, rng, s.party, !!s.enemy?.boss))
-    s.queue = q
-    s.known = Math.max(s.known || 0, k.rv)
-    bits.push(\`앞으로 \${k.rv}턴을 간파했다\`)
-  }
-  if (k.ch) {
-    const before = s.charms ?? CHARMS
-    s.charms = Math.min(CHARMS, before + 1)
-    if (s.charms > before) bits.push('부적 한 장을 되찾았다')
-  }
-  let gain = 0
-  if (k.g) {
-    const cap = Number(ctx.mpMax ?? globalThis.__BRY_MPMAX) || Infinity
-    gain = Math.max(0, Math.min(k.g, cap - (mpNow0 - mpCost)))
-    if (gain) bits.push(\`의지력 +\${gain}\`)
-  }
-  const ev = [{ kind: 'player', dmg: dealt || undefined, text: \`✦ \${def.label}!\${mpCost ? \` 의지력 \${mpCost} 소모.\` : ''} \${bits.join(', ')}.\` }]
-  if (s.ehp <= 0) {
-    s.over = 'win'
-    ev.push({ kind: 'end', text: \`\${s.enemy.name}이(가) 쓰러졌다.\` })
-  }
-  return { state: s, events: ev, mpCost: mpCost - gain }
-}
-
-`
-
 export const SOURCE_PATCHES = [
   // ── vB.04 하루 영력 전투 3번(모든 전투 통틀어) · 냥은 제한 없음 ──
   {
@@ -155,16 +53,22 @@ export const SOURCE_PATCHES = [
   {
     file: 'game/battle.js',
     edits: [
-      ["import { BESTIARY } from './bestiary.js'", "import { BESTIARY } from './bestiary.js'\nimport { stolenPsychics, STEAL_PREFIX } from '@story/steal.js'"],
+      ["import { BESTIARY } from './bestiary.js'", "import { BESTIARY } from './bestiary.js'\nimport { stolenPsychics, STEAL_PREFIX } from '@story/steal.js'\nimport { stolenTurn as __stolenTurn, bryHead as __bryHead } from '@story/steal-turn.js'\nexport { __bryHead as bryHead }"],
+      ["  special: { label: '영능력', note: '상대마다 다른 비기.' },", "  special: { label: '영능력', note: '상대마다 다른 비기.' },\n  stun: { label: '행동불능', note: '몸이 묶여 아무것도 하지 못한다.' },"],
+      // 상대 차례의 머리(혼자 싸울 때): 스며드는 피해 · 행동불능 · 영능력 봉인
+      ["  let intent0 = s.queue[0]\n", "  let intent0 = s.queue[0]\n  if (solo) { const __h = __bryHead(s.es, intent0, s.ehp, s.enemy.name); s.es = __h.es; s.ehp = __h.ehp; for (const __t of __h.notes) ev.push({ kind: 'warn', text: __t }); if (__h.intent !== intent0) { intent0 = __h.intent; s.queue[0] = intent0 } } else if (intent0 === 'stun') { intent0 = 'none'; s.queue[0] = 'none' }\n"],
       ["\n]\n\n/** 상시 발동(패시브) 영능력", "\n  ...stolenPsychics(ALL_ENEMIES),\n]\n\n/** 상시 발동(패시브) 영능력"],
-      ["/** 영능력 사용(내 턴).", STOLEN_FN + "/** 영능력 사용(내 턴)."],
-      ["  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서", "  if (String(id).startsWith(STEAL_PREFIX)) return stolenTurn(state, s, id, ctx, rng, stats, mpNow0)\n  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서"],
+      ["  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서", "  if (String(id).startsWith(STEAL_PREFIX)) return __stolenTurn(state, s, id, ctx, rng, stats, mpNow0, { PSYCHICS, mpCostOf, maxHp, attackRoll, atkMult, STAT6, INTENTS, rollIntent, CHARMS })\n  // 언어장벽 2단계: 이미 20턴을 간파한 상태에서"],
     ],
   },
   {
     file: 'game/mbattle.js',
     edits: [
       ["  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic)) return { error: 'bad-psychic' }", "  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic) && !String(act.psychic).startsWith('steal-')) return { error: 'bad-psychic' }"],
+      ["    members: mb.members.map((m) => ({\n      id: m.id,\n      name: m.name,\n      agility: m.stats.agility,", "    members: mb.members.map((m) => ({\n      id: m.id,\n      name: m.name,\n      spiritStolen: m.spiritStolen || 0,\n      agility: m.stats.agility,"],
+      ["import { enemyById, effectHitsAll,", "import { bryHead as __bryHead } from '@story/steal-turn.js'\nimport { enemyById, effectHitsAll,"],
+      ["  const gim = bossGimmick(mb, mb.queue[0])\n  let intent = gim.intent\n", "  const gim = bossGimmick(mb, mb.queue[0])\n  let intent = gim.intent\n  { const __h = __bryHead(mb.es, intent, mb.ehp, mb.enemy.name); mb.es = __h.es; mb.ehp = __h.ehp; intent = __h.intent; for (const __t of __h.notes) evs.push(...addLog(mb, [{ kind: 'warn', text: __t }], 'enemy')) } // vC.01\n"],
+      ["    if (r.earthReduction != null) mb.earthReduction", "    if (r.spiritSteal) m.spiritStolen = (m.spiritStolen || 0) + r.spiritSteal // vC.01 앗아온 영력은 사람마다 모았다가 끝날 때 준다\n    if (r.splash) for (const __o of mb.members) if (__o.id !== m.id && __o.status === 'alive' && __o.php > 1) __o.php = Math.max(1, __o.php - r.splash) // vC.01 화염파: 아군도 함께 맞는다\n    if (r.earthReduction != null) mb.earthReduction"],
       ["  m.mp = Math.max(0, m.mp - (r.mpCost || 0))\n  if (r.selfMpRestoration)", "  m.mp = Math.max(0, Math.min(m.mpMax, m.mp - (r.mpCost || 0))) // vB.03: 빼앗은 영능력은 의지력을 되찾기도 한다(최대치까지)\n  if (r.selfMpRestoration)"],
     ],
   },
@@ -354,5 +258,27 @@ export function applyPatches(relPath, text) {
       text = text.replace(find, () => put)
     }
   }
+  if (relPath.replace(/\\/g, '/').endsWith('ui/components/BattleTutorial2.jsx')) text = tutorVoice(text)
+  return text
+}
+
+/**
+ * vC.01 튜토리얼 진행자를 「훈련관」으로: 이름 · 얼굴(단색 원) · 말투.
+ * 말은 내용은 그대로 두고 본편의 훈련관 말투로 다시 쓴 것(systems/biryeong/tutor-lines.json, 원문과 같은 차례 88줄)으로 한 줄씩 바꾼다.
+ */
+function tutorVoice(text) {
+  const lines = JSON.parse(readFileSync(new URL('../biryeong/tutor-lines.json', import.meta.url), 'utf8'))
+  let i = 0
+  text = text.replace(/lines:\s*\[([\s\S]*?)\](?=\s*[,}])/g, (whole, body) => whole.replace(body, () => body.replace(/'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g, () => {
+    const t = lines[i++]
+    if (t == null) throw new Error('튜토리얼 대사 수가 원문보다 적다 (tutor-lines.json)')
+    return t.includes('${') ? '`' + t.replace(/`/g, '\\`') + '`' : JSON.stringify(t)
+  })))
+  if (i !== lines.length) throw new Error(`튜토리얼 대사 수가 맞지 않는다: 원문 ${i}줄 · 새 글 ${lines.length}줄`)
+  const img = '<img src={FACE_SRC[face] ?? FACE_SRC.guide ?? undefined} alt={npcName(GUIDE)} className="npc-portrait size-14 shrink-0 rounded-xl bg-edge/10 object-cover object-top sm:size-16" draggable={false} />'
+  if (text.split(img).length !== 2) throw new Error('튜토리얼 얼굴 자리를 찾지 못했다')
+  text = text.replace(img, () => '<span data-tutor-face aria-hidden="true" className="size-14 shrink-0 rounded-full sm:size-16" style={{ background: \'#b8643c\', borderRadius: \'50%\', boxShadow: \'0 0 0 2px #0b1522, 0 0 0 3px #c9a961\' }} />')
+  if (!text.includes('npcName(GUIDE)')) throw new Error('튜토리얼 진행자 이름 자리를 찾지 못했다')
+  text = text.split("{npcName(GUIDE)}이(가) 직접 플레이로").join("훈련관이 직접 플레이로").split('npcName(GUIDE)').join("'훈련관'")
   return text
 }

@@ -28,22 +28,32 @@ import { parseHash } from './routes.js'
 import { usePlayHost } from './usePlayHost.js'
 import { bridge } from './bridge.js'
 
-function ExtraPicker({ tier, children }) {
+// vC.01 추가전투 단계 공개: 처음에는 1단계만. 관리자가 [스토리 관리]에서 한 단계씩 연다(서버에 공개 — 장을 공개하듯이).
+const openExtraTier = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
+function TierButton({ t, tier, admin, onPick }) {
+  const locked = t > openExtraTier()
+  if (locked && !admin) return <span data-extra-tier={t} data-locked="1" title={`${t}단계 · 아직 열리지 않았다`} className="grid size-9 place-items-center bg-edge/[0.04] font-serif text-sm text-paper/25" aria-disabled="true">{TIER_HANJA[t - 1] ?? t}</span>
+  return (
+    <button type="button" onClick={() => onPick(t)} aria-pressed={t === tier} data-extra-tier={t} data-locked={locked ? '1' : undefined} title={`${t}단계 · 모든 스탯 ${REC_STATS[t]}${locked ? ' · 미공개(관리자만 들어갈 수 있다)' : ''}`}
+      className={`tilt grid size-9 place-items-center font-serif text-sm ${t === tier ? 'bg-gold-fill text-ink' : locked ? 'bg-edge/[0.04] text-paper/40 outline-dashed outline-1 outline-paper/30' : 'bg-edge/[0.07] text-paper/85 hover:bg-gold-fill/20'}`}>{TIER_HANJA[t - 1] ?? t}</button>
+  )
+}
+const TierNote = () => <p className="mb-3 text-[11px] text-paper/50" data-extra-open={openExtraTier()}>지금 열린 단계: {openExtraTier()}단계까지. 다음 단계는 때가 되면 열린다.</p>
+
+function ExtraPicker({ tier, admin, children }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="단계 선택">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => (
-          <button type="button" key={t} onClick={() => bridge.nav(`extra/${t}`)} aria-current={t === tier ? 'page' : undefined} title={`${t}단계 · 모든 스탯 ${REC_STATS[t]}`}
-            className={`tilt grid size-9 place-items-center font-serif text-sm ${t === tier ? 'bg-gold-fill text-ink' : 'bg-edge/[0.07] text-paper/85 hover:bg-gold-fill/20'}`}>{TIER_HANJA[t - 1] ?? t}</button>
-        ))}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => <TierButton key={t} t={t} tier={tier} admin={admin} onPick={(x) => bridge.nav(`extra/${x}`)} />)}
       </div>
+      <TierNote />
       {children}
     </div>
   )
 }
 
 /** 퇴마 실습장: 실습 상대와 추가전투(금역 깊은 곳의 50종)를 한자리에서 고른다. */
-function BattleHall({ battleProps, onFinish }) {
+function BattleHall({ battleProps, onFinish, admin }) {
   const [mode, setMode] = useState('practice')
   const [tier, setTier] = useState(1)
   const tab = (id, label) => (
@@ -57,11 +67,9 @@ function BattleHall({ battleProps, onFinish }) {
         <div data-extra-battle>
           <p className="mb-2 text-[11px] leading-relaxed text-paper/60">실습장 뒤편 결계 너머, 금역에서 끌어온 것들. 단계마다 다섯 — 혼자 상대할 셋, 여럿이 상대할 하나, 우두머리 하나. 이긴 보상은 퇴마 실습과 같은 하루 한도를 나눠 쓴다.</p>
           <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="단계 선택">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => (
-              <button type="button" key={t} onClick={() => setTier(t)} aria-pressed={t === tier} data-extra-tier={t} title={`${t}단계 · 모든 스탯 ${REC_STATS[t]}`}
-                className={`tilt grid size-9 place-items-center font-serif text-sm ${t === tier ? 'bg-gold-fill text-ink' : 'bg-edge/[0.07] text-paper/85 hover:bg-gold-fill/20'}`}>{TIER_HANJA[t - 1] ?? t}</button>
-            ))}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => <TierButton key={t} t={t} tier={tier} admin={admin} onPick={setTier} />)}
           </div>
+          <TierNote />
           <Battle key={`extra-${tier}`} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={onFinish} multi={null} />
         </div>
       )}
@@ -97,7 +105,7 @@ export default function App() {
   if (!player) return null
 
   const enemy = route.screen === 'battle' && route.arg ? enemyById(route.arg) : null
-  const tier = route.screen === 'extra' ? Math.min(10, Math.max(1, Number(route.arg) || 1)) : null
+  const tier = route.screen === 'extra' ? Math.min(admin ? 10 : openExtraTier(), Math.max(1, Number(route.arg) || 1)) : null
   const routeCourse = path != null && route.screen === 'lesson' && route.arg ? COURSES.find((c) => c.id === route.arg) : null
   const course = routeCourse ?? (path != null ? openCourse : null)
   const [, loc, act = 'intro'] = route.screen === 'at' ? route.path.split('/') : []
@@ -112,7 +120,7 @@ export default function App() {
       case 'at':
         if (loc === 'mainHall') screen = <MainHall key={act} player={player} view={act} onOpenCourse={setOpenCourse} onInvestigate={H.investigate} onEnter={enter} onLockerMove={H.lockerMove} onLockerOpen={H.lockerOpen} onVisit={H.visitSpot} onExploreAct={H.exploreAct} />
         else if (loc === 'annex') screen = <Annex key={act} view={act} player={player} admin={admin} {...craftProps} online={false} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onHoljjak={H.holjjak} myClub={host.club} onApplyClub={H.applyClub} onFetchMembers={H.fetchClubMembers} onVisit={H.visitSpot} onExploreAct={H.exploreAct} />
-        else if (loc === 'gym' && act === 'battle') screen = <BattleHall battleProps={battleProps} onFinish={H.finishBattle} />
+        else if (loc === 'gym' && act === 'battle') screen = <BattleHall battleProps={battleProps} onFinish={H.finishBattle} admin={admin} />
         else if (loc === 'gym') screen = <Gym key={act} view={act} player={player} admin={admin} onMeet={H.meetNpc} onEnhance={H.enhance} onSpecialEnhance={H.specialEnhance} onRemoveSpecial={H.removeSpecial} onTokenExchange={H.tokenExchange} onAdminGive={H.adminGive} onGardenAction={H.gardenAction} online={false} onHuntAction={H.huntAction} onVisit={H.visitSpot} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} {...battleProps} stats={effStats} onFinish={H.finishBattle} multi={null} />
         else if (loc === 'shrine') screen = <Shrine key={act} view={act} player={player} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} onEnter={enter} onInvestigate={H.investigateShrine} onVisit={H.visitSpot} />
         else if (loc === 'infirmary') screen = <Infirmary view={act} player={player} onStartRest={H.beginRest} onStopRest={H.endRest} />
@@ -126,7 +134,7 @@ export default function App() {
           : <Battle key={route.path} {...battleProps} encounter={enemy ?? undefined} onFinish={H.finishBattle} multi={null} />
         break
       case 'extra':
-        screen = <ExtraPicker tier={tier}><Battle key={route.path} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={H.finishBattle} multi={null} /></ExtraPicker>
+        screen = <ExtraPicker tier={tier} admin={admin}><Battle key={route.path} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={H.finishBattle} multi={null} /></ExtraPicker>
         break
       case 'pioneer': screen = <HuntField player={player} stats={effStats} onAction={H.huntAction} />; break
       case 'workshop': screen = <Workshop player={player} admin={admin} onCraft={H.craftItem} onBench={(list) => H.benchCraftAct('workshop', list)} onKnownCraft={(id, q) => H.knownCraftAct('workshop', id, q)} onStopCraft={H.endCraft} online={false} />; break

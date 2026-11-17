@@ -14,6 +14,7 @@ window.BIRYEONG_CONFIG = {
   adminCodeHash: 'e910fb815e02e1eb5530b7a19c60a25585e832fa30b18947c5c9c32d086a4f73',
 };
 
-/* 초상(포트레잇): 화자 이름 → 그림 주소. 비어 있으면 머리색 인장으로 나온다. 넣는 법: assets/portraits/README.md */
+/* 얼굴 그림(프사): 화자 이름 → 그림 주소. 메인 인물(윤진서 · 연호수 · △△ · 비 · 서창현)은 여기 적으면 대사마다 저절로 붙는다(없으면 빈 액자).
+   넣는 법: assets/portraits/README.md   예) '윤진서': 'assets/portraits/jinseo.png', */
 window.BIRYEONG_PORTRAITS = {
 };

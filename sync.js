@@ -44,6 +44,7 @@
   const upsert = (table, row, onConflict) => quiet(call(`${table}?on_conflict=${onConflict}`, { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' }));
   const now = () => new Date().toISOString();
 
+  let chapterMem = null; // 받아 둔 장 본문(이 화면에서)
   window.BiryeongSync = {
     enabled, playerId,
     // 최초 1회만: 이미 올린 분기는 다시 보내도 서버가 처음 표를 지킨다(ignore-duplicates · 계정당 첫 표만 남기는 서버 규칙)
@@ -52,12 +53,27 @@
     progress: (scenes) => (enabled ? upsert('story_progress', { player_id: playerId(), account: account(), scenes, updated_at: now() }, 'player_id') : null),
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),
     // v1.8 본편 장 공개: 공개된 장만 서버가 내준다(행 수준 보안). 관리자 쓰기는 관리자 코드를 받는 함수(RPC)로만.
-    openChapters: async () => (enabled ? call('story_chapters?select=ch,title,content&order=ch') : []),
+    // vC.01 부하 줄이기: 먼저 「장 번호 · 고친 시각」만 묻고(수백 바이트), 바뀐 장의 본문만 받아 이 브라우저에 넣어 둔다.
+    //   (예전에는 1분마다 모든 장의 본문을 통째로 받았다 — 사람이 많으면 전송량 한도를 금방 넘긴다.)
+    openChapters: async () => {
+      if (!enabled) return [];
+      const KEY = 'biryeong-chapter-cache-v1';
+      let cache = chapterMem; if (!cache) { try { cache = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (_) { cache = {}; } }
+      const heads = await call('story_chapters?select=ch,updated_at&order=ch') || [];
+      const need = heads.filter((h) => cache[h.ch]?.at !== h.updated_at).map((h) => h.ch);
+      if (need.length) (await call(`story_chapters?select=ch,title,content,updated_at&ch=in.(${need.join(',')})`) || []).forEach((r) => { cache[r.ch] = { at: r.updated_at, title: r.title, content: r.content }; });
+      const open = new Set(heads.map((h) => String(h.ch)));
+      let dropped = false; Object.keys(cache).forEach((k) => { if (!open.has(String(k))) { delete cache[k]; dropped = true; } }); // 닫힌 장은 지운다
+      chapterMem = cache;
+      if (need.length || dropped) { try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch (_) { /* 자리가 없으면 이번 화면에서만 기억한다 */ } }
+      return heads.filter((h) => cache[h.ch]).map((h) => ({ ch: h.ch, title: cache[h.ch].title, content: cache[h.ch].content }));
+    },
     adminList: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_list', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
     adminSet: async (code, ch, title, content, openAt, mode) => { if (!enabled) return null; try { await call('rpc/story_admin_set', { method: 'POST', body: { p_code: code, p_ch: ch, p_title: title, p_content: content, p_open_at: openAt, p_mode: mode } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
     openRoutes: async () => (enabled ? call('story_routes?select=flag,option') : []),
     adminRoutes: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_routes', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
     adminRoute: async (code, flag, option, openAt) => { if (!enabled) return null; try { await call('rpc/story_admin_route', { method: 'POST', body: { p_code: code, p_flag: flag, p_option: option, p_open_at: openAt } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
+    adminNames: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_names', { method: 'POST', body: { p_code: code }, read: true }); } catch (_) { return []; } },
     adminChoices: async () => (enabled ? call('story_choices?select=account,branch,option,updated_at,player_id&order=updated_at.desc') : []),
     contribTotals: async () => (enabled ? call('story_contrib_totals?select=event,total,players') : []),
   };

@@ -62,29 +62,48 @@
     Object.keys(loaded).forEach((k) => delete loaded[k]); Object.assign(loaded, got); rebuild();
     if (before !== after) { drawTracker(); if (/^#\/zone\/north/.test(location.hash) || /^#\/admin\/story/.test(location.hash)) App.route(); else later(); }
   }
-  setInterval(refreshChapters, 60 * 1000);
+  // vC.01: 2분마다 · 가려진 탭은 묻지 않는다 · 다시 보이면 곧바로 한 번
+  setInterval(() => { if (!document.hidden) refreshChapters(); }, 120 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshChapters(); });
 
-  /* ───────── 인물 인장 · 초상 자리 ───────── */
-  const CAST = {
-    서창현: { hair: '#1c2231', ink: '#e9edf7' }, 윤진서: { hair: '#7b4a32', ink: '#fff2e2' }, 연호수: { hair: '#2c4a48', ink: '#e6f5f0' },
-    비령: { hair: '#0f5f66', ink: '#c9fbff' }, PC: { hair: '#5d6170', ink: '#f1f1f4' }, 진달래: { hair: '#7a3b52', ink: '#ffeef3' }, '??': { hair: '#2a2f3a', ink: '#9aa4b8' },
-  };
-  const EXTRA_HAIR = ['#3b3a40', '#54463c', '#6c6a66', '#2f3a4a', '#4a3f52', '#5a4a36', '#39453d', '#7a7468'];
-  const hairOf = (who) => { if (CAST[who]) return CAST[who]; let n = 0; for (const c of who) n = (n * 31 + c.charCodeAt(0)) % 9973; return { hair: EXTRA_HAIR[n % EXTRA_HAIR.length], ink: '#f2ecdf' }; };
+  /* ───────── 인물 얼굴 자리 (vC.01) ─────────
+   * · 메인 인물(윤진서 · 연호수 · △△ · 비 · 서창현): 그림을 넣을 자리. config.js 의 BIRYEONG_PORTRAITS 에 적으면 그 인물의 대사마다 저절로 붙는다. 없으면 빈 액자.
+   * · 비령: 한자 「秘靈」.
+   * · 그 밖의 인물(엑스트라): 글자 없는 단색 원. 인물마다 색이 다르다. */
+  const MAIN_CAST = ['윤진서', '연호수', '△△', '비', '서창현'];
+  const FIXED_TONE = { 훈련관: '#b8643c', 진달래: '#a35f7a', PC: '#7d8494', '??': '#2a2f3a' };
+  const TONES = ['#b8643c', '#5f8fa8', '#8c9a4f', '#a35f7a', '#c79a45', '#4f948d', '#7a6bb0', '#b05a55', '#6f8496', '#9b7a55', '#4c7a5a', '#a88fc0', '#c27f95', '#5a6fa8', '#8f8a7a', '#3f8f9f', '#b98a6a', '#6a9a82', '#93624a', '#7f93b8', '#a89a5a', '#8a5f8f', '#5f7f6f', '#c06f4f'];
+  const toneUsed = {}; // 이름 → 색 (한 번 정해지면 그대로). 다른 인물과 겹치지 않게 빈 색부터 준다.
+  const ALIAS = { 해원: '비' };
+  const baseName = (who) => { const k = String(who || '').replace(/\(.*\)$/, '').trim(); return ALIAS[k] || k; };
+  function toneOf(who) {
+    const k = baseName(who) || '??';
+    if (FIXED_TONE[k]) return FIXED_TONE[k];
+    if (toneUsed[k]) return toneUsed[k];
+    let n = 0; for (const ch of k) n = (n * 31 + ch.charCodeAt(0)) % 9973;
+    const taken = new Set([...Object.values(toneUsed), ...Object.values(FIXED_TONE)]);
+    let pick = null;
+    for (let i = 0; i < TONES.length; i++) { const t = TONES[(n + i) % TONES.length]; if (!taken.has(t)) { pick = t; break; } }
+    if (!pick) pick = `hsl(${(n * 47) % 360} 34% 50%)`; // 색을 다 썼으면 이름에서 색상을 뽑는다
+    return (toneUsed[k] = pick);
+  }
   const PORTRAITS = window.BIRYEONG_PORTRAITS || {};
   function portrait(who, shown) {
+    const k = baseName(who);
     const box = h('div', 'pt-frame'); box.dataset.who = who;
     for (const c of ['tl', 'tr', 'bl', 'br']) box.append(h('i', `pt-corner pt-${c}`));
-    const src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[who.replace(/\(.*\)$/, '')]);
-    if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; img.src = src; img.addEventListener('error', () => img.replaceWith(seal(who, shown))); box.append(img); }
-    else box.append(seal(shown === '??' ? '??' : who, shown));
+    const src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[k]);
+    const fallback = () => (k === '비령' ? hanjaSeal() : shown !== '??' && MAIN_CAST.includes(k) ? emptySlot(k) : seal(shown === '??' ? '??' : who));
+    if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; img.src = src; img.addEventListener('error', () => img.replaceWith(fallback())); box.append(img); }
+    else box.append(fallback());
     return box;
   }
-  function seal(who, shown) {
-    const c = hairOf(who.replace(/\(.*\)$/, ''));
-    const s = h('span', 'pt-seal', shown === '??' ? '?' : [...shown][0] || '?'); s.style.setProperty('--hair', c.hair); s.style.setProperty('--ink', c.ink); s.setAttribute('aria-hidden', 'true');
-    return s;
-  }
+  /** 단색 원(글자 없음) */
+  function seal(who) { const s = h('span', 'pt-seal is-plain'); s.style.setProperty('--hair', toneOf(who)); s.setAttribute('aria-hidden', 'true'); return s; }
+  /** 비령: 한자 */
+  function hanjaSeal() { const s = h('span', 'pt-seal is-hanja', '秘靈'); s.setAttribute('aria-hidden', 'true'); return s; }
+  /** 메인 인물: 그림이 들어올 빈 자리 */
+  function emptySlot(k) { const s = h('span', 'pt-empty'); s.dataset.slot = k; s.setAttribute('aria-hidden', 'true'); return s; }
 
   /* ───────── 상태 ───────── */
   const save = () => App.save;
@@ -711,6 +730,24 @@
     drawRows(null);
     if (server) sync.adminList(adminCode()).then((r) => { if (r?.error) { table.prepend(para(`서버 목록을 읽지 못했다 — ${r.error} (관리자 코드를 확인)`)); return; } drawRows(r); }).catch(() => {});
 
+    // vC.01 추가전투 단계 공개: 처음에는 1단계만 열려 있다. 한 주에 한 단계씩 여는 것을 기준으로 난이도를 맞췄다.
+    body.append(h('p', 'panel-label', '추가전투 단계 공개'));
+    const tierBox = h('div', 'story-route'); body.append(tierBox);
+    const drawTier = (now) => {
+      tierBox.replaceChildren(h('p', 'story-route-state', `지금 ${now}단계까지 열려 있다. (처음에는 1단계만 · 한 주에 한 단계씩 여는 것을 기준으로 난이도를 맞췄다)`));
+      const setTier = async (n) => {
+        const iso = new Date().toISOString(), all = routeStore(); all.EXTRA_TIER = { option: n, openAt: iso }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
+        if (server) { const r = await sync.adminRoute(adminCode(), 'EXTRA_TIER', n, iso); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
+        routes.EXTRA_TIER = n; toast('스토리 관리', `추가전투를 ${n}단계까지 열었다.`); refreshChapters(); drawTier(n);
+      };
+      const acts = h('div', 'story-admin-acts');
+      if (now < 10) acts.append(btn('solid-btn codex-use', `${now + 1}단계 열기`, () => { if (window.confirm(`추가전투 ${now + 1}단계를 모든 학생에게 열까요?`)) setTier(now + 1); }));
+      if (now > 1) acts.append(btn('ghost-btn codex-use', `${now}단계 닫기`, () => { if (window.confirm(`추가전투 ${now}단계를 다시 닫을까요? (${now - 1}단계까지만 열린다)`)) setTier(now - 1); }));
+      tierBox.append(acts);
+    };
+    drawTier(Math.max(1, Math.min(10, Number(routeStore().EXTRA_TIER?.option) || 1)));
+    if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'EXTRA_TIER') : null; drawTier(Math.max(1, Math.min(10, Number(row?.option) || 1))); }).catch(() => {});
+
     body.append(h('p', 'panel-label', '선택 집계 · 누가 무엇을 골랐나'));
     const votes = h('div', 'story-votes'); body.append(votes); votes.append(para('불러오는 중…'));
     const drawVotes = (rows) => {
@@ -726,7 +763,7 @@
           const line = h('div', 'story-vote-opt'); const bar = h('i'); bar.style.width = `${pct}%`; const track = h('span', 'story-vote-bar'); track.append(bar);
           line.append(h('b', '', `${CIRC[i]} ${o}`), track, h('small', '', `${list.length}명 · ${pct}%`));
           sec.append(line);
-          if (list.length) sec.append(h('p', 'story-vote-who', list.map((r) => r.account || r.player_id?.slice(0, 8)).join(', ')));
+          if (list.length) sec.append(h('p', 'story-vote-who', list.map((r) => nameOf[r.account] || r.name || r.account || r.player_id?.slice(0, 8)).join(', ')));
         });
         if (c.vote) sec.append(routeControls(id, c));
         votes.append(sec);
@@ -753,24 +790,25 @@
       return wrap;
     }
     let srvRoutes = null;
+    const nameOf = {}; // 계정 아이디 → 캐릭터 이름
     const localVotes = () => {
       const rows = [];
       try {
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i); if (!k?.startsWith('biryeong-save-v1:')) continue;
           const s = JSON.parse(localStorage.getItem(k) || 'null'); const flags = s?.story?.q?.v === 4 ? s.story.q.flags : null; if (!flags) continue;
-          Object.entries(flags).forEach(([branch, option]) => rows.push({ account: k.slice('biryeong-save-v1:'.length), branch, option }));
+          Object.entries(flags).forEach(([branch, option]) => rows.push({ account: k.slice('biryeong-save-v1:'.length), name: s?.profile?.name || '', branch, option }));
         }
       } catch (_) { /* 읽을 수 없으면 비운다 */ }
       return rows;
     };
     const loadVotes = (rows) => (server ? sync.adminRoutes(adminCode()).then((r) => { srvRoutes = Array.isArray(r) ? r : []; drawVotes(rows); }).catch(() => drawVotes(rows)) : drawVotes(rows));
-    if (server) sync.adminChoices().then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
+    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices()).then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
     else { drawVotes(localVotes()); votes.prepend(para('서버 연결 전 — 이 브라우저에 있는 계정들의 선택만 모았다.')); }
   }
 
   const peek = () => { const scene = current(); const st = scene && !busy ? activeStep(scene) : null; return { id: scene?.id || null, step: st ? Q().step : -1, w: st?.w || '', at: st ? atPlace(st.w) : false, needs: st ? needState(scene, st).map((n) => ({ raw: n.raw, type: n.type, arg: n.arg, have: n.have, count: n.count, done: n.done })) : [], busy, open: Object.keys(loaded).map(Number) }; };
-  window.BiryeongQuest = { routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
+  window.BiryeongQuest = { extraTier: () => Math.max(1, Math.min(10, Number(routes.EXTRA_TIER) || 1)), routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
   refreshChapters();
   App.route();
   drawTracker();

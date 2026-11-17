@@ -322,7 +322,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const files = ['index.html', 'app.js', 'auth.js', 'config.js', 'styles.css', 'community.js', 'community.css', 'game-data.js', 'titles.js', 'titles2.js', 'story.js', 'story-data.js', 'sync.js', 'quest.js', 'opening.js', 'codex-data.js', 'server.js', 'play/play.js', 'play/play.css']
   for (const f of files) {
     const t = readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
-    assert17.ok(!/초록동색|草綠|창록|昌綠|chorok|changnok|C\.01/i.test(t), `${f} 에 옛 이름이 남았다`)
+    assert17.ok(!/초록동색|草綠|창록|昌綠|chorok|changnok/i.test(t), `${f} 에 옛 이름이 남았다`)
   }
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
@@ -442,7 +442,7 @@ tB01('vB.01: 지신성 없음 · 수업 랭킹은 서버로 · 업데이트 노�
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   assertB01.ok(!/data-community="social"/.test(html) && !/data-community-tab="social"/.test(html), '지신성 단추가 없다')
   const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8')
-  assertB01.ok(/v: 'vB\.01'/.test(app) && !/v: 'v1\.\d/.test(app), '예전 노트는 지웠다')
+  assertB01.ok(/const UPDATE_NOTES = \[\];/.test(app) && !/v: 'v1\.\d/.test(app), '예전 노트는 지웠다(vC.01: 모두 비움)')
   assertB01.ok(/정말 나가겠습니까\? 지금 나가면 보상을 얻을 수 없습니다\./.test(app))
   const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
   for (const fn of ['bry_rank', 'bry_rank_submit', 'bry_notes', 'bry_admin_note_post', 'bry_admin_note_delete']) assertB01.ok(new RegExp(`function public\\.${fn}\\(`).test(sql), fn)
@@ -490,7 +490,8 @@ test('vB.03: 적의 영능력 빼앗기 — 일반 30번 · 보스 20번마다 �
   // 실행 화면 조각: 영능력 목록에 붙고, 쓰면 stolenTurn 이 처리한다
   const { applyPatches } = await import('../systems/play/patches.mjs')
   const src = applyPatches('game/battle.js', readFileSync(join(VAULT, 'modules/game/battle.js'), 'utf8'))
-  assert.ok(src.includes('...stolenPsychics(ALL_ENEMIES)') && src.includes('function stolenTurn(') && src.includes('return stolenTurn('))
+  assert.ok(src.includes('...stolenPsychics(ALL_ENEMIES)') && src.includes('return __stolenTurn(') && src.includes('__bryHead('))
+  for (const d of defs) assert.equal(d.k.mp % 5, 0, `${d.id} 의지력은 5의 배수`) // vC.01
 })
 
 test('vB.03: 본편 보상 · 서버 선택은 최초 1회만 · 관리자 기록도 랭킹에 오른다', () => {
@@ -525,4 +526,34 @@ test('vB.04: 오방색 배치 · 영능력 도감 양식 · 하루 영력 전투
   assert.ok(pr.includes('money: player.money + reward, gym: g }, granted: 0, money: reward'))
   assert.ok(applyPatches('game/huntField.js', readFileSync(join(VAULT, 'modules/game/huntField.js'), 'utf8')).includes('__left(player, now) <= 0'))
   assert.ok(applyPatches('game/hunt.js', readFileSync(join(VAULT, 'modules/game/hunt.js'), 'utf8')).includes('__left(rest, now) <= 0'))
+})
+
+test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 · 훈련관 튜토리얼 · 배너 링크 · 부하 줄이기', async () => {
+  const q = readFileSync(join(ROOT, 'quest.js'), 'utf8'), app = readFileSync(join(ROOT, 'app.js'), 'utf8'), html = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8'), sync = readFileSync(join(ROOT, 'sync.js'), 'utf8'), auth = readFileSync(join(ROOT, 'auth.js'), 'utf8')
+  // 1 · 2 추가전투
+  assert.ok(q.includes("'EXTRA_TIER'") && q.includes('extraTier:'))
+  const T = await import('../systems/play/src/tierScale.js')
+  const e = T.rescaleEnemy({ tier: 10, hp: 1000, atk: 100, act: 60, spirit: 60, reward: 120 })
+  assert.ok(e.hp < 1000 && e.reward === e.spirit * 2); assert.equal(T.rescaleEnemy(e).hp, e.hp) // 두 번 불러도 한 번만
+  assert.equal(T.rescaleEnemy({ tier: 3, hp: 100, atk: 10, act: 5, spirit: 10 }).hp, 100)
+  // 5 · 6 얼굴
+  assert.ok(q.includes("const MAIN_CAST = ['윤진서', '연호수', '△△', '비', '서창현']") && q.includes("'秘靈'") && q.includes("'pt-seal is-plain'"))
+  assert.ok(!/\[\.\.\.shown\]\[0\]/.test(q), '엑스트라 얼굴에 글자를 넣지 않는다')
+  // 7 훈련관
+  const { applyPatches } = await import('../systems/play/patches.mjs')
+  const tut = applyPatches('ui/components/BattleTutorial2.jsx', readFileSync(join(VAULT, 'modules/ui/components/BattleTutorial2.jsx'), 'utf8'))
+  assert.ok(tut.includes("'훈련관'") && !tut.includes('npcName(GUIDE)') && tut.includes('data-tutor-face') && !tut.includes('npc-portrait'))
+  assert.ok(tut.includes('자, 주목! 지금부터 전투를 알려 줄게.') && !tut.includes('알려 드릴게요'))
+  assert.equal(JSON.parse(readFileSync(join(ROOT, 'systems/biryeong/tutor-lines.json'), 'utf8')).length, 88)
+  // 8 배너
+  assert.ok(app.includes('https://cafe.naver.com/occultblue') && app.includes('1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4'))
+  assert.ok(html.includes('비령 통합안내사항') && html.includes('비령 카페'))
+  // 9 선택 집계 이름
+  assert.match(sql, /function public\.story_admin_names\(/)
+  // 11 부하
+  assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
+  assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
+  assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
+  assert.match(sql, /'version', 'C\.01'/)
 })

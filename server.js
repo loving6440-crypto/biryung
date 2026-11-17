@@ -48,7 +48,7 @@
       if (e.code === 'banned' || e.code === 'login_required') location.reload(); // auth.js 가 다시 확인하고 내보낸다
     } finally { polling = false; }
   }
-  if (live()) { setTimeout(poll, 2500); setInterval(poll, 45000); document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
+  if (live()) { setTimeout(poll, 2500); setInterval(() => { if (!document.hidden) poll(); }, 90000); /* vC.01: 가려진 탭은 묻지 않는다 · 90초마다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
 
   /* ───────── 서버 관리 ───────── */
   const field = (label, input) => { const w = h('label', 'admin-num'); w.append(h('span', '', label), input); return w; };

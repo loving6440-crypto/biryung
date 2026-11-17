@@ -5,6 +5,11 @@ import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
 import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS, HUNT_EXTRA } from '../../biryeong/reskin.data.js'
 import { HUNT_SPECIES } from '@vault/game/huntSites.js'
 import { LOCATIONS } from '@vault/game/constants.js'
+import { REC_STATS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
+import { rescaleEnemy, TIER_REC } from './tierScale.js'
+// vC.01 추가전투 6~10단계를 주 단위 공개 기준으로 다시 맞춘다(tierScale.js). 본편 보스 · 산길 요괴도 이 수치를 바탕으로 쓴다.
+for (const e of BESTIARY_ENEMIES) rescaleEnemy(e)
+Object.assign(REC_STATS, { 1: '3~4', 2: '6~8', 3: '10', 4: '15', 5: '18~20' }, TIER_REC)
 import { LOCATION_INTRO } from '@vault/game/locationText.js'
 // vB.04 오방색 맞추기: 비령의 배치는 산문 北 · 黑 / 강학당(본관 · 별관) 東 · 靑 / 생활관(기숙사) 西 · 白 / 비령산 南 · 赤 / 사당 中 · 黃.
 // 보관고는 기숙사를 북(흑), 별관을 서(백)로 적어 두었으므로 여기서 방위 · 색 · 소개 글을 고친다.

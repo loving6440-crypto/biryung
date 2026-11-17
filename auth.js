@@ -79,7 +79,9 @@
   const saveKey = (id = session()) => `${SAVE_BASE}:${id}`;
   const hashPw = (salt, pw) => sha256(`${salt}:${pw}`);
   const token = (id = session()) => (SERVER && id ? get(TOKEN_KEY(id)) : null);
-  const sig = (text) => { let x = 5381; for (let i = 0; i < text.length; i++) x = ((x << 5) + x + text.charCodeAt(i)) | 0; return `${text.length}:${x}`; };
+  // vC.01 부하 줄이기: 「마지막으로 적은 시각(savedAt)」만 바뀐 기록은 같은 기록으로 본다 — 가만히 켜 둔 화면이 20초마다 통째로 올리지 않게.
+  const sig = (text0) => { const text = String(text0).replace(/"savedAt":\d+/g, '"savedAt":0'); let x = 5381; for (let i = 0; i < text.length; i++) x = ((x << 5) + x + text.charCodeAt(i)) | 0; return `${text.length}:${x}`; };
+  let lastPush = 0; const PUSH_GAP = 120000; // 켜 둔 동안에는 많아야 2분에 한 번 올린다(화면을 닫거나 가릴 때는 곧바로 올린다)
   const cloudMeta = (id) => { try { return JSON.parse(get(CLOUD_KEY(id)) || '{}') || {}; } catch (_) { return {}; } };
   // 서버에서 받은 기록은 '대기 칸'에 두었다가 다음 번 화면을 열 때 맨 먼저 옮긴다(열려 있던 화면이 닫히며 옛 기록으로 덮어쓰지 못하게).
   (() => { const id = get(SES_KEY); if (!id) return; const pend = get(PENDING_KEY(id)); if (pend != null) { set(saveKey(id), pend); del(PENDING_KEY(id)); } })();
@@ -87,10 +89,11 @@
   let pushing = false;
   async function pushSave(opt = {}) {
     const id = session(), t = token(id); if (!t || pushing) return false;
+    if (opt.paced && Date.now() - lastPush < PUSH_GAP) return false;
     const local = get(saveKey(id)); if (local == null) return false;
     const meta = cloudMeta(id), s = sig(local); if (meta.sig === s) return false;
     let data; try { data = JSON.parse(local); } catch (_) { return false; }
-    pushing = true;
+    pushing = true; lastPush = Date.now();
     try { const r = await rpc('bry_save_put', { p_token: t, p_data: data }, { keepalive: !!opt.keepalive && local.length < 60000 }); set(CLOUD_KEY(id), JSON.stringify({ at: r.updated_at, sig: s })); return true; }
     catch (e) { if (e.code === 'save_too_large' && !pushSave.warned) { pushSave.warned = true; console.warn('[비령]', e.message); } return false; }
     finally { pushing = false; }
@@ -157,7 +160,7 @@
       if (e.code === 'banned') { window.alert(ERR.banned); del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
       if (e.code === 'login_required') { del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
     }
-    setInterval(() => { if (!document.hidden) pushSave(); }, 20000);
+    setInterval(() => { if (!document.hidden) pushSave({ paced: true }); }, 30000);
     document.addEventListener('visibilitychange', () => { if (document.hidden) pushSave({ keepalive: true }); });
     window.addEventListener('pagehide', () => { pushSave({ keepalive: true }); });
     setTimeout(pushSave, 4000);

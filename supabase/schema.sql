@@ -289,6 +289,9 @@ create or replace function biryeong_private.new_session(p_id bigint) returns tex
 declare t text := encode(gen_random_bytes(24), 'hex');
 begin
   delete from sessions where account_id = p_id and expires_at < now();
+  -- vC.01 청소: 들어올 때마다 오래된 흔적을 조금씩 지운다(표가 끝없이 불어나지 않게).
+  delete from throttle where at < now() - interval '2 days';
+  delete from parties where updated_at < now() - interval '12 hours';
   insert into sessions (token_hash, account_id) values (h(t), p_id);
   return t;
 end $$;
@@ -385,7 +388,7 @@ create or replace function public.bry_save_put(p_token text, p_data jsonb) retur
 declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text;
 begin
   if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'invalid_save'; end if;
-  if octet_length(p_data::text) > 4000000 then raise exception 'save_too_large'; end if;
+  if octet_length(p_data::text) > 1000000 then raise exception 'save_too_large'; end if; -- vC.01: 4MB → 1MB (보통 기록은 수십 KB)
   insert into saves (account_id, data) values (a.id, p_data)
     on conflict (account_id) do update set data = excluded.data, updated_at = now() returning updated_at into t;
   -- 처음 정한 캐릭터 이름을 서버 표시 이름으로 맞춘다(관리자 도구 · 밤쥐들의 터 등에 그 이름이 뜬다).
@@ -873,13 +876,16 @@ begin
 end $$;
 
 -- 일행이면 판 전체를, 방장이면 행동 목록과 일행의 수치까지 받는다.
-create or replace function public.bry_party_get(p_token text, p_id bigint) returns jsonb
+-- vC.01 부하 줄이기: p_seq 로 「내가 이미 가진 판 번호」를 알려 주면, 판이 그대로일 때는 큰 전투 화면(view)을 다시 보내지 않는다.
+--   (전투 중에는 1~2초마다 묻기 때문에, 바뀐 것이 없을 때의 응답을 수십 KB 에서 수백 바이트로 줄인다. 방장은 -1 을 보내 view 를 아예 받지 않는다.)
+drop function if exists public.bry_party_get(text, bigint);
+create or replace function public.bry_party_get(p_token text, p_id bigint, p_seq integer default null) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
 declare a biryeong_private.accounts := who(p_token); p biryeong_private.parties;
 begin
   select * into p from parties where id = p_id;
   if not found or not exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username) then raise exception 'not_found'; end if;
-  return party_json(p) || jsonb_build_object('view', p.view, 'is_host', p.host = a.id) ||
+  return party_json(p) || jsonb_build_object('view', case when p_seq is not null and (p_seq = -1 or p_seq = p.seq) then null else p.view end, 'is_host', p.host = a.id) ||
     case when p.host = a.id then jsonb_build_object('acts', p.acts, 'raw', p.members) else '{}'::jsonb end;
 end $$;
 
@@ -950,6 +956,16 @@ end $$;
 grant execute on function public.story_admin_routes(text) to anon;
 grant execute on function public.story_admin_route(text, text, smallint, timestamptz) to anon;
 
+-- vC.01 선택 집계에 아이디 대신 캐릭터 이름을 보이기 위한 이름표(관리자만).
+create or replace function public.story_admin_names(p_code text) returns table (username text, display_name text)
+  language plpgsql security definer set search_path = public, biryeong_private as $$
+begin
+  if not public.story_admin_ok(p_code) then raise exception 'admin code mismatch'; end if;
+  return query select a.username::text, a.display_name::text from biryeong_private.accounts a;
+end $$;
+grant execute on function public.story_admin_names(text) to anon;
+-- vC.01 추가전투 단계 공개는 story_routes 의 'EXTRA_TIER' 줄을 쓴다(option = 열린 가장 높은 단계. 없으면 1단계만).
+
 -- ── 수업 랭킹(vB.01): 과목마다 이번 주(월요일 0시, 한국 시각) 각자의 최고 기록. (vB.03부터 관리자 기록도 올린다) ──
 create table if not exists biryeong_private.scores (
   account_id bigint      not null references biryeong_private.accounts on delete cascade,
@@ -961,6 +977,13 @@ create table if not exists biryeong_private.scores (
   primary key (account_id, course, week_start)
 );
 create index if not exists scores_rank on biryeong_private.scores (course, week_start, score desc);
+-- vC.01 부하 줄이기: 자주 묻는 길에 색인을 더한다(받은 편지함 · 밀담 목록 · 타임라인 · 급식실 사연).
+create index if not exists dm_threads_high on biryeong_private.dm_threads (user_high);
+create index if not exists grants_target on biryeong_private.grants (target);
+create index if not exists posts_top on biryeong_private.posts (id desc) where parent_id is null;
+create index if not exists posts_author on biryeong_private.posts (author, id desc);
+create index if not exists sessions_account on biryeong_private.sessions (account_id);
+create index if not exists story_choices_account on public.story_choices (account, branch);
 revoke all on biryeong_private.scores from anon, authenticated;
 
 create or replace function biryeong_private.week0(p_offset int default 0) returns date language sql stable as $$
@@ -1003,6 +1026,9 @@ create table if not exists biryeong_private.patch_notes (
   created_at timestamptz not null default now()
 );
 revoke all on biryeong_private.patch_notes from anon, authenticated;
+-- vC.01: 지금까지의 업데이트 노트를 비운다(vC.01 이전에 쓴 것만 — 여러 번 실행해도 그 뒤에 쓴 노트는 남는다).
+delete from biryeong_private.patch_notes where created_at < timestamptz '2026-11-17 09:00:00+09';
+
 create or replace function public.bry_notes(p_token text) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
 declare a biryeong_private.accounts := who(p_token);
@@ -1030,7 +1056,7 @@ end $$;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'B.04', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'C.01', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

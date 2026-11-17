@@ -760,3 +760,31 @@ body.is-opening{overflow:hidden}
 .zone-card.east{--accent:#68a9b9;border-color:#4e7c88}
 .map-legend span:nth-child(1){color:#68a9b9}.map-legend span:nth-child(4){color:#f0ede4}.map-legend span:nth-child(5){color:#e4e7ee;text-shadow:0 0 0 #000;background:#05060a;padding:1px 5px;border:1px solid #70788c}
 .dex-card.is-name-only{opacity:.62}.dex-card.is-name-only .dex-head{margin-bottom:0}
+/* vC.01 내부 지도 색감 통일: 사방 지도 · 홈페이지 팔레트(밤 남색 · 금 · 크림 · 청 · 적 · 옥)만 쓴다. 벽돌은 사방 지도와 같은 것. */
+.map-window-head{border-bottom-color:var(--line)}
+.map-tabs button{background:var(--panel-deep);border-color:var(--line);color:var(--sub)}.map-tabs button.is-on{background:var(--gold);border-color:#f2deb0;color:#08111b}
+.pxmap{background:var(--night);border-color:var(--line)}
+.pxmap-title b{background:var(--gold);color:#08111b;border-radius:0;box-shadow:0 3px 0 #030912}
+.pxmap-blue .pxmap-title b{background:var(--cyan)}.pxmap-white .pxmap-title b{background:var(--cream)}.pxmap-red .pxmap-title b{background:var(--red)}
+.pxmap-title span{color:var(--cream)}.pxmap-title i{color:var(--cream)}.pxmap-title em{color:var(--gold)}
+.pxmap-note{color:var(--sub)}
+.pxfloor-name{background:#93a3b4;color:#08111b;border-radius:0;box-shadow:0 3px 0 #030912}
+.is-paths .pxfloor-name{background:#6fae9f}
+.pxroom,.pxroom:hover{background:var(--panel-deep);color:var(--cream);border-radius:0;box-shadow:inset 0 0 0 2px #030912}
+.pxroom.is-club span{color:#dcb0b6}.pxroom.is-path,.pxroom.is-path:hover{background:#0c1a22}.pxroom.is-path span{color:#a9d3c6}
+.pxhall{background:var(--panel-deep);border-radius:0;box-shadow:inset 0 0 0 2px #030912;color:#6f8496}
+.pxroom.is-here,.pxroom.is-here:hover{background:#1a2a3c;box-shadow:inset 0 0 0 2px var(--gold)}
+.pxroom-here{background:var(--gold);color:#08111b;border-radius:0}
+.pxfloor.is-here .pxfloor-name{background:var(--gold);color:#08111b}
+@keyframes pxHere{50%{box-shadow:inset 0 0 0 2px #d4b07855}}
+/* vC.01 대사 얼굴: 엑스트라 = 글자 없는 단색 원 · 비령 = 한자 · 메인 인물 = 그림 자리(비어 있음) */
+.pt-seal.is-plain{background:var(--hair);box-shadow:0 0 0 2px #0b1522,0 0 0 3px #c9a961}
+.pt-seal.is-hanja{background:#0b1522;color:#f3e7c4;font:400 21px/1 var(--serif);letter-spacing:0;box-shadow:0 0 0 2px #0b1522,0 0 0 3px #c9a961;text-shadow:0 0 6px #68a9b988}
+.pt-empty{display:block;width:70px;height:70px;background:#070d17;box-shadow:inset 0 0 0 1px #24364a}
+.quest-trust .pt-seal{width:30px;height:30px}.quest-trust .pt-seal.is-hanja{font-size:11px}.quest-trust .pt-empty{width:34px;height:34px}
+/* vC.01 배너: 누르면 첫 화면(청 · 백 · 흑) 또는 링크(적 = 통합안내사항 · 황 = 카페) */
+.hero{cursor:pointer}.hero .hero-bottom{cursor:default}
+.hero-page-title.is-text{font-family:var(--serif);font-size:clamp(26px,4.2vw,44px);letter-spacing:.08em;white-space:nowrap}
+.hero-link{color:inherit;text-decoration:none;border-bottom:1px dashed currentColor;padding-bottom:1px}.hero-link:hover,.hero-link:focus-visible{color:#fff}
+.pxmap .pxwall{background-color:#22364a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' shape-rendering='crispEdges'%3E%3Crect width='24' height='16' fill='%2322364a'/%3E%3Cpath d='M0 0h24v2H0zM0 8h24v2H0zM10 2h2v6h-2zM22 10h2v6h-2z' fill='%23142435'/%3E%3Cpath d='M0 2h10v1H0zM12 2h12v1H12zM0 10h22v1H0z' fill='%232f485f'/%3E%3C/svg%3E");border-radius:0;box-shadow:inset 0 0 0 3px #455769,inset 0 0 0 6px #142435,0 4px 0 #030912}
+.pxfloor-name{background:#7f93a6}
