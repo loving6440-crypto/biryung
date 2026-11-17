@@ -30,6 +30,12 @@ import { bridge } from './bridge.js'
 
 // vC.01 추가전투 단계 공개: 처음에는 1단계만. 관리자가 [스토리 관리]에서 한 단계씩 연다(서버에 공개 — 장을 공개하듯이).
 const openExtraTier = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
+// vC.07.4 지금 일행(party.js 가 25초마다 고친다)을 3초마다 읽는다
+function useRoom() {
+  const [room, setRoom] = useState(() => globalThis.BiryeongParty?.room ?? null)
+  useEffect(() => { const t = setInterval(() => setRoom((r) => { const n = globalThis.BiryeongParty?.room ?? null; return (r?.id === n?.id && r?.members?.length === n?.members?.length) ? r : n }), 3000); return () => clearInterval(t) }, [])
+  return room
+}
 function TierButton({ t, tier, admin, onPick }) {
   const locked = t > openExtraTier()
   if (locked && !admin) return <span data-extra-tier={t} data-locked="1" title={`${t}단계 · 아직 열리지 않았다`} className="grid size-9 place-items-center bg-edge/[0.04] font-serif text-sm text-paper/25" aria-disabled="true">{TIER_HANJA[t - 1] ?? t}</span>
@@ -63,14 +69,14 @@ function BattleHall({ battleProps, onFinish, admin }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="전투 종류">{tab('practice', '퇴마 실습')}{tab('extra', '추가전투')}</div>
-      {mode === 'practice' ? <Battle key="practice" {...battleProps} onFinish={onFinish} multi={null} /> : (
+      {mode === 'practice' ? <Battle key="practice" {...battleProps} onFinish={onFinish} /> : (
         <div data-extra-battle>
           <p className="mb-2 text-[11px] leading-relaxed text-paper/60">실습장 뒤편 결계 너머, 금역에서 끌어온 것들. 단계마다 다섯 — 혼자 상대할 셋, 여럿이 상대할 하나, 우두머리 하나. 이긴 보상은 퇴마 실습과 같은 하루 한도를 나눠 쓴다.</p>
           <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="단계 선택">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => <TierButton key={t} t={t} tier={tier} admin={admin} onPick={setTier} />)}
           </div>
           <TierNote />
-          <Battle key={`extra-${tier}`} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={onFinish} multi={null} />
+          <Battle key={`extra-${tier}`} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={onFinish} />
         </div>
       )}
     </div>
@@ -94,7 +100,11 @@ export default function App() {
   const path = useSyncExternalStore(bridge.subscribe, bridge.getRoute)
   const route = parseHash(path ?? '')
   const host = usePlayHost()
-  const { player, effStats, handlers: H, battleProps, admin } = host
+  const { player, effStats, handlers: H, battleProps: baseBattleProps, admin } = host
+  // vC.07.4 「다인 전투」 상대(적정 2 · 3명): 도깨비들의 터 일행(둘 이상)이 있으면 [겨루기]로 일행 전투를 연다.
+  const room = useRoom()
+  const roomOk = !!room && (room.members?.length || 0) >= 2
+  const battleProps = { ...baseBattleProps, multi: { canParty: roomOk && !host.storyFight, isLeader: true, lobby: null, onStart: (id) => host.roomFight(id) } }
   const [openCourse, setOpenCourse] = useState(null) // 본관 [수업]에서 연 과목(주소는 그대로 둔다)
 
   // pioneer/<터> : 아직 개척 중이 아니면 그 터로 바로 들어간다.
@@ -121,7 +131,7 @@ export default function App() {
         if (loc === 'mainHall') screen = <MainHall key={act} player={player} view={act} onOpenCourse={setOpenCourse} onInvestigate={H.investigate} onEnter={enter} onLockerMove={H.lockerMove} onLockerOpen={H.lockerOpen} onVisit={H.visitSpot} onExploreAct={H.exploreAct} />
         else if (loc === 'annex') screen = <Annex key={act} view={act} player={player} admin={admin} {...craftProps} online={false} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onHoljjak={H.holjjak} myClub={host.club} onApplyClub={H.applyClub} onFetchMembers={H.fetchClubMembers} onVisit={H.visitSpot} onExploreAct={H.exploreAct} />
         else if (loc === 'gym' && act === 'battle') screen = <BattleHall battleProps={battleProps} onFinish={H.finishBattle} admin={admin} />
-        else if (loc === 'gym') screen = <Gym key={act} view={act} player={player} admin={admin} onMeet={H.meetNpc} onEnhance={H.enhance} onSpecialEnhance={H.specialEnhance} onRemoveSpecial={H.removeSpecial} onTokenExchange={H.tokenExchange} onAdminGive={H.adminGive} onGardenAction={H.gardenAction} online={false} onHuntAction={H.huntAction} onVisit={H.visitSpot} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} {...battleProps} stats={effStats} onFinish={H.finishBattle} multi={null} />
+        else if (loc === 'gym') screen = <Gym key={act} view={act} player={player} admin={admin} onMeet={H.meetNpc} onEnhance={H.enhance} onSpecialEnhance={H.specialEnhance} onRemoveSpecial={H.removeSpecial} onTokenExchange={H.tokenExchange} onAdminGive={H.adminGive} onGardenAction={H.gardenAction} online={false} onHuntAction={H.huntAction} onVisit={H.visitSpot} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} {...battleProps} stats={effStats} onFinish={H.finishBattle} />
         else if (loc === 'shrine') screen = <Shrine key={act} view={act} player={player} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} onEnter={enter} onInvestigate={H.investigateShrine} onVisit={H.visitSpot} />
         else if (loc === 'infirmary') screen = <Infirmary view={act} player={player} onStartRest={H.beginRest} onStopRest={H.endRest} />
         else if (loc === 'dorm' && act === 'store') screen = <Store player={player} onBuy={H.buyItem} onSell={H.sellToStore} onBuyRecipe={H.buyRecipe} onMeet={H.meetNpc} onLineSeen={H.lineSeen} admin={admin} onGiveNpc={H.giveNpc} />
@@ -131,10 +141,10 @@ export default function App() {
         break
       case 'battle':
         screen = route.arg && !enemy ? <p className="text-sm text-crimson">없는 상대: {route.arg}</p>
-          : <Battle key={route.path} {...battleProps} encounter={enemy ?? undefined} onFinish={H.finishBattle} multi={null} />
+          : <Battle key={route.path} {...battleProps} encounter={enemy ?? undefined} onFinish={H.finishBattle} />
         break
       case 'extra':
-        screen = <ExtraPicker tier={tier} admin={admin}><Battle key={route.path} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={H.finishBattle} multi={null} /></ExtraPicker>
+        screen = <ExtraPicker tier={tier} admin={admin}><Battle key={route.path} {...battleProps} roster={BESTIARY_ENEMIES.filter((e) => e.tier === tier)} onFinish={H.finishBattle} /></ExtraPicker>
         break
       case 'pioneer': screen = <HuntField player={player} stats={effStats} onAction={H.huntAction} />; break
       case 'workshop': screen = <Workshop player={player} admin={admin} onCraft={H.craftItem} onBench={(list) => H.benchCraftAct('workshop', list)} onKnownCraft={(id, q) => H.knownCraftAct('workshop', id, q)} onStopCraft={H.endCraft} online={false} />; break

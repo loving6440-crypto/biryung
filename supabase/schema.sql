@@ -1138,6 +1138,8 @@ begin
       from invites i join accounts f on f.id = i.from_id where i.to_id = a.id and i.status = 'pending'),
     'room', case when r.id is null then null else room_json(r) || jsonb_build_object('last', (select coalesce(max(id), 0) from room_msgs where room_id = r.id),
       'unread', (select count(*) from room_msgs m where m.room_id = r.id and m.id > coalesce(p_seen, 0) and m.sender <> a.username)) end,
+    -- vC.07.5 아직 받지 않은 우편(하사 · 선물 · 관리자의 상태 고침)이 있으면 화면이 곧바로 우편함을 연다
+    'mail', (select count(*) from grants g where (g.target = a.id or g.target is null) and g.created_at > now() - interval '30 days' and not exists (select 1 from grant_claims c where c.grant_id = g.id and c.account_id = a.id)),
     -- vC.07.3 일행 전투: 같은 일행의 누군가가 추가전투 · 실습 파티를 열었다
     'fight', case when r.id is null then null else (select party_json(p) || jsonb_build_object('host_name', (select x->>'name' from jsonb_array_elements(p.members) x limit 1))
       from parties p where p.stage = 'room:' || r.id and p.status = 'open' and p.host <> a.id and p.updated_at > now() - interval '15 minutes' and jsonb_array_length(p.members) < 3
@@ -1260,6 +1262,20 @@ begin
   if p_date !~ '^\d{4}-\d{2}-\d{2}$' then raise exception 'invalid_value'; end if;
   return jsonb_build_object('rooms', (select coalesce(jsonb_agg(room_json(r) || jsonb_build_object('count', (select count(*) from room_msgs m where m.room_id = r.id and m.sender <> '')) order by r.ended_at desc), '[]'::jsonb)
     from rooms r where r.status = 'ended' and to_char(r.ended_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') = p_date));
+end $$;
+
+-- vC.07.5 관리자: 학생의 육조 스탯 · 체력 · 의지력 · 영력 · 쇠약 · 몸의 이상을 고친다.
+--   기록은 학생 화면이 들고 있으므로, 우편함(grants)으로 「고칠 내용」을 보내고 그 학생이 접속해 있으면 25초 안에 화면이 적용한다.
+create or replace function public.bry_admin_edit(p_token text, p_username text, p_edit jsonb, p_note text default '') returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); t biryeong_private.accounts; n bigint;
+begin
+  if p_edit is null or jsonb_typeof(p_edit) <> 'object' or octet_length(p_edit::text) > 4000 then raise exception 'invalid_value'; end if;
+  select * into t from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found then raise exception 'user_not_found'; end if;
+  insert into grants (target, payload, note, by_admin) values (t.id, jsonb_build_object('edit', p_edit), left(coalesce(p_note, ''), 200), a.username) returning id into n;
+  perform log(a, 'edit', t.username, p_edit::text);
+  return jsonb_build_object('id', n);
 end $$;
 
 -- vC.06 접속자 목록에서 이름을 누르면: 그 사람의 프로필(프사 · 이름 · 나이 · 성별 · 한줄소개 · 칭호). 육조 스탯 · 소지품은 주지 않는다.

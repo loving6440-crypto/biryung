@@ -660,3 +660,19 @@ test('vC.07.3: 일행 전투 — 도깨비들의 터 일행끼리 추가전투 �
   assert.ok(readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8').includes("p.stage = 'room:' || r.id"))
   assert.ok(readFileSync(join(ROOT, 'party.js'), 'utf8').includes('function showFight(f)'))
 })
+
+test('vC.07.4: 「다인 전투」 상대(적정 2 · 3명)의 [겨루기]가 일행이 있으면 열린다', () => {
+  const app = readFileSync(join(ROOT, 'systems/play/src/App.jsx'), 'utf8')
+  assert.ok(!app.includes('multi={null}') && app.includes('canParty: roomOk && !host.storyFight') && app.includes('lobby: null'))
+  const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
+  assert.ok(sp.includes('hpMul(n) / hpMul(base)'))
+})
+
+test('vC.07.5: 관리자 — 학생의 스탯 · 체력/의지력/영력 · 쇠약 · 몸의 이상 · 영능력 고치기, 영능력 하사', () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('function public.bry_admin_edit') && sql.includes("jsonb_build_object('edit', p_edit)") && sql.includes("'mail', (select count(*) from grants g"))
+  const srv = readFileSync(join(ROOT, 'server.js'), 'utf8')
+  assert.ok(srv.includes("'상태 고치기'") && srv.includes("call('bry_admin_edit'") && srv.includes('payload.psychics = [gPsy.value]') && srv.includes('api.adminEdit?.(p.edit'))
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes('const adminEdit = (e = {}') && host.includes('e.psychicsAdd') && host.includes('ailmentDefs:') && host.includes('psychicDefs:'))
+})

@@ -32,7 +32,7 @@ import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { noteKill } from './steal.js'
-import { addAilment, setAilmentSource, afterBattleAilment, huntAilment, effortAilment, cureAilments, shortenAilments, activeAilments, gotText, ailLabel, leftText, WEAK_INFO } from './ailments.js'
+import { AIL, AILMENTS, addAilment, setAilmentSource, afterBattleAilment, huntAilment, effortAilment, cureAilments, shortenAilments, activeAilments, gotText, ailLabel, leftText, WEAK_INFO } from './ailments.js'
 import { spiritWinsLeft } from './spiritCap.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
 import { sellItem } from '@vault/game/sell.js'
@@ -826,6 +826,45 @@ export function usePlayHost() {
   }
 
   /** 메인 화면(스토리 퀘스트 보상 등)이 주는 것. */
+  // vC.07.5 관리자가 고친 상태(서버 우편함으로 온다): 육조 스탯 · 체력 · 의지력 · 영력 · 쇠약 · 몸의 이상
+  const adminEdit = (e = {}, by = '관리자') => {
+    const cur = playerRef.current
+    if (!cur || !e || typeof e !== 'object') return false
+    const now = Date.now(), out = []
+    let p = { ...cur }
+    const num = (v, lo, hi) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : null }
+    if (e.stats && typeof e.stats === 'object') {
+      const st = { ...p.stats }
+      for (const k of STAT_KEYS) { const v = num(e.stats[k], 1, 99); if (v != null && v !== Math.floor(st[k] || 0)) { out.push(`${STAT_META[k]?.label ?? k} ${Math.floor(st[k] || 0)}→${v}`); st[k] = v } }
+      p.stats = st
+    }
+    const hpMax = num(e.hpMax, 1, 999); if (hpMax != null && hpMax !== p.hpMax) { out.push(`최대 체력 ${p.hpMax}→${hpMax}`); p.hpMax = hpMax }
+    const mpMax = num(e.mpMax, 1, 999); if (mpMax != null && mpMax !== p.mpMax) { out.push(`최대 의지력 ${p.mpMax}→${mpMax}`); p.mpMax = mpMax }
+    const hp = num(e.hp, 0, p.hpMax); if (hp != null && hp !== Math.floor(p.hp)) { out.push(`체력 ${Math.floor(p.hp)}→${hp}`); p.hp = hp }
+    const mp = num(e.mp, 0, p.mpMax); if (mp != null && mp !== Math.floor(p.mp)) { out.push(`의지력 ${Math.floor(p.mp)}→${mp}`); p.mp = mp }
+    const sp = num(e.spirit, 0, 99999); if (sp != null && sp !== Math.floor(p.spirit || 0)) { out.push(`영력 ${Math.floor(p.spirit || 0)}→${sp}`); p.spirit = sp }
+    if (e.weak === 'clear' && (p.weakUntil > now || p.curseUntil > now)) { p.weakUntil = 0; p.curseUntil = 0; out.push('[쇠약] 풀림') }
+    else if (Number(e.weak) > 0) { p.weakUntil = now + Math.min(240, Number(e.weak)) * 3600000; out.push(`[쇠약] ${Number(e.weak)}시간`) }
+    const ail = e.ailments && typeof e.ailments === 'object' ? e.ailments : null
+    if (ail) {
+      const m = Object.fromEntries(Object.entries(p.ailments ?? {}).filter(([, v]) => v && v.until > now))
+      for (const id of ail.clear === 'all' ? Object.keys(m) : Array.isArray(ail.clear) ? ail.clear : []) if (m[id]) { delete m[id]; out.push(`[${AIL[id]?.name ?? id}] 풀림`) }
+      for (const [id, v] of Object.entries(ail.set ?? {})) {
+        const d = AIL[id]; if (!d) continue
+        const minutes = num(v?.minutes, 1, 24 * 60) ?? d.minutes, stack = num(v?.stack, 1, d.max) ?? 1
+        m[id] = { until: now + minutes * 60000, stack }; out.push(`[${d.name}${d.max > 1 ? ` ${stack}겹` : ''}] ${minutes}분`)
+      }
+      p.ailments = m
+    }
+    // 영능력 하사 · 회수
+    const pName = (id) => { const x = PSYCHICS.find((y) => y.id === id); return x?.label ?? x?.name ?? id }
+    for (const id of Array.isArray(e.psychicsAdd) ? e.psychicsAdd : []) if (PSYCHICS.some((x) => x.id === id) && !(p.psychics ?? []).includes(id)) { p = acquirePsychic(p, id); out.push(`영능력 《${pName(id)}》 받음`) }
+    for (const id of Array.isArray(e.psychicsRemove) ? e.psychicsRemove : []) if ((p.psychics ?? []).includes(id)) { p = { ...p, psychics: p.psychics.filter((x) => x !== id) }; out.push(`영능력 《${pName(id)}》 거둠`) }
+    if (!out.length) return true
+    commit(p); persist()
+    addLog(`${by}이(가) 상태를 고쳤다: ${out.join(' · ')}`)
+    return out
+  }
   const grant = ({ spirit = 0, money = 0, items = null, log = '' } = {}) => {
     const cur = playerRef.current
     if (!cur) return false
@@ -873,7 +912,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   setAilmentSource(() => playerRef.current) // vC.06 혼자 하는 전투의 라운드 피해가 지금 걸린 몸의 이상을 읽는다
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, storyHelp, storySize, roomFight, enemyName: (id) => enemyById(id)?.name ?? id, spendMp, effStats: () => effStats, giveAway,
+    save: persist, storyBattle, storyHelp, storySize, roomFight, adminEdit, psychicDefs: () => PSYCHICS.map(({ id, name, label, stolen, always }) => ({ id, name: name || label || id, stolen: !!stolen, always: !!always })), ailmentDefs: () => AILMENTS.map(({ id, name, hanja, max, minutes, heavy, effect }) => ({ id, name, hanja, max, minutes, heavy, effect })), enemyName: (id) => enemyById(id)?.name ?? id, spendMp, effStats: () => effStats, giveAway,
     // vC.06 동아리 활동(오늘의 할일 · 이번주에 할일) — 부실에서 ClubQuests.jsx 가 부른다
     clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
     adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용
@@ -900,7 +939,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   } : null
 
   return {
-    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, spendItem, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
+    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, roomFight, spendItem, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
     reviveOn, boostOn, battleUsedItems, notify, addLog,
     handlers: {
       beginTraining, endTraining, beginSleep, endSleep, beginRest, endRest, upgradeStat,

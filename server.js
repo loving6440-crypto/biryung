@@ -17,7 +17,9 @@
   const itemNames = () => Object.fromEntries((App.playApi()?.admin?.items || []).map((x) => [x.id, x.name]));
   function payloadText(p) {
     const names = itemNames();
-    return [p?.money ? `${p.money}냥` : '', p?.spirit ? `영력 ${p.spirit}` : '', ...Object.entries(p?.items || {}).map(([id, n]) => `${names[id] || id} ×${n}`)].filter(Boolean).join(' · ') || '(빈 하사)';
+    if (p?.edit) return `상태 고침(${Object.keys(p.edit).map((k) => ({ stats: '육조 스탯', hp: '체력', mp: '의지력', hpMax: '최대 체력', mpMax: '최대 의지력', spirit: '영력', weak: '쇠약', ailments: '몸의 이상', psychicsAdd: '영능력 주기', psychicsRemove: '영능력 거두기' })[k] || k).join(' · ')})`;
+    const psy = (p?.psychics || []).map((id) => `영능력 《${(App.playApi()?.psychicDefs?.() || []).find((x) => x.id === id)?.name || id}》`);
+    return [...psy, p?.money ? `${p.money}냥` : '', p?.spirit ? `영력 ${p.spirit}` : '', ...Object.entries(p?.items || {}).map(([id, n]) => `${names[id] || id} ×${n}`)].filter(Boolean).join(' · ') || '(빈 하사)';
   }
 
   /* ───────── 우편함 ───────── */
@@ -38,7 +40,14 @@
           if (!c.ok) continue;
           const p = g.payload || {};
           const items = Object.fromEntries(Object.entries(p.items || {}).map(([id, n]) => [id, Math.max(1, Math.min(999, Math.floor(Number(n)) || 1))]));
+          if (p.edit) { // vC.07.5 관리자가 상태를 고쳤다
+            const done = api.adminEdit?.(p.edit, '관리자');
+            setTimeout(() => App.renderStatus?.(), 400);
+            toast('관리자', Array.isArray(done) && done.length ? `상태가 고쳐졌다: ${done.join(' · ')}${g.note ? ` — ${g.note}` : ''}` : '관리자가 상태를 확인했다.');
+            continue;
+          }
           const kind = g.gift_from ? `${g.gift_from}님의 선물` : '하사'; // vC.06 다른 사람이 보낸 선물
+          if (Array.isArray(p.psychics) && p.psychics.length) api.adminEdit?.({ psychicsAdd: p.psychics }, g.gift_from || '관리자'); // vC.07.5 영능력 하사
           api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `${kind}을(를) 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });
           toast(g.gift_from ? '선물' : '하사', `${g.gift_from ? `${g.gift_from}님이 보냈다: ` : ''}${payloadText(p)}${g.note ? ` — ${g.note}` : ''}`);
         }
@@ -74,13 +83,15 @@
     nf.addEventListener('submit', guard(async (e) => { e.preventDefault(); await call('bry_admin_notice', { p_body: nIn.value }); toast('서버 관리', nIn.value.trim() ? '공지를 올렸다.' : '공지를 내렸다.'); poll(); }));
 
     /* 하사 */
-    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '하사 — 학생에게 냥 · 영력 · 아이템을 보낸다(받는 사람이 접속하면 들어간다)'));
+    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '하사 — 학생에게 냥 · 영력 · 아이템 · 영능력을 보낸다(받는 사람이 접속하면 들어간다)'));
     const gf = h('form', 'admin-form server-form'); const grid = h('div', 'admin-grid');
     const gWho = input('text', '비우면 모두에게'), gMoney = input('number', '0', '0'), gSpirit = input('number', '0', '0'), gCount = input('number', '1', '1'), gNote = input('text', '받는 사람에게 보이는 말');
     const gItem = h('select'); gItem.append(new Option('(아이템 없음)', ''));
     (App.playApi()?.admin?.items || []).forEach((x) => gItem.append(new Option(x.name, x.id)));
     gNote.maxLength = 200; [gMoney, gSpirit].forEach((i) => { i.min = 0; i.max = 9999999; }); gCount.min = 1; gCount.max = 999;
-    grid.append(field('받는 아이디', gWho), field('냥', gMoney), field('영력', gSpirit), field('아이템', gItem), field('수량', gCount), field('한마디', gNote));
+    const gPsy = h('select'); gPsy.append(new Option('(영능력 없음)', '')); // vC.07.5 영능력 하사
+    (App.playApi()?.psychicDefs?.() || []).slice().sort((a, b) => (a.stolen - b.stolen) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ko')).forEach((x) => gPsy.append(new Option(`${x.name}${x.stolen ? ' (빼앗은 영능력)' : ''}`, x.id)));
+    grid.append(field('받는 아이디', gWho), field('냥', gMoney), field('영력', gSpirit), field('아이템', gItem), field('수량', gCount), field('영능력', gPsy), field('한마디', gNote));
     const gSend = h('button', 'solid-btn', '하사 보내기'); gSend.type = 'submit'; gf.append(grid, gSend); body.append(gf);
     const gList = h('div', 'codex-list'); body.append(gList);
     const drawGrants = guard(async () => {
@@ -98,6 +109,7 @@
       const payload = {}; const m = Math.floor(Number(gMoney.value) || 0), sp = Math.floor(Number(gSpirit.value) || 0);
       if (m > 0) payload.money = m; if (sp > 0) payload.spirit = sp;
       if (gItem.value) payload.items = { [gItem.value]: Math.max(1, Math.min(999, Math.floor(Number(gCount.value) || 1))) };
+      if (gPsy.value) payload.psychics = [gPsy.value];
       if (!Object.keys(payload).length) { toast('서버 관리', '보낼 것을 하나 이상 적어 주세요.'); return; }
       const who = gWho.value.trim().replace(/^@/, '');
       if (!who && !window.confirm('받는 아이디가 비어 있다. 모든 학생에게 보낼까요?')) return;
@@ -124,6 +136,7 @@
         const side = h('div', 'codex-side admin-side');
         side.append(btn('ghost-btn codex-use', '칭호', () => { const v = window.prompt(`@${u.username} 이름 옆에 달 칭호 (20자까지, 비우면 뗀다)`, u.chat_title || ''); if (v != null) setUser(u, 'chat_title', v.trim(), '칭호를 고쳤다.'); }));
         side.append(btn('ghost-btn codex-use', '기록 보기', () => showSave(u)));
+        side.append(btn('ghost-btn codex-use', '상태 고치기', () => editState(u))); // vC.07.5
         side.append(btn('ghost-btn codex-use', '글쓰기 정지', () => { const d = askDays(`@${u.username} 의 글쓰기(낮새 · 밤쥐 · 급식실)를 막는다.`); if (d != null) setUser(u, 'mute', d, d ? `${d}일 동안 글쓰기를 막았다.` : '글쓰기 정지를 풀었다.'); }));
         side.append(btn('ghost-btn codex-use', '비밀번호 초기화', () => { const pw = window.prompt(`@${u.username} 의 새 비밀번호 (4자 이상)`); if (pw != null) setUser(u, 'password', pw, '비밀번호를 바꿨다. 그 계정은 다시 로그인해야 한다.'); }));
         if (!self) {
@@ -143,12 +156,62 @@
       const dl = h('dl', 'server-dl'); rows.forEach(([k, v]) => { if (v) dl.append(h('dt', '', k), h('dd', '', String(v))); }); saveBox.append(dl, btn('ghost-btn', '닫기', () => { saveBox.hidden = true; }));
       saveBox.scrollIntoView({ block: 'nearest' });
     });
+    // vC.07.5 상태 고치기: 육조 스탯 · 체력 · 의지력 · 영력 · 쇠약 · 몸의 이상 · 영능력
+    const editBox = h('div', 'server-save admin-edit'); editBox.hidden = true; body.append(editBox);
+    const editState = guard(async (u) => {
+      const s = await call('bry_admin_save', { p_username: u.username }); const g = s.game || {};
+      const api = App.playApi(); const R = window.BIRYEONG_DATA?.rules || {};
+      const AIL = api?.ailmentDefs?.() || [], PSY = api?.psychicDefs?.() || [];
+      editBox.hidden = false; editBox.replaceChildren(h('p', 'panel-label', `@${u.username} 상태 고치기 — 기록 ${when(s.updated_at)} 기준. 바꾼 칸만 보낸다. 그 학생이 접속해 있으면 25초 안에, 아니면 다음 접속 때 적용된다.`));
+      const form = h('form', 'admin-form server-form'); const grid = h('div', 'admin-grid'); const ins = {};
+      const numIn = (key, label, val, min, max) => { const i = input('number', '', val ?? ''); i.min = min; i.max = max; i.dataset.orig = String(val ?? ''); ins[key] = i; grid.append(field(label, i)); };
+      (R.statKeys || ['insight', 'aggression', 'endurance', 'control', 'agility', 'comprehension']).forEach((k) => numIn(`stat:${k}`, R.stats?.[k]?.label || k, Math.floor(g.stats?.[k] ?? 1), 1, 99));
+      numIn('hp', '체력', Math.floor(g.hp ?? 100), 0, 999); numIn('hpMax', '최대 체력', g.hpMax ?? 100, 1, 999);
+      numIn('mp', '의지력', Math.floor(g.mp ?? 100), 0, 999); numIn('mpMax', '최대 의지력', g.mpMax ?? 100, 1, 999);
+      numIn('spirit', '영력', Math.floor(g.spirit ?? 0), 0, 99999);
+      const now = Date.now(), weakOn = Math.max(g.weakUntil || 0, g.curseUntil || 0) > now;
+      const weak = h('select'); [['', weakOn ? `그대로(걸려 있음 · ${Math.ceil((Math.max(g.weakUntil || 0, g.curseUntil || 0) - now) / 3600000)}시간 남음)` : '그대로(없음)'], ['clear', '풀기'], ['1', '1시간 걸기'], ['6', '6시간 걸기'], ['24', '24시간 걸기']].forEach(([v, t]) => weak.append(new Option(t, v)));
+      grid.append(field('쇠약', weak));
+      form.append(grid, h('p', 'panel-label', '몸의 이상 — 「걸기」는 분 · 겹을 정해 새로 건다'));
+      const ag = h('div', 'admin-grid admin-ail'); const ailIns = [];
+      AIL.forEach((a) => {
+        const cur = g.ailments?.[a.id]; const live = cur && cur.until > now;
+        const sel = h('select'); [['', live ? `그대로(${a.max > 1 ? `${cur.stack}겹 · ` : ''}${Math.ceil((cur.until - now) / 60000)}분)` : '그대로(없음)'], ['clear', '풀기'], ['set', '걸기']].forEach(([v, t]) => sel.append(new Option(t, v)));
+        const min = input('number', '분', String(a.minutes)); min.min = 1; min.max = 1440; min.style.width = '64px';
+        const st = input('number', '겹', '1'); st.min = 1; st.max = a.max; st.style.width = '48px'; st.disabled = a.max <= 1;
+        const w = h('label', 'admin-num'); w.title = a.effect; w.append(h('span', '', `${a.name}${a.heavy ? ' ●' : ''}`), sel, min, st); ag.append(w);
+        ailIns.push({ a, sel, min, st });
+      });
+      form.append(ag, h('p', 'panel-label', '영능력 — 체크 = 가지고 있음(체크를 풀면 거둔다)'));
+      const pg = h('div', 'admin-psy'); const had = new Set(g.psychics || []); const psyIns = [];
+      PSY.slice().sort((a, b) => (a.stolen - b.stolen) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ko')).forEach((x) => { const l = h('label', 'admin-check'); const c = h('input'); c.type = 'checkbox'; c.checked = had.has(x.id); l.append(c, ` ${x.name}${x.stolen ? '·' : ''}`); pg.append(l); psyIns.push({ x, c }); });
+      const note = input('text', '학생에게 보이는 말(선택)'); note.maxLength = 200;
+      const send = h('button', 'solid-btn', '고친 내용 보내기'); send.type = 'submit';
+      form.append(pg, field('한마디', note), send, btn('ghost-btn', '닫기', () => { editBox.hidden = true; }));
+      form.addEventListener('submit', guard(async (e) => {
+        e.preventDefault();
+        const ed = {}; const stats = {};
+        for (const [key, i] of Object.entries(ins)) { if (i.value === '' || i.value === i.dataset.orig) continue; const v = Math.floor(Number(i.value)); if (!Number.isFinite(v)) continue; if (key.startsWith('stat:')) stats[key.slice(5)] = v; else ed[key] = v; }
+        if (Object.keys(stats).length) ed.stats = stats;
+        if (weak.value) ed.weak = weak.value === 'clear' ? 'clear' : Number(weak.value);
+        const set = {}, clear = [];
+        ailIns.forEach(({ a, sel, min, st }) => { if (sel.value === 'clear') clear.push(a.id); if (sel.value === 'set') set[a.id] = { minutes: Math.floor(Number(min.value) || a.minutes), stack: Math.floor(Number(st.value) || 1) }; });
+        if (clear.length || Object.keys(set).length) ed.ailments = { set, clear };
+        const add = psyIns.filter(({ x, c }) => c.checked && !had.has(x.id)).map(({ x }) => x.id), rem = psyIns.filter(({ x, c }) => !c.checked && had.has(x.id)).map(({ x }) => x.id);
+        if (add.length) ed.psychicsAdd = add; if (rem.length) ed.psychicsRemove = rem;
+        if (!Object.keys(ed).length) { toast('서버 관리', '바꾼 칸이 없다.'); return; }
+        if (u.username === me && api?.adminEdit) { api.adminEdit(ed, '관리자(나)'); App.renderStatus?.(); Auth.pushSave?.(); toast('서버 관리', '내 상태를 바로 고쳤다.'); editBox.hidden = true; return; }
+        await call('bry_admin_edit', { p_username: u.username, p_edit: ed, p_note: note.value.trim() });
+        toast('서버 관리', `@${u.username}에게 고친 내용을 보냈다. 접속해 있으면 25초 안에 적용된다.`); editBox.hidden = true;
+      }));
+      editBox.append(form); editBox.scrollIntoView({ block: 'nearest' });
+    });
     drawUsers();
 
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
     const aList = h('div', 'server-audit'); body.append(aList);
-    const LABEL = { claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
+    const LABEL = { edit: '상태 고침', claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {
       if (!rows.length) aList.append(para('아직 기록이 없다.'));

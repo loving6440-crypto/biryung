@@ -54,7 +54,9 @@ const cutCost = (m) => (['fan', 'staff'].includes(m?.fx) ? 4 : 8)
 // vC.07.3 체력은 실제로 함께 싸우는 사람 수(NPC 포함)에 맞춘다: 1명 1배 · 2명 1.8배 · 3명 2.6배
 const hpMul = (n) => (n <= 1 ? 1 : n === 2 ? 1.8 : PARTY_HP)
 function partyEnemy(enemy, size = 3, n = 3) {
-  return size > 1 ? { ...enemy, hp: Math.round(enemy.hp * hpMul(n)), boss: false, partySize: Math.max(1, Math.min(3, n)) } : { ...enemy, boss: false, partySize: 1 }
+  // 「다인 전투」 상대(partySize 2 · 3)는 이미 그 인원 기준의 체력이라, 모인 사람 수와의 비율만큼만 고친다(적게 모이면 조금 줄고, 많이 모이면 조금 는다)
+  const base = Math.max(1, Math.min(3, enemy.partySize ?? 1))
+  return size > 1 ? { ...enemy, hp: Math.round(enemy.hp * hpMul(n) / hpMul(base)), boss: false, partySize: Math.max(1, Math.min(3, n)) } : { ...enemy, boss: false, partySize: 1 }
 }
 function newMB(enemy, members, size = 3) {
   const mb = createMB(partyEnemy(enemy, size, members.length), members)

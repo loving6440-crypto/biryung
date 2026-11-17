@@ -816,3 +816,7 @@ body.is-opening{overflow:hidden}
 .npc-tracker-row{margin:0}.npc-tracker-row b{color:#e8d3a4;margin-right:2px}.npc-tracker-row small{color:#a0b2b3}
 .npc-tracker-row.is-done{color:#8fbaff}
 .npc-tracker[hidden]{display:none}
+.admin-edit .admin-ail{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.admin-edit .admin-ail .admin-num{display:flex;align-items:center;gap:4px}.admin-edit .admin-ail .admin-num span{min-width:56px}
+.admin-psy{display:flex;flex-wrap:wrap;gap:4px 12px;max-height:220px;overflow:auto;padding:6px;border:1px solid #68725766;font-size:12px}
+.admin-check{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}

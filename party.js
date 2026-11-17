@@ -175,6 +175,7 @@
       const r = await call('bry_presence', { p_seen: lastSeen });
       (r.invites || []).forEach(showInvite);
       if (r.fight) showFight(r.fight); // vC.07.3 같은 일행이 추가전투 · 실습 파티를 열었다
+      if (r.mail > 0) window.BiryeongServer?.poll?.(); // vC.07.5 우편이 왔다(관리자의 상태 고침 등)
       const was = room?.id;
       room = r.room || null;
       paintButtons(room?.unread || 0);
