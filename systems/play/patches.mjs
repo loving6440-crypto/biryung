@@ -105,6 +105,14 @@ export const SOURCE_PATCHES = [
       ["          <Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />\n", "          <Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />\n          <NpcQuests place={hikeSpotKey(pathId, spot.id, branchId)} />\n"],
     ],
   },
+  // ── vC.06 본편 1인 전투: 다인 전투 화면을 혼자 쓸 때는 「1인 전투」로 적는다 ──
+  {
+    file: 'ui/components/locations/MultiBattle.jsx',
+    edits: [
+      ['          다인 전투 · 라운드 <b className="font-serif text-base text-paper">{view.round}</b>', '          {view.members.length > 1 ? \'다인 전투\' : \'1인 전투\'} · 라운드 <b className="font-serif text-base text-paper">{view.round}</b>'],
+      ['text-[10px] text-gold">{MULTI_TAG}</span>', 'text-[10px] text-gold">{view.members.length > 1 ? MULTI_TAG : \'1인 전투\'}</span>'],
+    ],
+  },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

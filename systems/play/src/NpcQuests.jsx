@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { bridge } from './bridge.js'
 import { NPCS, rewardText, goalText } from './npcQuests.js'
 
+// vC.06 메인 인물 그림(config.js 의 BIRYEONG_PORTRAITS) — 부탁을 마칠 수 있을 때는 웃는 얼굴
+const faceOf = (name, mood) => { const p = globalThis.BIRYEONG_PORTRAITS?.[name]; if (!p) return null; if (typeof p === 'string') return p; return p[mood] || p.base }
 export default function NpcQuests({ place }) {
   const api = bridge.api
   const [said, setSaid] = useState({}) // 방금 받거나 마쳤을 때의 한마디
@@ -19,6 +21,9 @@ export default function NpcQuests({ place }) {
           const who = NPCS[q.npc]
           return (
             <li key={q.id} data-npc-quest={q.id} data-state={state}>
+              <div className="flex gap-3">
+              {faceOf(who.name, 'base') && <img src={faceOf(who.name, state === 'active' && pr?.done ? 'smile' : 'base')} alt={`${who.name} 초상`} className="size-14 flex-none border border-gold/50 bg-[#0b1522] object-cover" />}
+              <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-baseline gap-2 text-[13px]">
                 <b style={{ color: who.color }}>{who.name}</b>
                 <span className="text-paper">「{q.title}」</span>
@@ -30,6 +35,7 @@ export default function NpcQuests({ place }) {
                 {state === 'active' && pr?.done && <button type="button" onClick={() => act('finish', q.id)} className="flat-btn !px-2 !py-0.5 text-[11px]">{q.goal.type === 'deliver' ? '건넨다' : '알린다'}</button>}
                 {state === 'active' && <button type="button" onClick={() => { if (window.confirm(`「${q.title}」을(를) 그만둘까? (지금까지 센 것은 사라진다)`)) act('abandon', q.id) }} className="flat-btn-ghost !px-2 !py-0.5 text-[11px]">그만둔다</button>}
               </div>
+              </div></div>
             </li>
           )
         })}

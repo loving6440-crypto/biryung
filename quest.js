@@ -88,11 +88,33 @@
     return (toneUsed[k] = pick);
   }
   const PORTRAITS = window.BIRYEONG_PORTRAITS || {};
-  function portrait(who, shown) {
+  // vC.06 표정: 그림이 { base, smile, … } 처럼 여러 장이면 대사마다 고른다. 원고 줄에 e(표정 이름)가 있으면 그것, 없으면 글 · 지문으로 짐작한다.
+  const MOOD = [
+    ['surprised', /[?？]!|![?？]|!!|^[⋯…]+!|^(헉|엇|어\?|에\?|네\?|뭐\?|뭐라고|잠깐)|깜짝|놀라/],
+    ['angry', /X발|썅|젠장|닥쳐|시끄러|짜증|빌어|꺼져!|미친|노려|인상을 쓰|화가 났|화를 내|화를 냈|소리쳤|버럭/],
+    ['sad', /미안|죄송|어떡|무서|걱정|불안|아파|힘들|울먹|훌쩍|떨리|떨며|한숨|모르겠/],
+    ['smile', /하하|헤헤|후후|흐흐|ㅎㅎ|다행|고마워|고맙|감사합|좋아요|좋아!|반가|기뻐|웃|신난|재밌|최고|♪|~!/],
+  ];
+  const MOOD_FACE = {
+    '△△': { surprised: 'serious', angry: 'serious', sad: 'sad', smile: 'smile' },
+    서창현: { surprised: 'sweat', sad: 'sweat', smile: 'smile' },
+    연호수: { surprised: 'frown', angry: 'frown', sad: 'frown', smile: 'smile' },
+    윤진서: { surprised: 'surprised', angry: 'serious', sad: 'worried', smile: 'smile', bang: 'smile' },
+  };
+  function faceOf(k, ln) {
+    if (!ln) return 'base';
+    if (ln.e) return ln.e;
+    const t = `${ln.x || ''} ${ln.a || ''}`;
+    let mood = (MOOD.find(([, re]) => re.test(t)) || [])[0];
+    if (!mood && /!\s*$/.test(ln.x || '')) mood = 'bang'; // 밝게 끝나는 말
+    return (MOOD_FACE[k] || {})[mood] || 'base';
+  }
+  function portrait(who, shown, ln = null) {
     const k = baseName(who);
     const box = h('div', 'pt-frame'); box.dataset.who = who;
     for (const c of ['tl', 'tr', 'bl', 'br']) box.append(h('i', `pt-corner pt-${c}`));
-    const src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[k]);
+    let src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[k]);
+    if (src && typeof src === 'object') { const f = faceOf(k, ln); box.dataset.face = src[f] ? f : 'base'; src = src[f] || src.base || Object.values(src)[0]; }
     const fallback = () => (k === '비령' ? hanjaSeal() : shown !== '??' && MAIN_CAST.includes(k) ? emptySlot(k) : seal(shown === '??' ? '??' : who));
     if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; img.src = src; img.addEventListener('error', () => img.replaceWith(fallback())); box.append(img); }
     else box.append(fallback());
@@ -309,7 +331,9 @@
     const q = Q();
     if (!r.win) { if (!r.fled) card({ kind: 'lose', head: '쓰러졌다', title: r.name || '', lines: ['이야기 전투는 져도 쇠약이 남지 않는다.', '패턴을 다시 읽고, 몸을 추스른 뒤 다시 도전하자.'] }); return; }
     const first = !q.beaten[r.key];
-    q.beaten[r.key] = q.beaten[r.key] || Date.now(); persist();
+    q.beaten[r.key] = q.beaten[r.key] || Date.now();
+    if (r.withNpc) claimOnce(`npc:${r.key}`); // vC.06 NPC와 함께 깨는 것은 전투마다 계정당 한 번
+    persist();
     const lines = [];
     if (r.calm) lines.push('쓰러뜨리지 않고 진정시켰다 — 이야기 승리.');
     if (r.drop) lines.push(`전리품 — ${r.drop.name}${r.drop.n > 1 ? ` ×${r.drop.n}` : ''}`);
@@ -334,9 +358,10 @@
       if (n.done || !BUTTON.has(n.type)) return;
       if (n.type === 'battle') {
         const foe = D.foes[n.arg];
-        out.push(btn('solid-btn quest-act', `${foe.name}와(과) ${n.calm ? '마주한다' : '싸운다'}`, () => {
+        const size = App.playApi()?.storySize?.(n.arg) ?? 3;
+        out.push(btn('solid-btn quest-act', `${foe.name}와(과) ${n.calm ? '마주한다' : '싸운다'} · ${size > 1 ? '다인' : '1인'}`, () => {
           const a = App.playApi(); if (!a) { toast('본편', '실행 화면을 불러오는 중이다.'); return; }
-          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName() }, family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 } } });
+          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName() }, family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 }, first: !q.beaten[n.arg], npcUsed: !!claims().claimed[`npc:${n.arg}`] } });
         }));
       } else out.push(btn('solid-btn quest-act', n.arg || actOf(st), () => { q.prog[n.i] = (q.prog[n.i] || 0) + 1; persist(); later(); drawTracker(); }));
     });
@@ -386,11 +411,47 @@
   }
   function drawTracker() {
     const side = document.getElementById('questTracker');
-    if (side) side.replaceChildren(trackerBox());
+    if (side) { side.replaceChildren(trackerBox()); const hb = helpButton(); if (hb) side.append(hb); }
     document.querySelectorAll('.quest-inline').forEach((el) => el.replaceChildren(trackerBox()));
     const b = document.getElementById('statusQuest'); if (b) b.textContent = progressText();
   }
   const progressText = () => (App.profile() ? `${doneCount()} / ${SCENES.length}` : '');
+
+  /* ───────── vC.06 돕는 선배: 이미 깬 다인 전투에 다른 학생의 파티로 다시 들어간다 ─────────
+   * 영력 · 최초 보상(전리품 · 진도)은 없고, 이기면 냥을 2배로 받는다. 처음 싸우는 학생이 모집 중인 파티에만 들어갈 수 있다. */
+  const Auth = window.BiryeongAuth;
+  const helpFoes = () => { const a = App.playApi(); if (!a?.storySize) return []; return Object.keys(Q().beaten).filter((k) => D.foes[k] && a.storySize(k) > 1); };
+  function helpButton() {
+    if (!(Auth?.server && Auth.token()) || !App.profile() || !helpFoes().length) return null;
+    const b = btn('ghost-btn quest-help', '다른 학생의 본편 전투 돕기', openHelp); b.title = '이미 깬 다인 전투에 돕는 선배로 들어간다 (영력 · 최초 보상 없음, 냥 2배)';
+    return b;
+  }
+  let helpDlg = null;
+  async function openHelp() {
+    if (!helpDlg) {
+      helpDlg = h('dialog', 'community-dialog party-dialog party-small'); helpDlg.id = 'storyHelpDialog';
+      const w = h('div', 'community-window'), head = h('header', 'community-window-head'), t = h('div');
+      t.append(h('span', 'community-overline', '助力 / HELP'), h('h2', '', '본편 전투 돕기'));
+      head.append(t, btn('community-close', '✕', () => helpDlg.close()));
+      w.append(head, h('div', 'community-content party-body')); helpDlg.append(w); document.body.append(helpDlg);
+      helpDlg.addEventListener('click', (e) => { if (e.target === helpDlg) helpDlg.close(); });
+    }
+    const body = helpDlg.querySelector('.party-body');
+    if (!helpDlg.open) { try { helpDlg.showModal(); } catch (_) { helpDlg.setAttribute('open', ''); } }
+    body.replaceChildren(h('p', '', '불러오는 중…'));
+    try {
+      const r = await Auth.call('bry_party_help_list', { p_foes: helpFoes() });
+      const list = h('div', 'party-rooms');
+      for (const pt of r.parties || []) {
+        const foe = D.foes[pt.foe]; if (!foe) continue;
+        const row = btn('party-room-row', '', () => { helpDlg.close(); const a = App.playApi(); if (!a) return; a.storyHelp({ key: pt.foe, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, partyId: pt.id, stage: pt.stage, ctx: { form: 1, names: { player: playerName() } } }); });
+        row.append(h('b', '', `${foe.name} — ${pt.members.map((m) => m.name + (m.helper ? '(돕는 선배)' : '')).join(' · ')}`), h('small', '', `${pt.members.length}/3 · 눌러서 돕는 선배로 들어간다`));
+        list.append(row);
+      }
+      body.replaceChildren(h('p', '', '이미 깬 다인 전투에서, 처음 싸우는 학생이 모집 중인 파티다. 돕는 선배는 영력과 최초 보상(전리품 · 진도)을 받지 않고, 이기면 냥을 2배로 받는다.'),
+        list.childElementCount ? list : h('p', '', '지금은 도울 수 있는 파티가 없다.'), btn('ghost-btn', '새로고침', openHelp));
+    } catch (e) { body.replaceChildren(h('p', '', e.message || '서버에 닿지 못했다.')); }
+  }
 
   /* ───────── 성취 카드 · 완료 띠 ───────── */
   const cards = [];
@@ -507,7 +568,7 @@
       const row = h('div', `scene-line is-${ln.t}${fx.includes('corner') ? ' is-small' : ''}`);
       if (ln.t === 'say' || ln.t === 'news') {
         const shown = ln.unk ? '??' : fill(ln.w || '');
-        row.append(portrait(ln.w || '', shown));
+        row.append(portrait(ln.w || '', shown, ln));
         const tx = h('div', 'scene-text'); tx.append(h('b', 'scene-name', shown), textEl('', fill(ln.x), fx));
         if (ln.a) tx.append(h('p', 'scene-action', fill(ln.a)));
         row.append(tx);

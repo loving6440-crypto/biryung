@@ -820,8 +820,22 @@ revoke all on biryeong_private.parties from anon, authenticated;
 
 create or replace function biryeong_private.party_json(p biryeong_private.parties) returns jsonb language sql stable as $$
   select jsonb_build_object('id', p.id, 'stage', p.stage, 'foe', p.foe, 'status', p.status, 'host', (select username from biryeong_private.accounts where id = p.host),
-    'members', (select coalesce(jsonb_agg(jsonb_build_object('u', x->>'u', 'name', x->>'name')), '[]'::jsonb) from jsonb_array_elements(p.members) x),
+    'members', (select coalesce(jsonb_agg(jsonb_build_object('u', x->>'u', 'name', x->>'name', 'helper', coalesce((x->'m'->>'helper')::boolean, false))), '[]'::jsonb) from jsonb_array_elements(p.members) x),
     'seq', p.seq, 'updated_at', p.updated_at) $$;
+
+-- vC.06 돕는 선배: 이미 깬 상대(p_foes)의 파티 중, 처음 싸우는 학생(방장)이 모집 중이고 자리가 남은 것
+drop function if exists public.bry_party_help_list(text, text[]);
+create or replace function public.bry_party_help_list(p_token text, p_foes jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if jsonb_typeof(coalesce(p_foes, '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_foes, '[]'::jsonb)) > 40 then raise exception 'invalid_value'; end if;
+  perform throttle_do('helplist:' || a.id, 30, 60);
+  update parties set status = 'closed' where status in ('open', 'battle') and updated_at < now() - interval '15 minutes';
+  return jsonb_build_object('parties', (select coalesce(jsonb_agg(party_json(p) order by p.id desc), '[]'::jsonb)
+    from parties p where p.foe in (select jsonb_array_elements_text(coalesce(p_foes, '[]'::jsonb))) and p.status = 'open' and p.host <> a.id and jsonb_array_length(p.members) < 3
+      and not exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username)));
+end $$;
 
 create or replace function public.bry_party_list(p_token text, p_stage text) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
@@ -1131,6 +1145,7 @@ create or replace function public.bry_online(p_token text) returns jsonb
 declare a biryeong_private.accounts := who(p_token);
 begin
   perform throttle_do('online:' || a.id, 30, 60);
+  update accounts set last_seen = now() where id = a.id; -- 나는 언제나 목록에 있다(맨 위)
   return jsonb_build_object('users', (select coalesce(jsonb_agg(card(x) || jsonb_build_object('me', x.id = a.id, 'seen', x.last_seen,
       'in_room', exists (select 1 from rooms r where r.status = 'open' and exists (select 1 from jsonb_array_elements(r.members) m where m->>'u' = x.username))) order by (x.id = a.id) desc, x.last_seen desc), '[]'::jsonb)
     from accounts x where x.last_seen > now() - interval '3 minutes' and (x.banned_until is null or x.banned_until < now())));
@@ -1243,6 +1258,20 @@ begin
     from rooms r where r.status = 'ended' and to_char(r.ended_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') = p_date));
 end $$;
 
+-- vC.06 접속자 목록에서 이름을 누르면: 그 사람의 프로필(프사 · 이름 · 나이 · 성별 · 한줄소개 · 칭호). 육조 스탯 · 소지품은 주지 않는다.
+create or replace function public.bry_player_card(p_token text, p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t biryeong_private.accounts; pr jsonb;
+begin
+  select * into t from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found then raise exception 'not_found'; end if;
+  perform throttle_do('pcard:' || a.id, 40, 60);
+  select s.data -> 'profile' into pr from saves s where s.account_id = t.id;
+  return card(t) || jsonb_build_object('me', t.id = a.id, 'seen', t.last_seen,
+    'profile', case when pr is null then null else jsonb_build_object('name', pr->>'name', 'age', pr->>'age', 'gender', pr->>'gender', 'intro', pr->>'intro', 'title', pr->>'title',
+      'photo', case when octet_length(coalesce(pr->>'photo', '')) <= 400000 then pr->>'photo' else null end) end);
+end $$;
+
 -- 선물: 보내는 사람의 화면이 먼저 소지품에서 덜어 낸 뒤 부른다. 받는 사람은 우편함(bry_inbox)으로 받는다.
 create or replace function public.bry_gift(p_token text, p_username text, p_payload jsonb, p_note text default '') returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
@@ -1271,7 +1300,7 @@ end $$;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'C.06', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'C.07', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

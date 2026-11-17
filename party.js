@@ -51,10 +51,16 @@
     try {
       const r = await call('bry_online');
       const list = h('ul', 'online-list');
-      for (const u of r.users || []) {
+      // vC.06 나는 언제나 맨 위(서버가 늦게 고쳐도 빠지지 않게)
+      let users = (r.users || []).slice();
+      const mine = users.find((u) => u.me) || (() => { const p = App.profile?.() || {}; return { me: true, username: me(), display_name: p.name || me() }; })();
+      users = [mine, ...users.filter((u) => !u.me && u.username !== mine.username)];
+      for (const u of users) {
         const li = h('li', `online-row${u.me ? ' is-me' : ''}`);
         const av = h('span', 'online-avatar', u.avatar_symbol || '✦'); av.style.color = u.accent || '';
-        const who = h('div', 'online-who'); who.append(h('b', '', u.display_name || u.username), h('small', '', `@${u.username}${u.chat_title ? ` · ${u.chat_title}` : ''}${u.in_room ? ' · 일행 중' : ''}`));
+        const who = h('button', 'online-who'); who.type = 'button'; who.title = '프로필 보기';
+        who.append(h('b', '', u.display_name || u.username), h('small', '', `@${u.username}${u.chat_title ? ` · ${u.chat_title}` : ''}${u.in_room ? ' · 일행 중' : ''}`));
+        who.addEventListener('click', () => openCard(u)); av.addEventListener('click', () => openCard(u)); av.style.cursor = 'pointer';
         li.append(av, who);
         if (u.me) li.append(h('span', 'online-me', '나'));
         else {
@@ -64,7 +70,7 @@
         }
         list.append(li);
       }
-      body.replaceChildren(para(`지금 들어와 있는 사람 ${r.users?.length || 0}명 (최근 3분 안에 움직인 사람).`), list, btn('ghost-btn online-refresh', '새로고침', renderOnline));
+      body.replaceChildren(para(`지금 들어와 있는 사람 ${users.length}명 (최근 3분 안에 움직인 사람). 이름을 누르면 프로필이 보인다.`), list, btn('ghost-btn online-refresh', '새로고침', renderOnline));
     } catch (e) { body.replaceChildren(para(errText(e))); }
   }
   async function invite(u) {
@@ -72,6 +78,33 @@
     catch (e) { toast('초대', errText(e)); }
   }
   function openOnline() { openDlg(online.d); renderOnline(); }
+
+  /* ───────── 프로필 카드(접속자 이름을 누르면) ───────── */
+  const pcard = dialog('playerCardDialog', '인물 기록', '人物 / PROFILE');
+  pcard.tabs.remove(); pcard.d.classList.add('party-small');
+  const TITLES = window.BIRYEONG_TITLES || [];
+  async function openCard(u) {
+    pcard.head.querySelector('h2').textContent = u.display_name || u.username;
+    pcard.body.replaceChildren(para('불러오는 중…')); openDlg(pcard.d);
+    try {
+      const c = await call('bry_player_card', { p_username: u.username });
+      const pr = c.profile || {};
+      const top = h('div', 'pcard-top');
+      const ph = h('div', 'pcard-photo');
+      if (pr.photo) { const img = new Image(); img.src = pr.photo; img.alt = `${pr.name || c.display_name} 프로필 사진`; ph.append(img); }
+      else { const s0 = h('span', '', (pr.name || c.display_name || '人').slice(0, 1)); ph.append(s0); }
+      const info = h('div', 'pcard-info');
+      const title = TITLES.find((t) => t.id === pr.title);
+      info.append(h('b', '', pr.name || c.display_name || c.username), h('small', '', `@${c.username}${c.role === 'admin' ? ' · 운영자' : ''}${c.me ? ' · 나' : ''}`));
+      if (title) info.append(h('span', 'pcard-title', `「${title.name}」`));
+      top.append(ph, info);
+      const dl = h('dl', 'pcard-fields');
+      const row = (k, v) => { if (!v) return; dl.append(h('dt', '', k), h('dd', '', v)); };
+      row('나이', pr.age); row('성별', pr.gender); row('한줄소개', pr.intro); row('대화 칭호', c.chat_title);
+      pcard.body.replaceChildren(top, dl.childElementCount ? dl : para('아직 프로필을 적지 않았다.'));
+      if (!c.me) { const acts = h('div', 'online-acts'); acts.append(btn('ghost-btn', '초대', () => invite(u)), btn('ghost-btn', '선물', () => { pcard.d.close(); openGift(u); })); pcard.body.append(acts); }
+    } catch (e) { pcard.body.replaceChildren(para(errText(e))); }
+  }
 
   /* ───────── 선물 ───────── */
   const gift = dialog('giftDialog', '선물 보내기', '膳物 / GIFT');

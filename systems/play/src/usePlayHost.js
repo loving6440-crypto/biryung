@@ -722,7 +722,19 @@ export function usePlayHost() {
     if (!base) return false
     const inv = playerRef.current.inventory ?? {}
     const has = Object.fromEntries(STORY_ITEMS.filter((it) => inv[it.id] > 0).map((it) => [it.id, true]))
-    setStoryFight({ key, stage: ctx.stage || '', enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }) })
+    setStoryFight({ key, stage: ctx.stage || '', enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }), size: storySize(key), npcUsed: !!ctx.npcUsed, first: ctx.first !== false })
+    return true
+  }
+  // vC.06 1인 · 다인: STORY_FOES[key].size, 없으면 패턴이 있는 상대(보스)는 다인, 없는 상대는 1인
+  const storySize = (key) => STORY_FOES[key]?.size ?? (STORY_FOES[key]?.pattern ? 3 : 1)
+  /** vC.06 돕는 선배: 이미 깬 다인 전투의 다른 학생 파티에 다시 들어간다(영력 · 최초 보상 없음, 냥 2배) */
+  const storyHelp = ({ key, tier, i = 0, name, blurb, partyId, stage, ctx = {} }) => {
+    if (battleRef.current || playerRef.current.sleeping || playerRef.current.training) { notify('지금은 싸울 수 없다. (잠 · 수련 · 다른 전투 중)'); return false }
+    if (storySize(key) <= 1) return false
+    const pool = BESTIARY_ENEMIES.filter((e) => e.tier === tier && !e.boss && (e.partySize ?? 1) <= 1)
+    const base = pool[Math.min(i, pool.length - 1)] ?? BESTIARY_ENEMIES.find((e) => e.tier === tier)
+    if (!base) return false
+    setStoryFight({ key, stage: stage || '', enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has: {} }), size: 3, helper: { partyId }, first: false, npcUsed: true })
     return true
   }
   /** 본편 제작법을 연다. 새로 연 것의 [{ id, name }] */
@@ -743,11 +755,22 @@ export function usePlayHost() {
     const calm = !!enemy?.calmed
     let drop = null, recipes = []
     if (result.cancelled) { persist(); return } // 고르는 창에서 물러났다 — 아무 일도 없었다
+    if (fight.helper) { // vC.06 돕는 선배: 영력 · 전리품 · 진도 없음, 이기면 냥 2배. 져도 쇠약은 없다.
+      const cur = playerRef.current
+      let p = { ...cur, hp: Math.max(1, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) }
+      if (result.win) {
+        const money = 2 * Math.max(1, Math.round(enemy.reward ?? fight.enemy.reward ?? 10))
+        p = npcEvent(bumpDaily(bumpWeekly({ ...p, money: (p.money || 0) + money }, 'wins'), 'wins'), 'win')
+        commit(p); bump('storyHelps'); addLog(`돕는 선배로 ${enemy.name}을(를) 함께 쓰러뜨렸다. 돈 +${money}냥 (재참여 · 2배). 영력과 최초 보상은 없다.`)
+      } else { commit({ ...p, hp: Math.max(Math.ceil(cur.hpMax * 0.3), p.hp) }); addLog(result.fled ? `돕던 전투에서 물러났다.` : `돕던 전투에서 쓰러졌다. 이야기 전투라 쇠약은 남지 않았다.`) }
+      persist(); bridge.quest('storyHelp', { key: fight.key, win: !!result.win, name: enemy?.name })
+      return
+    }
     if (result.spiritStolen > 0) stealSpirit(result.spiritStolen) // vC.01 일행 전투에서 영능력으로 앗아온 영력
     if (result.win) {
       finishBattle({ ...result, enemy })
       if (result.party) { const cur = playerRef.current; commit({ ...cur, hp: Math.max(1, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) }) }
-      const d = dropOf(fight.key)
+      const d = fight.first === false ? null : dropOf(fight.key) // vC.06 최초 보상은 한 번만
       if (d && itemOf(d[0])) {
         const cur = playerRef.current
         commit({ ...cur, inventory: { ...cur.inventory, [d[0]]: (cur.inventory?.[d[0]] || 0) + d[1] } })
@@ -766,7 +789,7 @@ export function usePlayHost() {
       addLog(`${enemy.name}에게 쓰러졌다. 이야기 전투라 쇠약은 남지 않았다. 몸을 추스르고 다시 도전하자.`)
     }
     persist()
-    bridge.quest('storyBattle', { key: fight.key, win: !!result.win, fled: !!result.fled, calm, drop, recipes, name: enemy?.name })
+    bridge.quest('storyBattle', { key: fight.key, win: !!result.win, fled: !!result.fled, calm, drop, recipes, name: enemy?.name, withNpc: !!result.withNpc })
   }
   /** 3인 전투에서 쓴 아이템 하나를 소지품에서 뺀다 */
   const spendItem = (id) => { const cur = playerRef.current; const n = cur.inventory?.[id] || 0; if (n <= 0) return false; const inventory = { ...cur.inventory }; if (n <= 1) delete inventory[id]; else inventory[id] = n - 1; commit({ ...cur, inventory }); addLog(`[${itemOf(id)?.name ?? id}]을(를) 썼다.`); return true }
@@ -834,7 +857,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   setAilmentSource(() => playerRef.current) // vC.06 혼자 하는 전투의 라운드 피해가 지금 걸린 몸의 이상을 읽는다
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, spendMp, effStats: () => effStats, giveAway,
+    save: persist, storyBattle, storyHelp, storySize, spendMp, effStats: () => effStats, giveAway,
     // vC.06 동아리 활동(오늘의 할일 · 이번주에 할일) — 부실에서 ClubQuests.jsx 가 부른다
     clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
     adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용

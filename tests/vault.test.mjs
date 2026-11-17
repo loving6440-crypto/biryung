@@ -554,7 +554,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', 'C\.0[16]'/)
+  assert.match(sql, /'version', 'C\.0[167]'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -627,4 +627,19 @@ test('vC.06: 몸의 이상 · 동아리 활동 · 인물의 부탁 · 실습장 
   assert.ok(sql.includes('[일행이 생성되었습니다. 자유롭게 대화를 나눌 수 있습니다.]') && sql.includes('종단 간 암호화 대화는 아닙니다.]') && sql.includes('function public.bry_rooms_ended'))
   const titles = readFileSync(join(ROOT, 'titles.js'), 'utf8')
   assert.ok(!titles.includes('지신성') && titles.includes('도깨비들의 터'))
+})
+
+test('vC.07: 메인 인물 그림 · 본편 1인/다인 · 돕는 선배 · 접속자 프로필', () => {
+  const cfg = readFileSync(join(ROOT, 'config.js'), 'utf8')
+  for (const f of ['dd-base', 'dd-smile', 'bi-base', 'seo-sweat', 'yeon-frown', 'yoon-surprised']) { assert.ok(cfg.includes(`assets/portraits/${f}.webp`)); assert.ok(existsSync(join(ROOT, `assets/portraits/${f}.webp`)), f) }
+  const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
+  assert.ok(q.includes('function faceOf(k, ln)') && q.includes("claimOnce(`npc:${r.key}`)") && q.includes('bry_party_help_list'))
+  const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
+  assert.ok(sp.includes('data-story-solo') && sp.includes('npcUsed') && sp.includes('helper: true'))
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes('const storySize = (key)') && host.includes('2 * Math.max(1') && host.includes("fight.first === false ? null : dropOf"))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('function public.bry_player_card') && sql.includes('function public.bry_party_help_list') && sql.includes("update accounts set last_seen = now() where id = a.id"))
+  const pj = readFileSync(join(ROOT, 'party.js'), 'utf8')
+  assert.ok(pj.includes('users = [mine, ...users') && pj.includes("call('bry_player_card'"))
 })

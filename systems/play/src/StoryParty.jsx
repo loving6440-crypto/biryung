@@ -1,4 +1,8 @@
 // 비령 v1.9.5 — 본편 이야기 전투를 3인 전투로.
+// vC.06 — 1인 전투도 있다(STORY_FOES.size, 기본: 패턴이 있는 상대 = 다인 · 없는 상대 = 1인).
+//   다인 전투: ① NPC(연호수 · 윤진서)와 함께 — 전투마다 계정당 1번(이기면 다 쓴 것)  ② 같은 진도의 학생과 파티
+//              ③ 이미 깬 학생이 「돕는 선배」로 다른 학생의 파티에 다시 들어갈 수 있다 — 영력 · 최초 보상은 없고 냥은 2배.
+//                 처음 싸우는 학생(방장)이 있는 파티에만 들어갈 수 있다(돕는 사람은 파티를 열 수 없다).
 //
 // 고르는 법: ① 연호수 · 윤진서(NPC)와 함께  ② 같은 진도(같은 장면의 같은 전투)의 학생과 파티(서버가 연결됐을 때)
 // 전투 엔진은 보관고의 다인 전투(mbattle.js)를 이 브라우저에서 그대로 돌린다. 파티라면 방장의 브라우저가 판을 돌리고,
@@ -47,11 +51,11 @@ const pct = (mb, p) => Math.max(1, Math.ceil(mb.enemy.hp * p))
 const cutCost = (m) => (['fan', 'staff'].includes(m?.fx) ? 4 : 8)
 
 /** 3인 상대 만들기 */
-function partyEnemy(enemy) {
-  return { ...enemy, hp: Math.round(enemy.hp * PARTY_HP), boss: false, partySize: 3 }
+function partyEnemy(enemy, size = 3) {
+  return size > 1 ? { ...enemy, hp: Math.round(enemy.hp * PARTY_HP), boss: false, partySize: 3 } : { ...enemy, boss: false, partySize: 1 }
 }
-function newMB(enemy, members) {
-  const mb = createMB(partyEnemy(enemy), members)
+function newMB(enemy, members, size = 3) {
+  const mb = createMB(partyEnemy(enemy, size), members)
   const p = enemy.story?.pattern
   mb.story = { p, key: enemy.story?.key, hits: 0, broken: false, calm: 0, asked: 0, roots: 3, baseAtk: mb.enemy.atk, has: enemy.story?.has || {} }
   openingInitiative(mb)
@@ -187,7 +191,10 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   useEffect(() => { if (partyRoomKey) window.dispatchEvent(new CustomEvent('biryeong:party-room', { detail: { party: Number(partyRoomKey.split(':')[0]) } })) }, [partyRoomKey])
   const [itemsOpen, setItemsOpen] = useState(false)
   const mbRef = useRef(null), partyRef = useRef(null), doneRef = useRef(0), turnAt = useRef({ id: null, at: 0 }), finished = useRef(false), lastSeq = useRef({ seq: -1, at: Date.now() })
-  const meMember = memberOf({ id: me.id, name: me.name, stats, player })
+  const size = fight.size ?? 3, helper = fight.helper ?? null, npcUsed = !!fight.npcUsed
+  const meMember = { ...memberOf({ id: me.id, name: me.name, stats, player }), ...(helper ? { helper: true } : {}) }
+  // 돕는 선배로 왔다면 곧바로 그 파티에 들어간다
+  useEffect(() => { if (helper?.partyId && mode === 'choose') joinParty(helper.partyId) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const isHost = mode === 'battle'
 
   // 로비 목록
@@ -205,7 +212,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     finished.current = true
     const mine = v.members.find((m) => m.id === me.id)
     const r = mine?.result
-    onFinish({ win: r === 'win', fled: r === 'fled', enemy: { ...enemy, name: v.enemy?.name ?? enemy.name, calmed: !!v.enemy?.calmed }, hp: mine?.php ?? player.hp, mp: mine?.mp ?? player.mp, spiritStolen: mine?.spiritStolen || 0, party: true })
+    onFinish({ win: r === 'win', fled: r === 'fled', enemy: { ...enemy, name: v.enemy?.name ?? enemy.name, calmed: !!v.enemy?.calmed }, hp: mine?.php ?? player.hp, mp: mine?.mp ?? player.mp, spiritStolen: mine?.spiritStolen || 0, party: true, withNpc: (v.members || []).some((m) => isNpc(m.id)), helper: !!helper })
   }
   // NPC 차례 · 버티기 자동 처리 · 시간 초과
   useEffect(() => {
@@ -259,7 +266,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
 
   const startLocal = (members, pid = null) => {
     partyRef.current = pid
-    mbRef.current = newMB(enemy, members)
+    mbRef.current = newMB(enemy, members, size)
     setMode('battle')
     const v = viewOf(mbRef.current, { enemy: mbRef.current.enemy, story: mbRef.current.story })
     setView(v)
@@ -311,14 +318,15 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     try { const r = await call('bry_party_create', { p_stage: fight.stage, p_foe: fight.key, p_member: meMember }); partyRef.current = r.id; setParty({ id: r.id, host: me.id, members: [{ u: me.id, name: me.name }], status: 'open', is_host: true }); setMode('lobby') } catch (e) { setMsg(e.message) }
   }
   const joinParty = async (id) => {
-    try { const r = await call('bry_party_join', { p_id: id, p_member: meMember }); partyRef.current = id; setParty({ ...r.party, is_host: false }); setMode('lobby') } catch (e) { setMsg(e.message); refreshList() }
+    try {
+      const r = await call('bry_party_join', { p_id: id, p_member: meMember }); partyRef.current = id; setParty({ ...r.party, is_host: false }); setMode('lobby') } catch (e) { setMsg(e.message); refreshList() }
   }
-  const leaveParty = async () => { const id = partyRef.current; partyRef.current = null; setParty(null); setMode('choose'); if (id) try { await call('bry_party_leave', { p_id: id }) } catch { /* 무시 */ } }
+  const leaveParty = async () => { const id = partyRef.current; partyRef.current = null; setParty(null); if (helper) onFinish({ win: false, fled: true, enemy, cancelled: true, helper: true }); else setMode('choose'); if (id) try { await call('bry_party_leave', { p_id: id }) } catch { /* 무시 */ } }
   const startParty = async () => {
     const id = partyRef.current
     let g; try { g = await call('bry_party_get', { p_id: id }) } catch (e) { setMsg(e.message); return }
     const humans = (g.raw || []).map((x) => ({ ...x.m, id: x.u, name: x.name }))
-    const fill = npcMembers(meMember).slice(0, Math.max(0, 3 - humans.length))
+    const fill = npcUsed ? [] : npcMembers(meMember).slice(0, Math.max(0, 3 - humans.length)) // NPC를 이미 쓴 방장은 사람끼리만
     const v = startLocal([...humans, ...fill], id)
     try { await call('bry_party_start', { p_id: id, p_view: v }) } catch (e) { setMsg(e.message) }
   }
@@ -327,27 +335,39 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   const hostGone = mode === 'guest' && view && !view.over && Date.now() - lastSeq.current.at > 45000
 
   const shell = (children) => <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/75 p-3 sm:p-6">
-    <div role="dialog" aria-modal="true" aria-label="본편 3인 전투" className="ink-panel max-h-[92dvh] w-full max-w-4xl overflow-y-auto rounded-lg p-4 sm:p-6">{children}</div>
+    <div role="dialog" aria-modal="true" aria-label="본편 이야기 전투" className="ink-panel max-h-[92dvh] w-full max-w-4xl overflow-y-auto rounded-lg p-4 sm:p-6">{children}</div>
   </div>
 
+  if (mode === 'choose' && helper) return shell(<section aria-label="돕는 선배로 참가"><p className="text-sm text-paper/70">{msg || '파티에 들어가는 중…'}</p><button type="button" className="flat-chip mt-3" onClick={() => onFinish({ win: false, fled: true, enemy, cancelled: true, helper: true })}>물러난다</button></section>)
+  if (mode === 'choose' && size <= 1) return shell(<section aria-label="본편 전투 준비">
+    <p className="text-[11px] tracking-widest text-paper/50">본편 이야기 전투 · 1인</p>
+    <h2 className="mt-1 font-serif text-2xl text-gold">{enemy.name}</h2>
+    {enemy.blurb && <p className="mt-1 text-sm text-paper/70">{enemy.blurb}</p>}
+    {rules.length > 0 && <ul className="mt-3 space-y-1 rounded-lg border border-gold/25 p-3 text-xs text-paper/75">{rules.map((r, i) => <li key={i}>· {r}</li>)}</ul>}
+    <p className="mt-3 text-xs text-paper/60">혼자 맞서는 전투다.</p>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button type="button" data-story-solo className="flat-btn" onClick={() => startLocal([meMember])}>맞선다</button>
+      <button type="button" className="flat-chip" onClick={() => onFinish({ win: false, fled: true, enemy, cancelled: true })}>물러난다</button>
+    </div>
+  </section>)
   if (mode === 'choose') return shell(<section aria-label="본편 전투 준비">
     <p className="text-[11px] tracking-widest text-paper/50">본편 이야기 전투 · 3인</p>
     <h2 className="mt-1 font-serif text-2xl text-gold">{enemy.name}</h2>
     {enemy.blurb && <p className="mt-1 text-sm text-paper/70">{enemy.blurb}</p>}
     {rules.length > 0 && <ul className="mt-3 space-y-1 rounded-lg border border-gold/25 p-3 text-xs text-paper/75">{rules.map((r, i) => <li key={i}>· {r}</li>)}</ul>}
-    <p className="mt-3 text-xs text-paper/60">세 사람이 함께 싸운다. 같이 싸울 사람을 고른다.</p>
+    <p className="mt-3 text-xs text-paper/60">다인 전투 — 세 사람까지 함께 싸운다. 같이 싸울 사람을 고른다. 이미 이 전투를 깬 선배가 도우러 올 수도 있다.</p>
     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-      <button type="button" data-story-npc className="flat-btn flex-col !items-start !gap-0.5 text-left" onClick={() => startLocal([meMember, ...npcMembers(meMember)])}>
-        <span className="font-serif text-base text-gold">연호수 · 윤진서와 함께</span><span className="text-[11px] text-paper/60">두 사람이 곁에서 싸운다. 바로 시작한다.</span>
+      <button type="button" data-story-npc disabled={npcUsed} className="flat-btn flex-col !items-start !gap-0.5 text-left disabled:opacity-40" onClick={() => startLocal([meMember, ...npcMembers(meMember)])}>
+        <span className="font-serif text-base text-gold">연호수 · 윤진서와 함께</span><span className="text-[11px] text-paper/60">{npcUsed ? '이 전투는 이미 두 사람과 함께 깼다. (계정당 1번)' : '두 사람이 곁에서 싸운다. 바로 시작한다. (이 전투에서 계정당 1번)'}</span>
       </button>
       <button type="button" data-story-party disabled={!live() || !fight.stage} className="flat-btn flex-col !items-start !gap-0.5 text-left disabled:opacity-40" onClick={createParty}>
-        <span className="font-serif text-base text-gold">파티 모집하기</span><span className="text-[11px] text-paper/60">{live() ? '같은 진도의 학생을 기다린다. 빈 자리는 NPC가 채운다.' : '서버가 연결되면 쓸 수 있다.'}</span>
+        <span className="font-serif text-base text-gold">파티 모집하기</span><span className="text-[11px] text-paper/60">{live() ? (npcUsed ? '같은 진도의 학생 · 돕는 선배를 기다린다.' : '같은 진도의 학생 · 돕는 선배를 기다린다. 빈 자리는 NPC가 채운다.') : '서버가 연결되면 쓸 수 있다.'}</span>
       </button>
     </div>
     {live() && <div className="mt-4">
       <p className="text-xs text-paper/60">같은 진도의 학생이 모집 중인 파티 {parties.length ? `(${parties.length})` : ''}</p>
       {!parties.length ? <p className="mt-1 text-xs text-paper/45">지금은 없다.</p> : <ul className="mt-1 space-y-1.5">{parties.map((p) => <li key={p.id} className="flex items-center justify-between gap-2 rounded border border-edge/25 px-3 py-2 text-sm">
-        <span>{p.members.map((x) => x.name).join(' · ')} <small className="text-paper/50">({p.members.length}/3)</small></span>
+        <span>{p.members.map((x) => x.name + (x.helper ? '(돕는 선배)' : '')).join(' · ')} <small className="text-paper/50">({p.members.length}/3)</small></span>
         <button type="button" data-story-join className="flat-btn !py-1 text-xs" onClick={() => joinParty(p.id)}>참가</button>
       </li>)}</ul>}
     </div>}
@@ -357,8 +377,8 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
 
   if (mode === 'lobby') return shell(<section aria-label="파티 대기">
     <h2 className="font-serif text-xl text-gold">{enemy.name} — 파티 {party?.is_host ? '모집 중' : '대기 중'}</h2>
-    <ul className="mt-3 space-y-1.5 text-sm">{(party?.members || []).map((x) => <li key={x.u} className="rounded border border-edge/25 px-3 py-2">{x.name} <small className="text-paper/50">@{x.u}{x.u === party?.host ? ' · 방장' : ''}</small></li>)}
-      {Array.from({ length: Math.max(0, 3 - (party?.members?.length || 0)) }).map((_, i) => <li key={`e${i}`} className="rounded border border-dashed border-edge/25 px-3 py-2 text-paper/45">빈 자리 — 시작하면 {NPCS[i]?.name ?? 'NPC'}이(가) 채운다</li>)}
+    <ul className="mt-3 space-y-1.5 text-sm">{(party?.members || []).map((x) => <li key={x.u} className="rounded border border-edge/25 px-3 py-2">{x.name} <small className="text-paper/50">@{x.u}{x.u === party?.host ? ' · 방장' : ''}{x.helper ? ' · 돕는 선배(영력 · 최초 보상 없음, 냥 2배)' : ''}</small></li>)}
+      {Array.from({ length: Math.max(0, 3 - (party?.members?.length || 0)) }).map((_, i) => <li key={`e${i}`} className="rounded border border-dashed border-edge/25 px-3 py-2 text-paper/45">{npcUsed ? '빈 자리' : `빈 자리 — 시작하면 ${NPCS[i]?.name ?? 'NPC'}가 채운다`}</li>)}
     </ul>
     <p className="mt-2 text-xs text-paper/55">{party?.is_host ? '모인 만큼으로 언제든 시작할 수 있다. 싸우는 동안 이 창을 닫지 말 것(방장의 화면이 판을 돌린다).' : '방장이 시작하면 전투가 열린다.'}</p>
     {msg && <p className="mt-2 text-xs text-crimson">{msg}</p>}
