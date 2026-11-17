@@ -140,7 +140,7 @@ test('Play: 실행 화면 부품이 빌드되어 있고, 스타일이 .play-scop
   for (const sel of selectors) assert.ok(sel.includes('.play-scope'), `범위 밖 스타일: ${sel.slice(0, 60)}`);
   assert.ok(/z-\\\[70\\\]/.test(css), '대괄호 유틸리티(z-[70])가 빠졌다');
   const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-  assert.match(html, /src="play\/play\.js"/); assert.match(html, /id="playRoot"/); assert.match(html, /id="pageBack"/);
+  assert.match(html, /src="play\/play\.js(\?v=[^"]+)?"/); assert.match(html, /id="playRoot"/); assert.match(html, /id="pageBack"/);
 });
 
 test('v1.4: 아이템 · 상대 · 영능력은 초록동색 원래 이름 · 해설 그대로이고, 아이템마다 도트 아이콘이 있으며 사이버펑크 말이 없다', async () => {
@@ -365,7 +365,7 @@ t19('v1.9: 새 키(sb_publishable_)는 Authorization 에 넣지 않는다 · ser
   for (const f of ['auth.js', 'sync.js']) assert19.ok(/\^eyJ/.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')), f)
   assert19.ok(/server\.js/.test(readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8')))
   assert19.ok(/'server\.js'/.test(readFileSync(new URL('../server/index.mjs', import.meta.url), 'utf8')))
-  assert19.ok(/src="server\.js"/.test(readFileSync(new URL('../index.html', import.meta.url), 'utf8')))
+  assert19.ok(/src="server\.js(\?v=[^"]+)?"/.test(readFileSync(new URL('../index.html', import.meta.url), 'utf8')))
 })
 t19('v1.9: 이야기 화면에 배경 · 장면 그림이 없다', () => {
   const q = readFileSync(new URL('../quest.js', import.meta.url), 'utf8')

@@ -10,7 +10,7 @@
 (() => {
   'use strict';
   const Auth = window.BiryeongAuth, App = window.BiryeongApp;
-  if (!Auth || !App) return;
+  if (!Auth || !App) { window.BiryeongPartyError = '화면 기본 파일(app.js · auth.js)을 먼저 불러오지 못했다.'; return; }
   const { h, btn, para, toast } = App;
   const $ = (s) => document.querySelector(s);
   const live = () => !!(Auth.server && Auth.token());
@@ -77,7 +77,7 @@
     try { await call('bry_invite', { p_username: u.username }); toast('초대', `${u.display_name || u.username}에게 일행 초대를 보냈다. (10분 동안 유효)`); }
     catch (e) { toast('초대', errText(e)); }
   }
-  function openOnline() { openDlg(online.d); renderOnline(); }
+  function openOnline() { openDlg(online.d); renderOnline().catch((e) => { online.body.replaceChildren(para(errText(e))); }); }
 
   /* ───────── 프로필 카드(접속자 이름을 누르면) ───────── */
   const pcard = dialog('playerCardDialog', '인물 기록', '人物 / PROFILE');
@@ -274,7 +274,6 @@
   /* ───────── 단추 ───────── */
   document.addEventListener('click', (e) => {
     const b = e.target.closest?.('[data-party-open]'); if (b) { e.preventDefault(); openParty(); return; }
-    if (e.target.closest?.('#onlineBtn')) { e.preventDefault(); openOnline(); }
   });
   window.BiryeongParty = { openParty, openOnline, presence, get room() { return room; } };
 })();

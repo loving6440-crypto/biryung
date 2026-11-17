@@ -1110,6 +1110,15 @@
   /* ───────── 연결 ───────── */
   document.querySelectorAll('[data-zone]').forEach((card) => card.addEventListener('click', () => go(`#/zone/${card.dataset.zone}`)));
   // vC.06 머리띠의 [사건 기록]은 [접속자 확인하기](party.js)로 바뀌었다. 사건 기록은 첫 화면 [주요 이야기]에서 연다.
+  window.addEventListener('error', (ev) => { if (/party\.js/.test(ev.filename || '')) window.BiryeongPartyError = `접속자 창(party.js)을 여는 중에 오류가 났다: ${ev.message}`; });
+  // vC.07.1 단추는 여기서 직접 잇는다. party.js 를 못 불러왔으면(올리지 않았거나 옛 파일이 남아 있으면) 그 사실을 알린다.
+  $('#onlineBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    try {
+      if (window.BiryeongParty?.openOnline) { window.BiryeongParty.openOnline(); return; }
+      toast('접속자 확인하기', window.BiryeongPartyError || '접속자 창(party.js)을 불러오지 못했다. 저장소에 party.js 가 올라갔는지 확인하고, 새로고침(Ctrl+Shift+R · 휴대폰은 탭을 닫았다 다시 열기)해 주세요.');
+    } catch (err) { toast('접속자 확인하기', `창을 여는 중에 문제가 생겼다: ${err.message}`); }
+  });
   // 공개된 장(권)은 서버에서 늦게 오므로 한 번 더 그리고, 공지 새 글 표시도 확인한다
   setTimeout(drawVolumes, 1500); setTimeout(drawVolumes, 4000); setTimeout(() => drawBoard().catch(() => {}), 2500);
   $('#journalBtn').addEventListener('click', () => go('#/profile'));
