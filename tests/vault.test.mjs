@@ -643,3 +643,10 @@ test('vC.07: 메인 인물 그림 · 본편 1인/다인 · 돕는 선배 · 접�
   const pj = readFileSync(join(ROOT, 'party.js'), 'utf8')
   assert.ok(pj.includes('users = [mine, ...users') && pj.includes("call('bry_player_card'"))
 })
+
+test('vC.07.2: Pages 배포가 맨 위의 화면 파일(party.js 포함)을 모두 담고, 판 번호를 모든 주소에 붙인다', () => {
+  const wf = readFileSync(join(ROOT, '.github/workflows/pages.yml'), 'utf8')
+  assert.ok(wf.includes('cp index.html *.js *.css .nojekyll _site/'))
+  assert.ok(wf.includes('party.js?v=$V'))
+  assert.ok(!/grep -o 'src="\[a-z\]\*\\\.js\?v=\[0-9a-f\]\*"'/.test(wf), '옛 grep(판 번호 C.07.1 에서 실패)은 없어야 한다')
+})
