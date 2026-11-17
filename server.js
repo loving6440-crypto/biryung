@@ -38,8 +38,9 @@
           if (!c.ok) continue;
           const p = g.payload || {};
           const items = Object.fromEntries(Object.entries(p.items || {}).map(([id, n]) => [id, Math.max(1, Math.min(999, Math.floor(Number(n)) || 1))]));
-          api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `하사를 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });
-          toast('하사', `${payloadText(p)}${g.note ? ` — ${g.note}` : ''}`);
+          const kind = g.gift_from ? `${g.gift_from}님의 선물` : '하사'; // vC.06 다른 사람이 보낸 선물
+          api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `${kind}을(를) 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });
+          toast(g.gift_from ? '선물' : '하사', `${g.gift_from ? `${g.gift_from}님이 보냈다: ` : ''}${payloadText(p)}${g.note ? ` — ${g.note}` : ''}`);
         }
         App.renderStatus?.();
         Auth.pushSave();

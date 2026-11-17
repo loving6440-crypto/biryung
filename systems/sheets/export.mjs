@@ -11,9 +11,12 @@ const { ITEMS: VAULT_ITEMS } = await imp('items.js')
 const { RECIPES } = await imp('crafting.js')
 const { COOK_RECIPES } = await imp('cooking.js')
 const hunt = await imp('huntSites.js')
+// vC.06: 실행 화면과 같은 개척 터 레벨 · 이름(만렙 40 기준) — huntLevels.js
+;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(hunt.HUNT_SITES, hunt.HUNT_PATHS)
 const garden = await imp('garden.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
-const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
+const AIL = await import(join(ROOT, 'systems/play/src/ailments.js')) // vC.06 몸의 이상을 낫게 하는 물건
+const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
 const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
 const name = (id) => R.ITEM_RESKIN[id]?.name ?? ITEMS.find((i) => i.id === id)?.name ?? id
 const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]))
@@ -22,6 +25,7 @@ const recipes = [
   ...RECIPES.map((r) => ({ ...r, place: '공작소', isNew: false })), ...COOK_RECIPES.map((r) => ({ ...r, place: '조리실', isNew: false })),
   ...R.NEW_RECIPES.W.map((r) => ({ ...r, place: '공작소', isNew: true })), ...R.NEW_RECIPES.K.map((r) => ({ ...r, place: '조리실', isNew: true })),
   ...R.STORY_RECIPES.map((r) => ({ ...r, place: r.place === 'K' ? '조리실' : '공작소', isNew: 'story' })),
+  ...AIL.AIL_RECIPES.map((r) => ({ ...r, place: r.place === 'K' ? '조리실' : '공작소', isNew: 'ail' })),
 ].map((r) => ({ ...r, tier: R.RECIPE_TIERS[r.id] ?? r.tier }))
 // v1.3 본편: 퀘스트가 주는 것 · 전리품 · 유품 무구
 globalThis.window = { BIRYEONG_TITLES: [] }

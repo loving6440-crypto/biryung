@@ -15,14 +15,16 @@ const imp = (f) => import(join(G, f))
 const { PSYCHICS: VAULT_PSYCHICS, ALL_ENEMIES, specialEffects, SPECIAL_PERCENT } = await imp('battle.js')
 // vB.03: 빼앗은 영능력(실행 화면에서는 patches.mjs 가 PSYCHICS 뒤에 붙인다)도 도감에 싣는다.
 const { stolenPsychics } = await import(join(ROOT, 'systems/play/src/steal.js'))
+;(await import(join(ROOT, 'systems/play/src/practiceEnemies.js'))).reconceptPractice(ALL_ENEMIES) // vC.06
 const PSYCHICS = [...VAULT_PSYCHICS, ...stolenPsychics(ALL_ENEMIES)]
 // vC.01: 추가전투 6~10단계 재조정(실행 화면은 reskin.js 가 같은 함수를 부른다)
 const { rescaleEnemy, TIER_REC } = await import(join(ROOT, 'systems/play/src/tierScale.js'))
 const { BESTIARY_ENEMIES: __BE, REC_STATS: __RS } = await imp('battle.js')
 for (const e of __BE) rescaleEnemy(e)
-Object.assign(__RS, { 1: '3~4', 2: '6~8', 3: '10', 4: '15', 5: '18~20' }, TIER_REC)
+Object.assign(__RS, TIER_REC)
 const { yogoeList } = await imp('codex.js')
-const { HUNT_SITES } = await imp('huntSites.js')
+const { HUNT_SITES, HUNT_PATHS: __HP } = await imp('huntSites.js')
+;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(HUNT_SITES, __HP) // vC.06
 const { TIER_HANJA } = await imp('constants.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 // {{npc:자리|조사}} 는 실행 화면이 사람 이름으로 바꾸는 자리표시다. 도감에는 그 자리의 역할 이름으로 적는다(받침에 맞춰 조사도 고른다).
@@ -37,8 +39,9 @@ const npcText = (t) => t.replace(/\{\{npc:(\w+)\|?([^}]*)\}\}/g, (_, slot, josa)
 const swap = (t) => npcText(R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? '')))
 
 // ── 아이템: 표(엑셀) 자료와 같은 것을 쓴다 ──
+const __AILPX = Object.fromEntries((await import(join(ROOT, 'systems/play/src/ailments.js'))).AIL_ITEMS.map((i) => [i.id, i.pixel]))
 const sheet = JSON.parse(execFileSync(process.execPath, [join(ROOT, 'systems/sheets/export.mjs')], { encoding: 'utf8', maxBuffer: 64 << 20 }))
-const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, effect: npcText(String(i.effect ?? '')), desc: npcText(String(i.lore ?? '')), use: npcText(String(i.use ?? '')), from: i.sourceSimple, px: R.ITEM_PIXELS[i.id] ?? null }))
+const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, effect: npcText(String(i.effect ?? '')), desc: npcText(String(i.lore ?? '')), use: npcText(String(i.use ?? '')), from: i.sourceSimple, px: R.ITEM_PIXELS[i.id] ?? __AILPX[i.id] ?? null }))
 const nameOf = Object.fromEntries(items.map((i) => [i.id, i.name]))
 
 // ── 영능력 ──

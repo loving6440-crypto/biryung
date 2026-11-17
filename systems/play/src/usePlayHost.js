@@ -16,7 +16,9 @@ import { LESSON_WAIT_MINUTES } from '@vault/game/courseInfo.js'
 import { enemyById } from '@vault/game/battle.js'
 import { SKINS, isSkinOpen } from '@vault/game/skins2048.js'
 import { SKINS_RUNNER, isRunnerSkinOpen } from '@vault/game/skinsRunner.js'
-import { bumpWeekly, bumpDaily, questEvent, markWeeklySet } from '@vault/game/activityCounters.js'
+import { bumpWeekly, bumpDaily, questEvent, markWeeklySet, ensureDaily } from '@vault/game/activityCounters.js'
+import { ensureClubWeek, boardOf, claimClub } from './clubQuests.js'
+import { npcEvent, placeView, activeList, acceptQuest, abandonQuest, finishQuest, goalText as npcGoalText } from './npcQuests.js'
 import { buyGardenSeed, plantGardenSeed, harvestGardenPlot } from '@vault/game/garden.js'
 import { HUNT_SITES } from '@vault/game/huntSites.js'
 import { enterHuntSite, moveOnHunt, attemptHunt, leaveHuntSite, resolveHuntEncounter, useHuntItem } from '@vault/game/huntField.js'
@@ -30,6 +32,7 @@ import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { noteKill } from './steal.js'
+import { addAilment, setAilmentSource, afterBattleAilment, huntAilment, effortAilment, cureAilments, shortenAilments, activeAilments, gotText, ailLabel, leftText, WEAK_INFO } from './ailments.js'
 import { spiritWinsLeft } from './spiritCap.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
 import { sellItem } from '@vault/game/sell.js'
@@ -69,6 +72,13 @@ function playerFromProfile(profile) {
   return syncCodex(createPlayer({ name: profile.name, age: Number.parseInt(profile.age, 10) || 17, avatar: null, stats: profile.stats, greeting: profile.intro ?? '' }))
 }
 
+/** vC.05 튜토리얼 전에 기억해 둔 체력 · 의지력으로 되돌린다 */
+function untutor(p) {
+  const { tutorialSnap: snap, ...rest } = p
+  if (!snap) return p
+  return { ...rest, hp: Math.max(1, Math.min(rest.hpMax, Math.ceil(snap.hp ?? rest.hp))), mp: Math.max(0, Math.min(rest.mpMax, Math.floor(snap.mp ?? rest.mp))) }
+}
+
 export function usePlayHost() {
   const first = useMemo(() => readSave(), [])
   const admin = useMemo(() => { try { return !!window.BiryeongAuth?.isAdmin?.() } catch { return false } }, [])
@@ -77,7 +87,9 @@ export function usePlayHost() {
     if (!profile) return null
     const restored = first.game ? sanitizeRestored(first.game, first.game.createdAt, admin) : playerFromProfile(profile)
     // 이름 · 한줄소개는 메인 화면의 프로필을 따른다.
-    return { ...restored, name: profile.name, greeting: profile.intro ?? '' }
+    // vC.05 튜토리얼 도중에 창을 닫았으면, 다음에 들어올 때 튜토리얼 전의 체력 · 의지력으로 돌려놓는다.
+    const back = restored?.tutorialSnap ? untutor(restored) : restored
+    return { ...back, name: profile.name, greeting: profile.intro ?? '' }
   })
   const playerRef = useRef(player)
   // v1.3 본편 제작법 잠금: 보관고 제작 칸 · 제작법 목록(patches.mjs)이 이걸 본다. 관리자는 모두 열린다.
@@ -168,8 +180,10 @@ export function usePlayHost() {
       const r = tickPlayer(cur, now, Math.max(0, (now - last) / 1000))
       last = now
       let np = r.player
+      if (cur.slowFight && !np.slowFight) { const sid = cur.slowFight.enemyId; np = npcEvent(npcEvent(bumpDaily(bumpWeekly(sid ? questEvent(np, { type: 'kill', id: sid }) : np, 'wins', 1, now), 'wins', 1, now), 'win'), 'kill', sid) } // vC.06 느린 싸움도 승리로 센다
       if (np !== cur) {
         const gain = (np.spirit || 0) - (cur.spirit || 0)
+        if (cur.training && !np.training && gain > 0) { const ea = effortAilment(np); if (ea.got.length) { np = ea.player; gotText(ea.got, np).forEach(addLog) } } // vC.06 수련을 마치면 가끔 근육통
         if (cur.training && !np.training && gain > 0) { const pct = perkV('trainSpirit'); if (pct) { const more = Math.ceil(gain * pct / 100); np = { ...np, spirit: np.spirit + more }; addLog(`칭호의 기능: 수련으로 영력을 ${more} 더 얻었다.`) } }
         else if (cur.sleeping && !np.sleeping) { const v = perkV('wakeSpirit'); if (v) { np = { ...np, spirit: (np.spirit || 0) + v }; addLog(`칭호의 기능: 개운하게 일어나 영력 +${v}.`) } }
         else if (gain > 0 && !cur.training) { const pct = perkV('regen'); if (pct) np = { ...np, spirit: np.spirit + gain * pct / 100 } }
@@ -254,7 +268,7 @@ export function usePlayHost() {
   // ───── 수업 ─────
   const lessonActions = useMemo(() => ({
     spendAttempt: (id) => { const next = spendAttempt(playerRef.current, id); if (!next) return false; commit(next); return true },
-    complete: (id) => { const r = completeLesson(playerRef.current, id); bridge.quest('lesson', id); if (!r.logs.length) return; const ls = perkV('lessonSpirit'); commit(bumpDaily(bumpWeekly(ls ? { ...r.player, spirit: (r.player.spirit || 0) + ls } : r.player, 'lesson'), 'lesson')); if (ls) addLog(`칭호의 기능: 수업 보상으로 영력 +${ls}.`); r.logs.forEach(addLog); bump('lessons'); collect('courses', id) },
+    complete: (id) => { const r = completeLesson(playerRef.current, id); bridge.quest('lesson', id); if (!r.logs.length) return; const ls = perkV('lessonSpirit'); commit(npcEvent(ls ? { ...r.player, spirit: (r.player.spirit || 0) + ls } : r.player, 'lesson')); /* vC.06: completeLesson 이 이미 일 · 주간 수업 수를 센다(예전엔 두 번 셌다) */ if (ls) addLog(`칭호의 기능: 수업 보상으로 영력 +${ls}.`); r.logs.forEach(addLog); bump('lessons'); collect('courses', id) },
     wait: (id) => { const next = startWait(playerRef.current, id); if (!next) return; commit(next); addLog(`${courseTitle(id)}: 수업을 기다리기 시작했다. (${LESSON_WAIT_MINUTES}분)`) },
     pickStat: (key) => { const next = pickFortuneStat(playerRef.current, key); if (!next) return; commit(next); addLog(`점복학 보너스: ${STAT_META[key].label}이(가) 1 올랐다.`) },
   }), [commit, addLog, bump])
@@ -292,7 +306,7 @@ export function usePlayHost() {
     if (r.result.startsWith('nw-')) collect('newItems', r.result) // v1.5 새 아이템 — 업적 「새 장부」 · 「장부를 다 채웠다」
     return extra ? { ...p, inventory: { ...p.inventory, [r.result]: (p.inventory?.[r.result] || 0) + extra } } : p
   }
-  const madeOne = (p, recipeId, qty = 1) => { bridge.quest(COOK_IDS.has(recipeId) ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty }); bump('crafts'); collect('recipes', recipeId); return markMade(bumpDaily(bumpWeekly(p, 'craft'), 'craft'), recipeId) }
+  const madeOne = (p, recipeId, qty = 1) => { bridge.quest(COOK_IDS.has(recipeId) ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty }); bump('crafts'); collect('recipes', recipeId); return npcEvent(markMade(bumpDaily(bumpWeekly(p, 'craft'), 'craft'), recipeId), 'make', resultOf(recipeId), qty) } // vC.06 인물의 부탁(만들기)
   const craftItem = (recipeId, qty = 1) => {
     if (battleRef.current) return { error: '전투 중이다.' }
     const cur = playerRef.current
@@ -333,7 +347,7 @@ export function usePlayHost() {
     const r = knownCraft(cur, place, recipeId, qty, admin)
     if (r.error) return r
     bridge.quest(place === 'kitchen' ? 'cook' : 'craft', recipeId); bridge.quest('make', { id: resultOf(recipeId), qty: r.qty }); bump('crafts'); collect('recipes', recipeId); if (place === 'kitchen') bump('cooks')
-    const done = commit(bumpDaily(bumpWeekly(afterMake(r.player, place, recipeId, r.qty), 'craft'), 'craft'))
+    const done = commit(npcEvent(bumpDaily(bumpWeekly(afterMake(r.player, place, recipeId, r.qty), 'craft'), 'craft'), 'make', resultOf(recipeId), r.qty))
     addLog(`${place === 'kitchen' ? '조리실' : '공작소'}에서 ${r.item.name} ${r.qty}개를 만들었다.`)
     return { ...r, player: done }
   }
@@ -385,9 +399,12 @@ export function usePlayHost() {
         if (result.error) { addLog(result.error); notify(result.error); return }
         if (action.type === 'enter') { bump('pioneers'); collect('sites', action.siteId); bridge.quest('site', action.siteId) }
         if (action.type === 'attempt') { bump('gathers'); bridge.quest('gather', action.nodeId) }
-        const counted = action.type === 'enter' ? bumpDaily(bumpWeekly(result.player, 'pioneer', 1, now), 'pioneer', 1, now) : action.type === 'attempt' ? bonusGain(cur, result.player, perkV('gatherBonus'), '개척') : result.player
-        const next = commit(syncCodex(counted))
+        const counted = action.type === 'enter' ? npcEvent(bumpDaily(bumpWeekly(result.player, 'pioneer', 1, now), 'pioneer', 1, now), 'pioneer') : action.type === 'attempt' ? bonusGain(cur, result.player, perkV('gatherBonus'), '개척') : result.player
+        let withAil = counted, ailGot = []
+        if (action.type === 'attempt') { const site = HUNT_SITES[cur.huntExpedition?.siteId]; const ha = huntAilment(counted, site, { finished: counted.huntExpedition?.status === 'finished' }); withAil = ha.player; ailGot = ha.got } // vC.06 개척에서 걸리는 몸의 이상
+        const next = commit(syncCodex(withAil))
         if (result.logs?.length) addLogs(result.logs)
+        if (ailGot.length) gotText(ailGot, next).forEach(addLog)
         if (action.type === 'attempt' && next.huntExpedition?.status === 'finished') addLog('개척 행동 횟수를 모두 사용하여 탐색을 마쳤다. 획득한 자원은 유지된다.')
       } catch (error) {
         console.error('[비령] 개척 처리 오류', action, error)
@@ -424,10 +441,15 @@ export function usePlayHost() {
     const lost = !result.win && !result.fled
     const hp = Number.isFinite(result.hp) ? result.hp : r.player.hp
     const vit = { ...r.player, hp: Math.max(1, Math.min(r.player.hpMax, Math.ceil(hp))) }
-    commit(lost ? { ...vit, weakUntil: Date.now() + WEAK_MS } : vit)
+    { const en = result.enemy ?? enemyById(playerRef.current.huntExpedition?.encounter?.enemy?.id); const ab = afterBattleAilment(lost ? { ...vit, weakUntil: Date.now() + WEAK_MS } : vit, en, { lost, hpFrac: vit.hp / (vit.hpMax || 100) }); commit(ab.player); if (ab.got.length) gotText(ab.got, ab.player).forEach(addLog) } // vC.06 몸의 이상
     if (r.logs?.length) addLogs(r.logs)
-    if (result.win) countWin(result.enemy ?? enemyById(playerRef.current.huntExpedition?.encounter?.enemy?.id))
-    if (lost) { addLog(`${result.enemy?.name ?? '요괴'}에게 쓰러졌다. [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); notify('쓰러졌다. 양호실에서 쉬는 게 좋겠다.') }
+    if (result.win) { countWin(result.enemy ?? enemyById(playerRef.current.huntExpedition?.encounter?.enemy?.id)); const c1 = playerRef.current; const eid = (result.enemy ?? playerRef.current.huntExpedition?.encounter?.enemy)?.id; commit(npcEvent(npcEvent(bumpDaily(bumpWeekly(eid ? questEvent(c1, { type: 'kill', id: eid }) : c1, 'wins'), 'wins'), 'win'), 'kill', eid)) } // vC.06
+    if (lost) { addLog(`${result.enemy?.name ?? '요괴'}에게 쓰러졌다. [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); wakeInInfirmary() }
+  }
+  // vC.06 지면 묻지 않고 곧장 양호실에서 눈을 뜬다. (패배 글자가 잠깐 보이도록 0.9초 뒤에 옮긴다)
+  const wakeInInfirmary = () => {
+    notify('쓰러졌다… 눈을 떠 보니 양호실 침대 위다.')
+    setTimeout(() => { addLog('양호실에서 눈을 떴다. 침대에 누워 쉬면 체력과 의지력이 찬다.'); bridge.nav('at/infirmary/rest') }, 900)
   }
 
   // ───── 전투 ─────
@@ -447,6 +469,7 @@ export function usePlayHost() {
     const r = applyBattleResult({ ...cur, _battleNoScanWin: !battleScannedRef.current }, win, enemy.reward)
     let p = r.player
     if (win && enemy?.id) p = questEvent(p, { type: 'kill', id: enemy.id })
+    if (win) p = npcEvent(npcEvent(bumpDaily(bumpWeekly(p, 'wins'), 'wins'), 'win'), 'kill', enemy?.id) // vC.06 동아리 활동 · 인물의 부탁: 전투 승리(영력을 받든 안 받든)
     if (win && special === 'pine' && !battleDownedRef.current && battleVitalsRef.current) p = { ...p, hp: Math.min(p.hpMax, battleVitalsRef.current.hp), mp: Math.min(p.mpMax, battleVitalsRef.current.mp) }
     delete p._battleNoScanWin
     if (win && (r.granted || r.money)) { // vB.04: 냥 덤은 이길 때마다, 영력 덤은 영력을 받은 승리(하루 3번)에만
@@ -454,9 +477,10 @@ export function usePlayHost() {
       if (m || s) { p = { ...p, money: (p.money || 0) + m, spirit: (p.spirit || 0) + s }; addLog(`칭호의 기능: 전투 보상 ${[m ? `${m}냥` : '', s ? `영력 ${s}` : ''].filter(Boolean).join(' · ')} 추가.`) }
     }
     if (!win) bump('losses')
+    { const ab = afterBattleAilment(p, enemy, { lost: !win, hpFrac: (p.hp || 0) / (p.hpMax || 100) }); if (ab.got.length) { p = ab.player; setTimeout(() => gotText(ab.got, ab.player).forEach(addLog), 0) } } // vC.06 몸의 이상
     commit(p)
     if (win) { bridge.quest('win', enemy?.id); countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다! 돈 +${r.money || 0}냥. (오늘 전투로 얻는 영력 3번은 모두 받았다)`) }
-    else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); notify('쓰러졌다. 양호실에서 쉬는 게 좋겠다.') }
+    else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); wakeInInfirmary() }
   }
   const startSlowFightAction = (enemyId) => guard(() => {
     const r = startSlowFight(playerRef.current, enemyId)
@@ -474,6 +498,14 @@ export function usePlayHost() {
   const giveItem = (id, n = 1) => { const cur = playerRef.current; commit({ ...cur, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }) }
   const TUTORIAL_LABEL = { basic: '#1 기본 전투', psychic: '#2 영능력', gear: '#3 무구와 아이템', group: '#4 단체 전투' }
   const onTutorialDone = (key) => { const cur = playerRef.current; if (cur.tutorialDone?.[key]) return; collect('tutorials', key); bridge.quest('tutorial', key); commit({ ...cur, tutorialDone: { ...(cur.tutorialDone ?? {}), [key]: true } }); addLog(`전투 튜토리얼 '${TUTORIAL_LABEL[key] ?? key}'을 마쳤다.`) }
+  // vC.05 튜토리얼: 열 때의 체력 · 의지력을 기억해 두고, 튜토리얼 동안에는 100 / 100(최대치)으로 보이게 한다. 닫으면 기억해 둔 값으로 돌아간다.
+  //   튜토리얼 전투는 내 실제 체력 · 의지력을 쓰지 않으므로(안에서 100으로 따로 센다), 끝나면 정확히 처음 값으로 돌아간다.
+  const onTutorialActive = (on) => {
+    const cur = playerRef.current
+    if (!cur) return
+    if (on && !cur.tutorialSnap) commit({ ...cur, tutorialSnap: { hp: cur.hp, mp: cur.mp }, hp: cur.hpMax, mp: cur.mpMax })
+    else if (!on && cur.tutorialSnap) commit(untutor(cur))
+  }
   const onClaimTutorialReward = (weaponId) => {
     const cur = playerRef.current
     if (cur.tutorialRewardTaken || !['basic', 'psychic', 'gear', 'group'].every((k) => cur.tutorialDone?.[k])) return
@@ -576,6 +608,14 @@ export function usePlayHost() {
     if (e.spirit) parts.push(`영력 +${(next.spirit || 0) - (cur.spirit || 0)}`)
     if (e.revive) { setReviveOn(true); parts.push('전투불능 시 1회 부활 대기') }
     if (e.boost) { setBoostOn(true); parts.push('나의 다음 행동 피해 2배 (1턴)') }
+    if (e.cureAil || e.shortenAil) { // vC.06 몸의 이상을 낫게 하는 물건
+      const c0 = playerRef.current
+      const cr = e.cureAil ? cureAilments(c0, e.cureAil) : { player: c0, cured: [] }
+      const sh = e.shortenAil ? shortenAilments(cr.player, e.shortenAil) : { player: cr.player, hit: [] }
+      commit(sh.player)
+      if (e.cureAil) parts.push(cr.cured.length ? `${cr.cured.map(ailLabel).join(' · ')} 나았다` : `${e.cureAil.map(ailLabel).join(' · ')}에 걸려 있지 않았다`)
+      if (e.shortenAil) parts.push(sh.hit.length ? `${sh.hit.map(ailLabel).join(' · ')} 남은 시간 5분` : `${e.shortenAil.map(ailLabel).join(' · ')}에 걸려 있지 않았다`)
+    }
     if (e.cureWeak) parts.push('[쇠약] 즉시 회복')
     else if (e.weakCap != null) parts.push('[쇠약] 남은 시간이 1시간으로 줄었다')
     if (e.sellMoney) parts.push(`${e.sellMoney}냥 획득`)
@@ -590,7 +630,7 @@ export function usePlayHost() {
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
   globalThis.__BRY_INSPECT = { can: (id) => !!globalThis.BiryeongQuest?.inspectable?.(baseIdOf(id)), run: (id) => bridge.quest('inspect', baseIdOf(id)) }
-  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (next !== playerRef.current) commit(next) }
+  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const seenWeek = playerRef.current.weekly?.exploreVisited?.[key]; let next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (!(playerRef.current.daily?.visitSet ?? {})[key]) { const d0 = ensureDaily(next); next = { ...d0, daily: { ...d0.daily, visits: (d0.daily.visits || 0) + 1, visitSet: { ...(d0.daily.visitSet ?? {}), [key]: true } } } } void seenWeek; next = npcEvent(next, 'visit', key); if (next !== playerRef.current) commit(next) } // vC.06 오늘의 할일: 서로 다른 탐사 지점 수
   const lockerMove = (mode, grade, id, n) => {
     const cur = playerRef.current
     const r = mode === 'in' ? deposit(cur, grade, id, n) : withdraw(cur, grade, id, n)
@@ -743,7 +783,7 @@ export function usePlayHost() {
     boostOn, onBoostUsed: () => setBoostOn(false), onActive, usedItems: battleUsedItems, itemFx: soloItemFx,
     onSpotItems: () => {}, onOpenItems: () => setInvOpen(true), onGiveItem: giveItem, onAfflict,
     slowFight: player.slowFight, onStartSlow: startSlowFightAction, onStopSlow: endSlowFight,
-    tutorialDone: player.tutorialDone, tutorialRewardTaken: player.tutorialRewardTaken, onTutorialDone, onClaimTutorialReward, onTutorialActive: () => {},
+    tutorialDone: player.tutorialDone, tutorialRewardTaken: player.tutorialRewardTaken, onTutorialDone, onClaimTutorialReward, onTutorialActive,
   }
 
   /** 메인 화면(스토리 퀘스트 보상 등)이 주는 것. */
@@ -769,6 +809,18 @@ export function usePlayHost() {
   }
   const countOfId = (id) => Object.entries(playerRef.current?.inventory ?? {}).reduce((s, [k, n]) => s + (baseIdOf(k) === id ? n : 0), 0) + (baseIdOf(equipOf(playerRef.current ?? {}).weapon ?? '') === id ? 1 : 0)
   /** 퀘스트에서 아이템을 써서 없앤다(무구는 안 받는다). 모자라면 false */
+  // vC.06 선물: 물건 · 냥을 한꺼번에 덜어 낸다(모자라면 아무것도 덜지 않는다). 장착한 것은 보낼 수 없다.
+  const giveAway = ({ items = {}, money = 0 } = {}) => {
+    const cur = playerRef.current
+    if (!cur || money < 0 || (cur.money || 0) < money) return false
+    const eq = Object.values(equipOf(cur) || {})
+    const inv = { ...cur.inventory }
+    for (const [id, n] of Object.entries(items)) if (!(n > 0) || (inv[id] || 0) < n || eq.includes(id)) return false
+    for (const [id, n] of Object.entries(items)) { inv[id] -= n; if (inv[id] <= 0) delete inv[id] }
+    commit({ ...cur, inventory: inv, money: (cur.money || 0) - money })
+    persist()
+    return true
+  }
   const take = (items) => {
     const cur = playerRef.current
     const inv = { ...cur.inventory }
@@ -778,9 +830,22 @@ export function usePlayHost() {
     persist()
     return true
   }
+const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
+  setAilmentSource(() => playerRef.current) // vC.06 혼자 하는 전투의 라운드 피해가 지금 걸린 몸의 이상을 읽는다
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, spendMp, effStats: () => effStats,
+    save: persist, storyBattle, spendMp, effStats: () => effStats, giveAway,
+    // vC.06 동아리 활동(오늘의 할일 · 이번주에 할일) — 부실에서 ClubQuests.jsx 가 부른다
+    clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
+    adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용
+    // vC.06 인물의 부탁 — 조사 장소의 NpcQuests.jsx · 오른쪽 상태 창(app.js)이 부른다
+    npcPlace: (place) => { const e = effStats || playerRef.current.stats; const v = Object.values(e).filter(Number.isFinite); return placeView(playerRef.current, place, v.reduce((a, b) => a + b, 0) / Math.max(1, v.length), openTierNow()) },
+    npcActive: () => activeList(playerRef.current).map(({ q, pr, npc }) => ({ id: q.id, npc, title: q.title, where: q.where, goal: npcGoalText(q), cur: pr?.cur ?? 0, need: pr?.need ?? 1, done: !!pr?.done })),
+    npcAct: (kind, id) => { const cur = playerRef.current; const r = kind === 'accept' ? acceptQuest(cur, id) : kind === 'abandon' ? abandonQuest(cur, id) : finishQuest(cur, id); if (r.error) { notify(r.error); return null } commit(r.player); addLog(r.log); persist(); return r.line ?? '' },
+    clubEnsure: (clubId) => { const cur = playerRef.current; const nx = ensureClubWeek(cur, clubId, effStats, openTierNow()); if (nx !== cur) commit(nx) },
+    clubClaim: (clubId, kind, id) => { const r = claimClub(playerRef.current, clubId, kind, id); if (r.error) { notify(r.error); return false } commit(r.player); addLog(r.log); persist(); return true },
+    // vC.06 [현재 상태] 칸: 몸의 이상 + 쇠약
+    conditions: () => { const cur = playerRef.current, now = Date.now(); const list = activeAilments(cur, now).map((a) => ({ id: a.id, name: a.def.name, hanja: a.def.hanja, stack: a.stack, max: a.def.max, heavy: a.def.heavy, left: leftText(a.left), effect: a.def.effect, text: a.def.text })); const w = Math.max(cur?.weakUntil || 0, cur?.curseUntil || 0); if (w > now) list.unshift({ id: 'weak', name: WEAK_INFO.name, hanja: WEAK_INFO.hanja, stack: 1, max: 1, heavy: true, left: leftText(w - now), effect: WEAK_INFO.effect, text: WEAK_INFO.text }); return list },
     // vB.01: 시간이 드는 행동(느린 싸움 · 수업 대기 · 휴식 · 잠 · 수련 · 제작) 중인가 — 바깥(app.js)이 페이지를 떠나기 전에 묻는다
     busy: () => busyLabel(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감

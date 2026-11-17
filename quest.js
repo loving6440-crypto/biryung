@@ -632,7 +632,7 @@
   }
   function boardWorld(body) {
     const q = Q(), sync = Sync();
-    body.append(para(sync?.enabled ? '모든 학생의 선택이 모인다. 내가 고른 것은 금색으로 보인다.' : '서버에 닿기 전이라 지금은 내가 고른 것만 보인다.'));
+    body.append(para(sync?.enabled ? '모든 학생의 선택이 모인다. 내가 고른 것은 청색으로 보인다.' : '서버에 닿기 전이라 지금은 내가 고른 것만 보인다.'));
     const box = h('div', 'quest-tally'); body.append(box);
     const shown = Object.entries(D.choices || {}).filter(([id, c]) => isOpen(c.ch) && q.flags[id]);
     if (!shown.length) { box.append(para('아직 고른 것이 없다.')); return; }
@@ -641,7 +641,7 @@
       shown.forEach(([id, c]) => {
         const counts = by?.[id] || {}; const sum = Object.values(counts).reduce((a, b) => a + b, 0);
         const row = h('div', 'quest-tally-row'); row.append(h('strong', '', `${c.ch ? `${c.ch}장` : '프롤로그'} · ${c.q || c.scene}${c.vote ? ' (모두의 선택)' : ''}`));
-        c.o.forEach((o, i) => { const v = counts[i + 1] || 0; row.append(h('p', q.flags[id] === i + 1 ? 'is-mine' : '', `${CIRC[i]} ${fill(o)}${by ? ` — ${v}명 (${sum ? Math.round(v * 100 / sum) : 0}%)` : ''}`)); });
+        c.o.forEach((o, i) => { const v = counts[i + 1] || 0; const mine = Number(q.flags[id]) === i + 1; row.append(h('p', mine ? 'is-mine' : '', `${CIRC[i]} ${fill(o)}${by ? ` — ${v}명 (${sum ? Math.round(v * 100 / sum) : 0}%)` : ''}${mine ? '  ◂ 내 선택' : ''}`)); }); // vC.06 내 선택은 어디서나 청색(서버에서 온 글자 '1'도 맞춘다)
         box.append(row);
       });
     };

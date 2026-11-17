@@ -18,6 +18,9 @@
   const DATA = window.BIRYEONG_DATA || { rules: {}, zones: {} };
   const TITLES = window.BIRYEONG_TITLES || [];
   const ACHIEVEMENTS = window.BIRYEONG_ACHIEVEMENTS || [];
+  // vC.05 목록은 가나다순(업적 · 칭호 · 도감의 아이템).
+  const KO = new Intl.Collator('ko', { numeric: true });
+  const byName = (a, b) => KO.compare(String(a.name ?? ''), String(b.name ?? ''));
   const ACH_GROUPS = window.BIRYEONG_ACHIEVEMENT_GROUPS || [];
   const STORY = window.BIRYEONG_STORY || { steps: [], premise: [] };
   const Play = () => window.BiryeongPlay || null;
@@ -154,7 +157,18 @@
   const panelBody = $('#panelBody'), panelTabs = $('#panelTabs'), panelChips = $('#panelChips'), playHost = $('#playHost');
   let steps = 0; // 이 화면 안에서 주소를 바꾼 횟수(뒤로가기가 사이트 밖으로 나가지 않게)
   const go = (hash) => { if (location.hash === hash) route(); else { steps += 1; location.hash = hash; } };
-  const back = () => { if (steps > 0) { steps -= 1; history.back(); } else location.hash = '#/'; };
+  // vC.06 뒤로가기: 방문 기록이 아니라 「한 단계 위」로 간다(구역 안 칸 → 그 구역 → 사방 지도). 실행 화면(#/go/…)은 들어오기 전 자리로.
+  //   단추에는 어디로 가는지가 적힌다. (예전에는 브라우저 기록을 거슬러 올라가, 같은 구역 안에서 칸을 옮긴 만큼 눌러야 했다)
+  let lastPlace = '#/';
+  const ZONE_WORD = { north: '산문', center: '사당', east: '강학당', west: '생활관', south: '비령산' };
+  function parentOf(hash) {
+    const parts = decodeURIComponent(String(hash || '').replace(/^#\/?/, '')).split('/').filter(Boolean);
+    if (parts[0] === 'zone' && parts.length > 2) return { hash: `#/zone/${parts[1]}`, label: ZONE_WORD[parts[1]] || '구역' };
+    if (parts[0] === 'go') { const pp = decodeURIComponent(lastPlace.replace(/^#\/?/, '')).split('/').filter(Boolean); return pp[0] === 'zone' ? { hash: lastPlace, label: ZONE_WORD[pp[1]] || '구역' } : { hash: '#/', label: '사방 지도' }; }
+    return { hash: '#/', label: '사방 지도' };
+  }
+  const back = () => { const to = parentOf(location.hash).hash; steps = 0; if (location.hash !== to) location.hash = to; else route(); };
+  function updateBack() { if (/^#\/zone\//.test(location.hash)) lastPlace = location.hash; const b = $('#pageBack'); if (b) { const p = parentOf(location.hash); const ro = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00, k = c >= 0 && c <= 11171 ? c % 28 : 0; return w + (k && k !== 8 ? '으로' : '로'); }; b.textContent = `◂ ${ro(p.label)}`; b.title = `${ro(p.label)} 돌아간다`; } }
   function openPage(eyebrow, title, kind) {
     $('#panelEyebrow').textContent = eyebrow; $('#panelTitle').textContent = title;
     pageView.dataset.kind = kind || '';
@@ -603,7 +617,7 @@
   function renderNotes() {
     openPage('報 / UPDATE NOTES', '업데이트 노트', 'simple');
     addTo('pages', 'notes');
-    if (App.isAdmin()) {
+    if (Auth.isAdmin()) {
       const f = h('form', 'admin-form note-form'); const vIn = h('input'); vIn.placeholder = '버전 (예: vC.01)'; vIn.maxLength = 20; vIn.required = true;
       const ta = h('textarea'); ta.rows = 4; ta.maxLength = 3000; ta.placeholder = '바뀐 점 — 한 줄에 하나씩 적으면 줄마다 한 항목이 된다'; ta.required = true;
       const sb = h('button', 'solid-btn', '노트 올리기'); sb.type = 'submit';
@@ -615,9 +629,9 @@
     const draw = (rows) => {
       list.replaceChildren();
       rows.forEach((r) => list.append(noteBox(r.version, dateOnly(r.created_at), String(r.body).split('\n').map((x) => x.trim()).filter(Boolean),
-        App.isAdmin() ? async () => { if (!window.confirm(`${r.version} 노트를 지울까요?`)) return; try { await notesApi.remove(r.id); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); } } : null)));
+        Auth.isAdmin() ? async () => { if (!window.confirm(`${r.version} 노트를 지울까요?`)) return; try { await notesApi.remove(r.id); renderNotes(); } catch (err) { toast('업데이트 노트', err.message); } } : null)));
       UPDATE_NOTES.forEach((n) => list.append(noteBox(n.v, n.date, n.lines)));
-      if (!rows.length && !UPDATE_NOTES.length) list.append(emptyBox('報', '아직 올라온 업데이트 노트가 없다.', App.isAdmin() ? '위의 칸에 버전과 바뀐 점을 적어 올리면 여기에 쌓인다.' : '새 소식이 올라오면 여기에 쌓인다.'));
+      if (!rows.length && !UPDATE_NOTES.length) list.append(emptyBox('報', '아직 올라온 업데이트 노트가 없다.', Auth.isAdmin() ? '위의 칸에 버전과 바뀐 점을 적어 올리면 여기에 쌓인다.' : '새 소식이 올라오면 여기에 쌓인다.'));
     };
     draw([]);
     notesApi.list().then(draw).catch(() => draw([]));
@@ -674,7 +688,7 @@
     else pick.append(h('small', '', '칭호를 달면 그 칭호의 기능 하나가 듣는다.'));
     panelBody.append(pick);
     const foot = h('div', 'profile-actions');
-    foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => go('#/codex/titles')));
+    foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => openCodex('titles')));
     if (window.BiryeongOpening) foot.append(btn('ghost-btn', '오프닝 다시 보기', () => window.BiryeongOpening.play({ replay: true })));
     panelBody.append(foot, h('p', 'panel-fine', Auth.server ? '프로필과 진행 기록은 비령 서버에 함께 보관됩니다. 다른 기기에서도 같은 아이디로 이어집니다.' : '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
@@ -782,14 +796,41 @@
       const fill = h('i'); fill.style.width = `${Math.min(100, (value / max) * 100)}%`; track.append(fill);
       row.append(top, track); return row;
     }));
+    // vC.06 [현재 상태]: 쇠약 · 몸의 이상(사독 · 한기 …). 남은 시간과 효과를 보여 준다.
+    const api = window.BiryeongPlay?.api?.();
+    const conds = (() => { try { return api?.conditions?.() ?? []; } catch (_) { return []; } })();
+    const cbox = $('#statusConditions');
+    if (cbox) {
+      const head = h('div', 'status-cond-head'); head.append(h('span', '', '현재 상태'), h('small', '', conds.length ? `${conds.length}가지` : ''));
+      const list = h('div', 'status-cond-list');
+      if (!conds.length) list.append(h('span', 'status-cond-none', '이상 없음 — 몸이 가뿐하다.'));
+      for (const c of conds) {
+        const chip = h('span', `status-cond${c.heavy ? ' is-heavy' : ''}${c.id === 'weak' ? ' is-weak' : ''}`);
+        chip.title = `[${c.name}(${c.hanja})] ${c.text}\n효과: ${c.effect}\n남은 시간: ${c.left}`;
+        chip.append(h('b', '', c.max > 1 ? `${c.name} ${c.stack}겹` : c.name), h('small', '', c.left));
+        list.append(chip);
+      }
+      cbox.replaceChildren(head, list);
+    }
+    // vC.06 받은 부탁(인물의 퀘스트): 누가 · 무엇을 · 어디서 마치는지
+    const npcBox = $('#npcTracker');
+    if (npcBox) {
+      const act = (() => { try { return api?.npcActive?.() ?? []; } catch (_) { return []; } })();
+      npcBox.hidden = !act.length;
+      npcBox.replaceChildren(...(act.length ? [h('p', 'npc-tracker-head', `받은 부탁 ${act.length} / 5`)] : []), ...act.map((q) => { const r = h('p', `npc-tracker-row${q.done ? ' is-done' : ''}`); r.append(h('b', '', q.npc), ` 「${q.title}」 ${q.goal} · ${q.cur}/${q.need}`, h('small', '', q.done ? ` → ${q.where}에서 마친다` : ` (${q.where})`)); return r; }));
+    }
     const stats = statsNow();
+    const eff = (() => { try { return api?.effStats?.() ?? null; } catch (_) { return null; } })();
     $('#statusStats').replaceChildren(...R.statKeys.map((k) => {
       const now = Math.floor(stats[k] ?? 1), cost = now * 10, can = !!p && spirit >= cost && now < R.statMax;
+      const diff = eff && Number.isFinite(eff[k]) ? Math.floor(eff[k]) - now : 0; // vC.06 무구 · 장신구 · 칭호 · 음식 보정(쇠약 · 몸의 이상은 깎는다)
       const c = h('div', 'status-stat'); c.title = R.stats[k].detail;
       const up = btn('status-stat-up', '+', () => raiseStat(k));
       up.disabled = !can; up.title = !p ? '프로필을 먼저 만든다' : now >= R.statMax ? '더 올릴 수 없다' : `영력 ${cost} 로 ${R.stats[k].label} +1`;
       up.setAttribute('aria-label', `${R.stats[k].label} 올리기 (영력 ${cost})`);
-      c.append(h('span', '', R.stats[k].label), h('b', '', String(now)), up, h('small', '', `영력 ${cost}`));
+      const val = h('b', '', String(now));
+      if (diff) { const d = h('em', `status-stat-bonus${diff < 0 ? ' is-down' : ''}`, `(${diff > 0 ? '+' : '−'}${Math.abs(diff)})`); d.title = diff > 0 ? `장비 · 보정을 더하면 ${now + diff}` : `쇠약 · 몸의 이상으로 지금은 ${now + diff}`; val.append(d); }
+      c.append(h('span', '', R.stats[k].label), val, up, h('small', '', `영력 ${cost}`));
       return c;
     }));
     $('#statusMoney').textContent = `${Math.floor(g?.money ?? p?.money ?? 0)}냥`;
@@ -838,10 +879,10 @@
     const kindOf = (i) => (i.id.startsWith('st-') ? '본편' : i.kind === '재료' ? '재료' : /무구|장비|장신구/.test(i.kind) ? '장비' : '완성품');
     const f = save.dexItemKind && KINDS.includes(save.dexItemKind) ? save.dexItemKind : '전체';
     const chips = h('div', 'dex-chips');
-    KINDS.forEach((k) => { const b = btn(`dex-chip${k === f ? ' is-on' : ''}`, k, () => { save.dexItemKind = k; persist(); route(); }); chips.append(b); });
+    KINDS.forEach((k) => { const b = btn(`dex-chip${k === f ? ' is-on' : ''}`, k, () => { save.dexItemKind = k; persist(); renderCodex('items'); }); chips.append(b); });
     body.append(h('p', 'panel-label codex-group', `아이템 · 손에 넣어 본 것 ${got} / ${CODEX.items.length}`), chips);
     const list = h('div', 'dex-list');
-    CODEX.items.filter((i) => f === '전체' || kindOf(i) === f).forEach((i) => {
+    CODEX.items.filter((i) => f === '전체' || kindOf(i) === f).sort(byName).forEach((i) => {
       const k = known(i.id), card = h('div', `dex-card${k ? ' is-got' : ''}`);
       card.dataset.dexItem = i.id; card.dataset.known = k ? '1' : '0';
       const head = h('div', 'dex-head'); head.append(k ? itemIcon(i.px) : itemIcon(null), h('strong', '', i.name), h('small', '', k ? i.kind : ''));
@@ -920,10 +961,22 @@
     });
   }
 
+  // vC.06 업적 / 도감은 화면을 바꾸지 않고 소지품처럼 위에 뜬다(codexDialog).
+  const codexDialog = $('#codexDialog');
+  let codexTab = 'achievements';
+  function openCodex(tab) {
+    codexTab = tab || codexTab || 'achievements';
+    if (!codexDialog.open) { try { codexDialog.showModal(); } catch (_) { codexDialog.setAttribute('open', ''); } }
+    renderCodex(codexTab);
+  }
+  $('#codexClose').addEventListener('click', () => codexDialog.close());
+  codexDialog.addEventListener('click', (e) => { if (e.target === codexDialog) codexDialog.close(); });
   function renderCodex(tab) {
     const TABS = ['achievements', 'titles', 'items', 'psychics', 'enemies'];
     const current = TABS.includes(tab) ? tab : 'achievements';
-    openPage('圖鑑 / CODEX', '업적 / 도감', 'codex');
+    codexTab = current;
+    const panelBody = $('#codexBody'), panelTabs = $('#codexTabs');
+    panelBody.replaceChildren(); panelBody.scrollTop = 0;
     addTo('pages', `codex/${current}`);
     const p = dexPlayer();
     setTabs(panelTabs, [
@@ -932,9 +985,9 @@
       { id: 'items', label: `아이템 ${CODEX.items.filter((i) => dexAll() || p.codex?.items?.[i.id]).length} / ${CODEX.items.length}` },
       { id: 'psychics', label: `영능력 ${CODEX.psychics.filter((x) => dexAll() || x.always || (p.psychics || []).includes(x.id)).length} / ${CODEX.psychics.length}` },
       { id: 'enemies', label: `적 ${CODEX.enemies.filter((e) => dexAll() || (p.seen?.[e.id] || 0) > 0).length}` },
-    ], current, (id) => go(id === 'achievements' ? '#/codex' : `#/codex/${id}`));
+    ], current, (id) => renderCodex(id));
     if (Auth.isAdmin() && ['items', 'psychics', 'enemies'].includes(current)) {
-      const bar = h('div', 'dex-admin'); bar.append(btn('ghost-btn codex-use', dexAll() ? '관리자: 내 기록대로 보기' : '관리자: 모두 보기', () => { save.adminDexAll = !dexAll(); persist(); route(); }));
+      const bar = h('div', 'dex-admin'); bar.append(btn('ghost-btn codex-use', dexAll() ? '관리자: 내 기록대로 보기' : '관리자: 모두 보기', () => { save.adminDexAll = !dexAll(); persist(); renderCodex(current); }));
       panelBody.append(bar);
     }
     if (current === 'items') { renderDexItems(panelBody); return; }
@@ -943,7 +996,7 @@
     const row = (got, name, text, side) => { const r = h('div', `codex-row${got ? ' is-got' : ''}`); const t = h('div', 'codex-text'); t.append(h('strong', '', name), h('p', '', text)); r.append(h('span', 'codex-mark', got ? '◆' : '◇'), t, side); return r; };
     if (current === 'achievements') {
       ACH_GROUPS.forEach((group) => {
-        const list = ACHIEVEMENTS.filter((a) => a.group === group.id);
+        const list = ACHIEVEMENTS.filter((a) => a.group === group.id).sort(byName);
         panelBody.append(h('p', 'panel-label codex-group', `${group.name} · ${list.filter((a) => save.achievements[a.id]).length} / ${list.length}`));
         const listEl = h('div', 'codex-list');
         list.forEach((a) => {
@@ -958,10 +1011,10 @@
       });
     } else {
       const p = profile(); const listEl = h('div', 'codex-list');
-      TITLES.forEach((t) => {
+      [...TITLES].sort(byName).forEach((t) => {
         const got = ownsTitle(t.id), source = ACHIEVEMENTS.find((a) => a.title === t.id);
         const side = h('div', 'codex-side');
-        if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); renderStatus(); route(); }));
+        if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); renderStatus(); renderCodex(current); }));
         else side.append(h('span', 'codex-state', got ? '보유' : '미획득'));
         const r = row(got, got ? t.name : '???', got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : t.from === 'story' ? '본편 이야기에서 얻는다.' : '아직 얻을 방법이 알려지지 않았다.', side);
         if (t.perkText) r.querySelector('.codex-text').append(h('p', 'perk-line', `기능 — ${t.perkText}`));
@@ -973,13 +1026,14 @@
 
   /* ───────── 주소 → 페이지 ───────── */
   function route() {
+    updateBack();
     const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean);
     const [head, ...rest] = parts;
     if (!head) showHome();
     else if (head === 'zone') renderZone(rest[0], rest[1], rest[2], rest.slice(3));
     else if (head === 'go' && rest.length) renderGo(rest.join('/'));
     else if (head === 'profile') renderProfile(rest[0] === 'edit');
-    else if (head === 'codex') renderCodex(rest[0]);
+    else if (head === 'codex') { location.replace('#/'); openCodex(rest[0]); } // vC.06: 예전 주소로 와도 첫 화면 위에 띄운다
     else if (head === 'notes') renderNotes();
     else if (head === 'case') renderCase(rest[0]);
     else if (head === 'money') renderMoney();
@@ -1055,7 +1109,7 @@
 
   /* ───────── 연결 ───────── */
   document.querySelectorAll('[data-zone]').forEach((card) => card.addEventListener('click', () => go(`#/zone/${card.dataset.zone}`)));
-  $('#storyBtn').addEventListener('click', () => go('#/case'));
+  // vC.06 머리띠의 [사건 기록]은 [접속자 확인하기](party.js)로 바뀌었다. 사건 기록은 첫 화면 [주요 이야기]에서 연다.
   // 공개된 장(권)은 서버에서 늦게 오므로 한 번 더 그리고, 공지 새 글 표시도 확인한다
   setTimeout(drawVolumes, 1500); setTimeout(drawVolumes, 4000); setTimeout(() => drawBoard().catch(() => {}), 2500);
   $('#journalBtn').addEventListener('click', () => go('#/profile'));
@@ -1065,7 +1119,7 @@
   if (Auth.isAdmin()) { const slot = $('[data-admin-slot]'); const b = btn('', '', () => go('#/admin')); b.dataset.menu = 'admin'; b.append(h('i', '', '管'), h('span', '', '관리자')); slot.replaceWith(b); }
   const MENU = {
     inventory: () => { const api = playApi(); if (api) api.openInventory(); else go('#/profile'); },
-    quest: () => go('#/zone/north'), codex: () => go('#/codex'), money: () => go('#/money'), notes: () => go('#/notes'),
+    quest: () => go('#/zone/north'), codex: () => openCodex(), money: () => go('#/money'), notes: () => go('#/notes'),
   };
   document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => MENU[b.dataset.menu]?.()));
   document.querySelectorAll('[data-community]').forEach((b) => b.addEventListener('click', () => addTo('community', b.dataset.community)));
@@ -1080,6 +1134,7 @@
 
   // 실행 화면 부품과의 연결
   window.addEventListener('biryeong:saved', refreshFromPlay);
+  setInterval(() => { if (!document.hidden) renderStatus(); }, 30000); // vC.06 [현재 상태]의 남은 시간
   window.addEventListener('biryeong:toast', (event) => toast(event.detail.head, event.detail.text));
   window.addEventListener('biryeong:nav', (event) => {
     if (event.detail.back) { back(); return; }

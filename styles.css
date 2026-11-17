@@ -788,3 +788,31 @@ body.is-opening{overflow:hidden}
 .hero-link{color:inherit;text-decoration:none;border-bottom:1px dashed currentColor;padding-bottom:1px}.hero-link:hover,.hero-link:focus-visible{color:#fff}
 .pxmap .pxwall{background-color:#22364a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16' shape-rendering='crispEdges'%3E%3Crect width='24' height='16' fill='%2322364a'/%3E%3Cpath d='M0 0h24v2H0zM0 8h24v2H0zM10 2h2v6h-2zM22 10h2v6h-2z' fill='%23142435'/%3E%3Cpath d='M0 2h10v1H0zM12 2h12v1H12zM0 10h22v1H0z' fill='%232f485f'/%3E%3C/svg%3E");border-radius:0;box-shadow:inset 0 0 0 3px #455769,inset 0 0 0 6px #142435,0 4px 0 #030912}
 .pxfloor-name{background:#7f93a6}
+/* vC.04 폰 화면: 지도가 없는 쪽(업데이트 노트 등)에는 [내부 지도] 단추를 감추고, 제목은 낱말 가운데서 끊기지 않게 한다 */
+.page-map[hidden]{display:none!important}
+.page-head-text h2{word-break:keep-all;overflow-wrap:anywhere}
+.page-map{border-color:var(--line);color:var(--cream);background:var(--panel-deep)}
+@media (max-width:790px){.page-head-text{flex:1 1 0;min-width:0}.page-head-text h2{font-size:clamp(20px,6.2vw,28px);line-height:1.2}.page-back{flex:none}}
+/* vC.06 뒤로가기: 어디로 돌아가는지 적힌 작은 단추 */
+.page-back{padding:7px 12px 7px 10px;font-size:12px;background:transparent;border:1px solid #d5b57999;color:#e8d3a4;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.page-back:hover,.page-back:focus-visible{background:#d5b57922;border-color:#eccf9e;color:#fff3d6}
+/* vC.06 [현재 상태] 칸 · 스탯 보정 표시 */
+.status-conditions{margin:10px 0 4px;padding:8px 10px;border:1px solid #cfd8cd2e;border-radius:8px;background:#07111b8c}
+.status-cond-head{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.08em;color:#e6cf9c;margin-bottom:5px}
+.status-cond-head small{color:#efe6ce80;font-size:10px}
+.status-cond-list{display:flex;flex-wrap:wrap;gap:4px}
+.status-cond-none{font-size:11px;color:#efe6ce73}
+.status-cond{display:inline-flex;align-items:baseline;gap:4px;padding:2px 7px;border-radius:999px;border:1px solid #68a9b980;background:#68a9b91f;font-size:11px;color:#dbeef2;cursor:help}
+.status-cond b{font-weight:700}
+.status-cond small{font-size:10px;opacity:.7}
+.status-cond.is-heavy{border-color:#d56b6999;background:#d56b6922;color:#f6d6d5}
+.status-cond.is-weak{border-color:#d5b579aa;background:#d5b57922;color:#f3e3bd}
+.status-stat-bonus{margin-left:3px;font-style:normal;font-size:.78em;color:#e6cf9c;font-weight:600}
+.status-stat-bonus.is-down{color:#e48f8d}
+.quest-tally-row p.is-mine{color:#8fbaff;font-weight:700}
+.scene-chosen{color:#8fbaff}
+.npc-tracker{margin:8px 0 0;padding:7px 9px;border:1px dashed #d4b07855;font-size:11px;line-height:1.5;color:#cfd8cd}
+.npc-tracker-head{margin:0 0 3px;color:#d4b078;letter-spacing:.06em}
+.npc-tracker-row{margin:0}.npc-tracker-row b{color:#e8d3a4;margin-right:2px}.npc-tracker-row small{color:#a0b2b3}
+.npc-tracker-row.is-done{color:#8fbaff}
+.npc-tracker[hidden]{display:none}

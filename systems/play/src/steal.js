@@ -1,3 +1,4 @@
+import { reconceptPractice, PRACTICE_RECONCEPT } from './practiceEnemies.js'
 // 비령 vB.03 — 적의 영능력 빼앗기.
 //
 // · 같은 적을 30번 쓰러뜨리면 그 적의 영능력을 빼앗아 내 영능력으로 쓴다(보상 횟수 제한과는 상관없이 이긴 횟수를 센다).
@@ -124,7 +125,7 @@ export function stealDetail(k) {
   if (k.ex) out.push(`상대 체력이 ${pct(k.ex)} 아래면 피해가 두 배.`)
   if (k.es) out.push(`한 싸움에서 쓸 때마다 다음 피해가 ${pct(k.es)}씩 커진다(최대 3배).`)
   if (k.ls) out.push(`준 피해의 ${pct(k.ls)}만큼 체력을 되찾는다.`)
-  if (k.g) out.push(`의지력 ${k.g}을(를) 되찾는다.`)
+  if (k.g) out.push(`의지력을 ${k.g} 되찾는다.`)
   if (k.h) out.push(`최대 체력의 ${pct(k.h)}만큼 체력을 회복한다.`)
   if (k.eq) out.push('내가 상대보다 더 다쳤으면, 나와 상대의 체력 비율을 둘의 평균 쪽으로 당긴다(내 체력은 최대치의 20%까지 차오르고, 상대는 최대치의 10%까지만 깎인다).')
   if (k.cl) out.push('내게 걸린 상태 이상을 모두 턴다.')
@@ -148,7 +149,10 @@ function slotsOf(enemy) {
 export const stealableOf = (enemy) => slotsOf(enemy)
 
 /** battle.js 의 PSYCHICS 뒤에 붙는 항목들. 적 목록(ALL_ENEMIES)과 개척 요괴 이름을 받아 만든다. */
+// vC.06 받침에 맞춰 을/를 (예: 짚허수아비를 · 단지 원귀를 · 대망이를)
+const eul = (w) => { const c = String(w).trim().slice(-1).charCodeAt(0) - 0xac00; return `${w}${c >= 0 && c <= 11171 && c % 28 ? '을' : '를'}` }
 export function stolenPsychics(enemies) {
+  reconceptPractice(enemies) // vC.06 실습장 상대의 새 이름으로 「…에게서 빼앗은 영능력」을 쓴다
   const out = []
   const seen = new Set()
   for (const e of enemies) {
@@ -157,8 +161,8 @@ export function stolenPsychics(enemies) {
       seen.add(s.id)
       const sp = s.key.endsWith('#2') ? e.special2 : e.special
       const k = T[s.key]
-      const from = s.id === `${STEAL_PREFIX}curse` ? '묵은 원귀 · 개척 요괴' : e.name
-      const need = e.boss ? `${e.name}(보스)을(를) 20번 쓰러뜨릴 때마다 두 영능력 중 하나씩(20번 · 40번)` : `${from}을(를) ${STEAL_NEED}번 쓰러뜨린다`
+      const from = s.id === `${STEAL_PREFIX}curse` ? `${PRACTICE_RECONCEPT.wonhon.name} · 개척 요괴` : e.name
+      const need = e.boss ? `${e.name}(보스)를 20번 쓰러뜨릴 때마다 두 영능력 중 하나씩(20번 · 40번)` : `${eul(from)} ${STEAL_NEED}번 쓰러뜨린다`
       out.push({
         id: s.id, label: STOLEN_NAMES[s.id] ?? sp?.label ?? '빼앗은 영능력', stolen: true, from, boss: !!e.boss, tier: e.tier ?? 1, src: s.id === `${STEAL_PREFIX}curse` ? [...CURSE_FROM] : [e.id],
         note: `${from}에게서 빼앗은 영능력. ${sp?.note ?? ''}`.trim(),
@@ -197,7 +201,7 @@ export function noteKill(player, enemy, rng = Math.random, psychicDefs = []) {
     }
   }
   const name = (id) => psychicDefs.find((p) => p.id === id)?.label ?? id
-  const logs = got.map((id) => `✦ ${enemy.name}을(를) ${n}번 쓰러뜨려 영능력 「${name(id)}」을(를) 빼앗았다!`)
+  const logs = got.map((id) => `✦ ${eul(enemy.name)} ${n}번 쓰러뜨려 영능력 「${name(id)}」을(를) 빼앗았다!`)
   if (!got.length && missing.length) {
     const goal = enemy.boss ? STEAL_NEED_BOSS * (slots.length - missing.length + 1) : STEAL_NEED
     if (goal - n > 0 && (goal - n) % 10 === 0) logs.push(`${enemy.name}의 영능력을 빼앗기까지 ${goal - n}번 남았다. (${n}/${goal})`)

@@ -8,6 +8,114 @@ import { readFileSync } from 'node:fs'
  *   @biryeong/… → systems/biryeong/…
  */
 export const SOURCE_PATCHES = [
+  // ── vC.06 개척 터: 레벨을 만렙 40 기준으로 · 이름 · 설명 · 순서(huntLevels.js) · 개척 기록 칸 고정 ──
+  {
+    file: 'game/huntSites.js',
+    edits: [
+      ["import { TRAIL_SPECIES, TRAILS } from './huntTrails.js'", "import { TRAIL_SPECIES, TRAILS } from './huntTrails.js'\nimport { remapHuntSites as __remapHunt } from '@story/huntLevels.js'"],
+      ["/* 구형 길 분할 목록은 v79부터 사용하지 않는다.", "__remapHunt(HUNT_SITES, HUNT_PATHS) // vC.06\n\n/* 구형 길 분할 목록은 v79부터 사용하지 않는다."],
+    ],
+  },
+  {
+    file: 'ui/components/locations/HuntField.jsx',
+    edits: [
+      ["{site.theme && <p className=\"mt-1 text-xs leading-relaxed text-paper/65\" data-site-note>{site.theme} — {site.note} <span className=\"text-paper/45\">(관련 스탯 평균 {site.targetStat} 안팎이면 수월하다.",
+       "{site.note && <p className=\"mt-1 text-xs leading-relaxed text-paper/65\" data-site-note>{site.note} <span className=\"text-paper/45\">(관련 스탯 평균 {site.targetStat} 안팎이면 수월하다."],
+      ["{current.log.map((text, i) => <li key={i}>{text}</li>)}</ol>", "{[...current.log].reverse().map((text, i) => <li key={current.log.length - i}>{text}</li>)}</ol>"],
+      ["          <p className=\"mt-4 text-xs text-gold\">획득: ", "          <p className=\"mt-4 h-9 overflow-y-auto text-xs leading-snug text-gold\" data-hunt-gained>획득: "],
+      ["<ol className=\"mt-2 max-h-36 space-y-1 overflow-auto text-xs text-paper/70\" aria-label=\"개척 기록\"", "<ol className=\"mt-2 flex h-40 flex-col-reverse gap-1 overflow-y-auto overscroll-contain rounded border border-edge/15 p-2 text-xs text-paper/70\" data-hunt-log aria-label=\"개척 기록\""],
+    ],
+  },
+  // ── vC.06 제작법 보기: [레벨 순서대로 보기] · [가나다순으로 보기] ──
+  {
+    file: 'ui/components/RecipeBook.jsx',
+    edits: [
+      ["  const rows = listed\n    .filter(({ r }) => !onlyCan || free || canMake(r))\n    .sort((a, b) => (itemOf(a.r.result)?.name ?? '').localeCompare(itemOf(b.r.result)?.name ?? '', 'ko'))",
+       "  const [order, setOrder] = useState(() => { try { return localStorage.getItem('recipeOrder') === 'lv' ? 'lv' : 'name' } catch { return 'name' } })\n  const pickOrder = (o) => { setOrder(o); try { localStorage.setItem('recipeOrder', o) } catch { /* 무시 */ } }\n  const byName = (a, b) => (itemOf(a.r.result)?.name ?? '').localeCompare(itemOf(b.r.result)?.name ?? '', 'ko', { numeric: true })\n  const rows = listed\n    .filter(({ r }) => !onlyCan || free || canMake(r))\n    .sort((a, b) => (order === 'lv' ? (a.lv ?? 1e9) - (b.lv ?? 1e9) : 0) || byName(a, b))"],
+      ["    <div data-recipe-book>\n", "    <div data-recipe-book>\n      <div className=\"mb-2 flex flex-wrap gap-1.5\" role=\"group\" aria-label=\"제작법 정렬\" data-recipe-order>\n        <button type=\"button\" aria-pressed={order === 'lv'} data-recipe-order-lv onClick={() => pickOrder('lv')} className={`flat-chip border px-3 py-1 text-xs ${order === 'lv' ? 'border-gold/60 text-gold' : 'border-edge/25 text-paper/70'}`}>레벨 순서대로 보기</button>\n        <button type=\"button\" aria-pressed={order === 'name'} data-recipe-order-name onClick={() => pickOrder('name')} className={`flat-chip border px-3 py-1 text-xs ${order === 'name' ? 'border-gold/60 text-gold' : 'border-edge/25 text-paper/70'}`}>가나다순으로 보기</button>\n      </div>\n"],
+    ],
+  },
+  // ── vC.06 조사 글: typeAuto(ms)가 있으면 누르지 않아도 그만큼 뒤에 이어지는 글이 저절로 타이핑된다(비품실 안내사항: 3초) ──
+  {
+    file: 'ui/components/Scene.jsx',
+    edits: [
+      ["  useAnyClick(!!typeText && typed < 0, () => setTyped(0))\n", "  useAnyClick(!!typeText && typed < 0 && !node.typeAuto, () => setTyped(0))\n  useEffect(() => {\n    if (!typeText || typed >= 0 || !node.typeAuto) return undefined\n    const t = setTimeout(() => setTyped(0), node.typeAuto)\n    return () => clearTimeout(t)\n  }, [typeText, typed, node.typeAuto]) // eslint-disable-line react-hooks/exhaustive-deps\n"],
+      ["{typed < 0 ? <span className=\"text-[11px] text-paper/40\">(화면을 누르면 이어서 읽힌다)</span>", "{typed < 0 ? (node.typeAuto ? null : <span className=\"text-[11px] text-paper/40\">(화면을 누르면 이어서 읽힌다)</span>)"],
+    ],
+  },
+  // ── vC.06 몸의 이상(ailments.js): 육조 스탯 보정 · 혼자 하는 전투의 라운드 피해 · 낫게 하는 물건 ──
+  {
+    file: 'game/statCalc.js',
+    edits: [
+      ["import { equipOf, gearBonus, specialEnhOf, trinketFx, weaponFx } from './items.js'", "import { equipOf, gearBonus, specialEnhOf, trinketFx, weaponFx } from './items.js'\nimport { ailmentStatBonus as __ailStat } from '@story/ailments.js'"],
+      ["  const bonus = { ...gearBonus(player) }\n", "  const bonus = { ...gearBonus(player) }\n  for (const [k, v] of Object.entries(__ailStat(player, now))) bonus[k] = (bonus[k] || 0) + v // vC.06 몸의 이상\n"],
+      ["(weak ? Math.max(1, Math.floor(v / 2)) : v) + (bonus[k] || 0)]))", "Math.max(1, (weak ? Math.max(1, Math.floor(v / 2)) : v) + (bonus[k] || 0))]))"],
+    ],
+  },
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["    if (s.ps.poison > 0 && s.php > 0) tickHurt(", "    for (const t of __ailRound()) { if (s.php <= 1) break; const d = Math.min(s.php - 1, t.dmg); s.php -= d; ev.push({ kind: 'warn', text: `${t.text} 체력 ${d}을(를) 잃었다.` }) } // vC.06 몸의 이상(쓰러지지는 않는다)\n    if (s.ps.poison > 0 && s.php > 0) tickHurt("],
+      ["export const ENEMIES = [", "import { ailmentRoundTicks as __ailRound } from '@story/ailments.js'\nexport const ENEMIES = ["],
+    ],
+  },
+  // ── vC.06 소지품: 테두리 색 안내 · 몸의 이상 표시 ──
+  {
+    file: 'ui/components/InventoryModal.jsx',
+    edits: [
+      ['<p className="mt-4 text-[11px] tracking-widest text-paper/55">가진 물건</p>', '<p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tracking-widest text-paper/55"><span>가진 물건</span><span className="text-[10px] tracking-normal" data-kind-legend><b style={{ color: \'#e3bf6a\' }}>▢ 장비</b> · <b style={{ color: \'#5fb3c2\' }}>▢ 완성품</b> · <b style={{ color: \'#8d9c6f\' }}>▢ 재료</b> <span className="text-paper/40">(테두리 색)</span></span></p>'],
+    ],
+  },
+  // ── vC.06 수업 미니게임 창: 위아래로 더 넉넉하게(화면 높이의 94%까지, 위 여백도 줄인다) ──
+  {
+    file: 'ui/components/GameModal.jsx',
+    edits: [
+      ['className="pointer-events-none fixed inset-0 z-[65] flex items-start justify-center p-2 pt-14 sm:p-4 sm:pt-16"', 'className="pointer-events-none fixed inset-0 z-[65] flex items-start justify-center p-2 pt-3 sm:p-4 sm:pt-6" data-game-modal-wrap'],
+      ['className={`pointer-events-auto ink-panel max-h-[75vh] w-full overflow-y-auto', 'className={`pointer-events-auto ink-panel max-h-[94dvh] min-h-[min(640px,88dvh)] w-full overflow-y-auto'],
+    ],
+  },
+  // ── vC.06 동아리 활동: 내 동아리 부실에 오면 [오늘의 할일] · [이번주에 할일]이 바로 보인다(ClubQuests.jsx) ──
+  {
+    file: 'ui/components/ClubRoomPanel.jsx',
+    edits: [
+      ["import { clubOf as clubMetaOf } from '../../game/clubs'", "import { clubOf as clubMetaOf } from '../../game/clubs'\nimport ClubQuests from '@story/ClubQuests.jsx'"],
+      ["        <button type=\"button\" onClick={() => setTab('activity')} className=\"flat-btn-ghost !py-1 text-xs\">\n          동아리 활동하기\n        </button>\n", ""],
+      ["      {tab === 'activity' && (\n        <div className=\"mt-4 rounded-lg bg-shade/25 p-3\">\n          <p className=\"text-sm text-paper/60\">(준비 중)</p>\n        </div>\n      )}\n", "      {sameClub ? <ClubQuests clubId={clubId} /> : <p className=\"mt-3 text-[11px] text-paper/45\">이 동아리에 가입하면 부실에서 [오늘의 할일] · [이번주에 할일]을 할 수 있다.</p>}\n"],
+    ],
+  },
+  // ── vC.06 인물의 부탁: 조사 장소마다 [이 장소에서 받을 수 있는 퀘스트](NpcQuests.jsx) — 본관 · 별관 · 비령산 (사당 제외) ──
+  {
+    file: 'ui/components/locations/Explore.jsx',
+    edits: [
+      ["import { GotoInfirmary, LockerSpot, StudentList } from '../ExploreWidgets'", "import { GotoInfirmary, LockerSpot, StudentList } from '../ExploreWidgets'\nimport NpcQuests from '@story/NpcQuests.jsx'"],
+      ["                onShow={(node, paras) => paras.length && onInvestigate?.(floor.name, node.name, paras.join(' ').replace(/\\*+|~~/g, ''))}\n              />\n", "                onShow={(node, paras) => paras.length && onInvestigate?.(floor.name, node.name, paras.join(' ').replace(/\\*+|~~/g, ''))}\n              />\n              <NpcQuests place={`mainHall:${floor.id}:${area.id}`} />\n"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Annex.jsx',
+    edits: [
+      ["import ClubRoomPanel from '../ClubRoomPanel'", "import ClubRoomPanel from '../ClubRoomPanel'\nimport NpcQuests from '@story/NpcQuests.jsx'"],
+      ["                <Scene key={`${room.id}:${visit}`} root={room} ctx={ctx} scope={`annex:${floor.id}:${room.id}`} onHome={home} />\n              </div>\n", "                <Scene key={`${room.id}:${visit}`} root={room} ctx={ctx} scope={`annex:${floor.id}:${room.id}`} onHome={home} />\n              </div>\n              <NpcQuests place={`annex:${floor.id}:${room.id}`} />\n"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Hike.jsx',
+    edits: [
+      ["import { HIKE_PATHS, hikeSpotKey, OUTSIDE_GUIDE_LINES } from '../../../game/hike'", "import { HIKE_PATHS, hikeSpotKey, OUTSIDE_GUIDE_LINES } from '../../../game/hike'\nimport NpcQuests from '@story/NpcQuests.jsx'"],
+      ["          <Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />\n", "          <Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />\n          <NpcQuests place={hikeSpotKey(pathId, spot.id, branchId)} />\n"],
+    ],
+  },
+  // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["guard: { label: '막기', note: '약공 절반 · 강공 1/3만 받고, 1d(호전)만큼 더 막는다.' },", "guard: { label: '막기', note: '약공 절반 · 강공 1/3만 받고, 1d(인내)만큼 더 막는다. (호전이 상대 공격력보다 높거나 최대로 막으면 1d호전×2 반격)' },"],
+      ["      const extraD = die(stats.aggression, rng)\n      dmg = Math.max(0, reduced - extraD)\n      const strong = stats.aggression > enemy.atk\n      const crit = extraD === stats.aggression",
+       "      const blockD = die(Math.max(1, Math.floor(stats.endurance || 0)), rng) // vC.05 더 막는 양 = 1d(인내)\n      dmg = Math.max(0, reduced - blockD)\n      const strong = stats.aggression > enemy.atk\n      const crit = blockD === Math.max(1, Math.floor(stats.endurance || 0))\n      const extraD = die(stats.aggression, rng) // 반격의 세기는 호전"],
+    ],
+  },
+  // ── vC.02 육조 스탯 만렙 40(무구 · 칭호 · 음식 보정은 따로 얹힌다). 이미 40을 넘긴 기록은 들어올 때 40으로 맞춰진다(progress.js). ──
+  { file: 'game/constants.js', edits: [["export const STAT_MAX = 50 //", "export const STAT_MAX = 40 //"]] },
   // ── vB.04 하루 영력 전투 3번(모든 전투 통틀어) · 냥은 제한 없음 ──
   {
     file: 'game/progress.js',
@@ -167,8 +275,8 @@ export const SOURCE_PATCHES = [
   {
     file: 'game/items.js',
     edits: [
-      ["import { V79_SHEET_DATA } from './v79SheetData.js'", "import { V79_SHEET_DATA } from './v79SheetData.js'\nimport { STORY_ITEMS as __STORY_ITEMS, NEW_ITEMS as __NEW_ITEMS } from '@biryeong/reskin.data.js'"],
-      ['export const ITEMS = RAW_ITEMS.map((original) => {', 'export const ITEMS = [...RAW_ITEMS, ...__STORY_ITEMS, ...__NEW_ITEMS].map((original) => {'],
+      ["import { V79_SHEET_DATA } from './v79SheetData.js'", "import { V79_SHEET_DATA } from './v79SheetData.js'\nimport { STORY_ITEMS as __STORY_ITEMS, NEW_ITEMS as __NEW_ITEMS } from '@biryeong/reskin.data.js'\nimport { AIL_ITEMS as __AIL_ITEMS } from '@story/ailments.js'"],
+      ['export const ITEMS = RAW_ITEMS.map((original) => {', 'export const ITEMS = [...RAW_ITEMS, ...__STORY_ITEMS, ...__NEW_ITEMS, ...__AIL_ITEMS].map((original) => {'],
     ],
   },
   // ── v1.3 본편 제작법은 처음엔 잠겨 있다: 연 것(globalThis.__BRY_OPEN — usePlayHost 가 채운다)만 제작 칸 · 제작법 목록에 든다 ──

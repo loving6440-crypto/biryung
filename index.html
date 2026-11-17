@@ -26,6 +26,7 @@
   <script src="opening.js" defer></script>
   <script src="server.js" defer></script>
   <script src="community.js" defer></script>
+  <script src="party.js" defer></script>
   <link rel="stylesheet" href="community.css">
 </head>
 <body>
@@ -41,7 +42,7 @@
       </div>
       <div class="header-mid"><span class="tiny-flame">✦</span> 入山者 案內所 <span class="tiny-flame">✦</span></div>
       <nav class="top-buttons" aria-label="게임 메뉴">
-        <button class="chip-button" id="storyBtn" type="button">사건 기록 <span>↗</span></button>
+        <button class="chip-button" id="onlineBtn" type="button">접속자 확인하기 <span>◉</span></button>
         <button class="chip-button chip-gold" id="journalBtn" type="button" title="내 프로필 열기">나의 기록 <span id="journalCount">人</span></button>
         <button class="chip-button" id="accountBtn" type="button" title="로그아웃">로그아웃 <span id="accountName"></span></button>
         <div class="font-control" id="fontControl">
@@ -174,6 +175,7 @@
         <nav class="community-shortcuts" aria-label="비령의 소통 공간">
           <button type="button" data-community="memos"><span class="shortcut-mark">☀</span><span>낮새들의 터</span><small>낮의 타임라인</small></button>
           <button type="button" data-community="dm"><span class="shortcut-mark">☾</span><span>밤쥐들의 터</span><small>비밀 대화</small></button>
+          <button type="button" data-party-open><span class="shortcut-mark">鬼</span><span>도깨비들의 터</span><small>일행 대화</small></button>
         </nav>
       </section>
 
@@ -185,6 +187,7 @@
           <div class="page-head-text"><span class="panel-eyebrow" id="panelEyebrow"></span><h2 id="panelTitle"></h2></div>
           <a class="page-home" href="#/">사방 지도</a>
           <button type="button" class="page-home page-map" id="innerMapBtn" data-open-map>내부 지도</button>
+          <button type="button" class="page-home page-party" id="partyHeadBtn" data-party-open hidden>도깨비들의 터</button>
         </header>
         <nav class="panel-tabs" id="panelTabs" hidden></nav>
         <nav class="panel-chips" id="panelChips" hidden></nav>
@@ -198,10 +201,12 @@
           <span class="status-avatar" id="statusAvatar" aria-hidden="true"></span>
           <span class="status-who-text"><small id="statusTitle">칭호 없음</small><strong id="statusName">이름 없는 입산자</strong><em id="statusSub">프로필을 만들어 주세요</em></span>
         </button>
+        <div class="status-conditions" id="statusConditions" aria-label="현재 상태" aria-live="polite"></div>
         <div class="status-bars" id="statusBars"></div>
         <div class="action-heading"><span>육조 스탯</span><span>SIX ROOTS</span></div>
         <div class="status-stats" id="statusStats"></div>
         <div class="quest-tracker" id="questTracker" aria-label="본편 퀘스트 진행" aria-live="polite"></div>
+        <div class="npc-tracker" id="npcTracker" aria-label="받은 부탁" hidden></div>
         <div class="status-spacer"></div>
         <div class="status-menu" role="group" aria-label="내 메뉴">
           <button type="button" data-menu="inventory" data-tutorial-real-items-btn><i>囊</i><span>소지품</span></button>
@@ -237,6 +242,13 @@
       <div class="community-account" id="communityAccount" aria-live="polite"></div>
       <p class="community-feedback" id="communityFeedback" role="status" aria-live="polite" hidden></p>
       <div class="community-content" id="communityContent"></div>
+    </div>
+  </dialog>
+  <dialog class="community-dialog codex-dialog" id="codexDialog" aria-labelledby="codexTitle">
+    <div class="community-window">
+      <header class="community-window-head"><div><span class="community-overline">圖鑑 / CODEX</span><h2 id="codexTitle">업적 / 도감</h2></div><button type="button" class="community-close" id="codexClose" aria-label="업적 / 도감 닫기">✕</button></header>
+      <nav class="community-tabs codex-tabs" id="codexTabs" aria-label="업적 / 도감 칸"></nav>
+      <div class="community-content codex-body" id="codexBody"></div>
     </div>
   </dialog>
   <dialog class="community-profile-dialog" id="communityProfileDialog" aria-labelledby="profileTitle">

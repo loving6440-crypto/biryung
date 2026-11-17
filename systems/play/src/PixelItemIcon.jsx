@@ -17,14 +17,18 @@ function rects(t, p) {
   return out
 }
 
+// vC.06 테두리 색으로 종류를 가른다: 장비(무구 · 장신구 · 옷) 금빛 / 완성품(먹을 것 · 부적 · 쓰는 물건) 옥빛 / 재료 쑥빛
+export const KIND_STROKE = { gear: '#e3bf6a', done: '#5fb3c2', material: '#8d9c6f' }
+export const KIND_LABEL = { gear: '장비', done: '완성품', material: '재료' }
+export const kindGroup = (it) => (it?.kind === 'gear' || it?.slot ? 'gear' : it?.kind === 'material' ? 'material' : 'done')
 export default function ItemIcon({ item, id, size = 40, locked = false, className = '' }) {
   const it = item ?? itemOf(id)
   const key = it?.baseId ?? it?.id ?? id ?? '?'
   const pixel = it?.pixel ?? ITEM_PIXELS[key] ?? { t: 'box', p: 'steel' }
   return (
-    <svg viewBox="0 0 16 16" width={size} height={size} className={className} shapeRendering="crispEdges" style={{ flexShrink: 0, imageRendering: 'pixelated' }} aria-hidden data-pixel-icon={locked ? 'locked' : pixel.t}>
+    <svg viewBox="0 0 16 16" width={size} height={size} className={className} shapeRendering="crispEdges" style={{ flexShrink: 0, imageRendering: 'pixelated' }} aria-hidden data-item-kind={locked ? undefined : kindGroup(it)} data-pixel-icon={locked ? 'locked' : pixel.t}>
       <rect x="0" y="0" width="16" height="16" fill="#0c1826" />
-      <rect x="0.5" y="0.5" width="15" height="15" fill="none" stroke={locked ? '#3d5162' : '#6d5d43'} strokeWidth="1" />
+      <rect x="0.5" y="0.5" width="15" height="15" fill="none" stroke={locked ? '#3d5162' : KIND_STROKE[kindGroup(it)]} strokeWidth="1" />
       {locked ? <text x="8" y="11.5" textAnchor="middle" fontSize="8" fill="#6f8088">?</text> : rects(pixel.t, pixel.p)}
     </svg>
   )

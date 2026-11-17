@@ -182,6 +182,9 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   const [msg, setMsg] = useState('')
   const [parties, setParties] = useState([])
   const [party, setParty] = useState(null) // { id, host, members, status }
+  // vC.06 둘 이상 모이면 이 파티에도 일행 대화(도깨비들의 터)를 붙인다 — party.js 가 받는다
+  const partyRoomKey = party?.id && (party.members?.length || 0) >= 2 ? `${party.id}:${party.members.length}` : ''
+  useEffect(() => { if (partyRoomKey) window.dispatchEvent(new CustomEvent('biryeong:party-room', { detail: { party: Number(partyRoomKey.split(':')[0]) } })) }, [partyRoomKey])
   const [itemsOpen, setItemsOpen] = useState(false)
   const mbRef = useRef(null), partyRef = useRef(null), doneRef = useRef(0), turnAt = useRef({ id: null, at: 0 }), finished = useRef(false), lastSeq = useRef({ seq: -1, at: Date.now() })
   const meMember = memberOf({ id: me.id, name: me.name, stats, player })

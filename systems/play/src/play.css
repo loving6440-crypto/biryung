@@ -20,3 +20,9 @@
 .font-serif, .font-myeongjo { font-family: var(--ui-font-family); }
 h1, h2, h3, h4 { letter-spacing: 0; }
 &#playPortal { position: static; }
+
+/* vC.06 아이템 이름은 줄이지 않고 줄을 바꿔 다 보인다(가장 긴 이름: 무언가멋진천이꽂힌알코올램프) */
+:is([data-item],[data-slot],[data-bench-item],[data-hunt-item],[data-bag-item],[data-sell-item],[data-store-item],[data-gift-item],[data-locker-item]) .truncate,
+button:has(> svg[data-item-kind]) > .truncate, div:has(> svg[data-item-kind]) > .truncate, li:has(> svg[data-item-kind]) .truncate {
+  white-space: normal; overflow: visible; text-overflow: clip; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.22;
+}

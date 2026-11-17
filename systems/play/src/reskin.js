@@ -7,9 +7,10 @@ import { HUNT_SPECIES } from '@vault/game/huntSites.js'
 import { LOCATIONS } from '@vault/game/constants.js'
 import { REC_STATS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { rescaleEnemy, TIER_REC } from './tierScale.js'
+import { reconceptPractice } from './practiceEnemies.js'
 // vC.01 추가전투 6~10단계를 주 단위 공개 기준으로 다시 맞춘다(tierScale.js). 본편 보스 · 산길 요괴도 이 수치를 바탕으로 쓴다.
 for (const e of BESTIARY_ENEMIES) rescaleEnemy(e)
-Object.assign(REC_STATS, { 1: '3~4', 2: '6~8', 3: '10', 4: '15', 5: '18~20' }, TIER_REC)
+Object.assign(REC_STATS, TIER_REC)
 import { LOCATION_INTRO } from '@vault/game/locationText.js'
 // vB.04 오방색 맞추기: 비령의 배치는 산문 北 · 黑 / 강학당(본관 · 별관) 東 · 靑 / 생활관(기숙사) 西 · 白 / 비령산 南 · 赤 / 사당 中 · 黃.
 // 보관고는 기숙사를 북(흑), 별관을 서(백)로 적어 두었으므로 여기서 방위 · 색 · 소개 글을 고친다.
@@ -33,6 +34,7 @@ for (const e of ALL_ENEMIES) {
   if (r.special && e.special) e.special.label = r.special
   if (r.special2 && e.special2) e.special2.label = r.special2
 }
+reconceptPractice(ALL_ENEMIES) // vC.06 퇴마 실습장 상대 = 실습용 존재(practiceEnemies.js)
 for (const p of PSYCHICS) { const r = PSYCHIC_RESKIN[p.id]; if (r) p.note = r.note } // 이름(label)은 빌드할 때 글자째로 바꾼다
 
 // ── vB.01 조사(탐사) 글 — 시트 「비령_조사」 탭에 맞춘 글로 바꾼다(josa-overrides.json, systems/biryeong/josa_match.mjs 가 만든다).
@@ -52,6 +54,7 @@ import JOSA from '../../biryeong/josa-overrides.json'
     if (!at) continue
     if (e.remove) { at.list.splice(at.i, 1); continue }
     if (e.name) node.name = e.name
+    if (e.set) Object.assign(node, e.set) // vC.06: 글 말고 다른 칸(예: 비품실 안내사항의 typeAfter · typeAuto)
     if (e.texts) { const old = Array.isArray(node[e.field]) ? node[e.field] : node[e.field] != null ? [node[e.field]] : []; node[e.field] = [...e.texts, ...old.filter((x) => typeof x !== 'string')] }
   }
 }
@@ -62,11 +65,14 @@ import { RECIPES } from '@vault/game/crafting.js'
 import { COOK_RECIPES } from '@vault/game/cooking.js'
 import { HIKE_PATHS } from '@vault/game/hike.js'
 import { NEW_RECIPES, RECIPE_TIERS } from '../../biryeong/reskin.data.js'
+import { AIL_RECIPES } from './ailments.js'
 const TIER_NOTE = { 1: '1단계 · 바탕', 2: '2단계 · 바탕으로 만든다', 3: '3단계 · 상급 공정' }
 for (const r of [...RECIPES, ...COOK_RECIPES]) if (r.tier == null) r.tier = RECIPE_TIERS[r.id] ?? 2
 const withNote = (r) => ({ ...r, note: `${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
 RECIPES.push(...NEW_RECIPES.W.map(withNote))
 COOK_RECIPES.push(...NEW_RECIPES.K.map(withNote))
+// vC.06 몸의 이상을 낫게 하는 물건 28가지(ailments.js) — 1단계: 완치 · 시간 줄이기 / 2단계: 완치 + 회복
+for (const r of AIL_RECIPES) { const { place, ...rest } = r; (place === 'K' ? COOK_RECIPES : RECIPES).push({ ...withNote(rest), note: `${withNote(rest).note} · 몸의 이상` }) }
 
 // ── v1.3 본편 제작법 16개 — 처음엔 잠겨 있다(unlock). 퀘스트가 가르쳐 주거나 그 상대를 이기면 열린다(usePlayHost · patches.mjs). ──
 import { STORY_RECIPES } from '../../biryeong/reskin.data.js'

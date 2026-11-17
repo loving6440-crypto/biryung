@@ -300,7 +300,7 @@ create or replace function biryeong_private.can_write(a biryeong_private.account
   language plpgsql security definer set search_path = biryeong_private as $$
 begin
   if a.muted_until is not null and a.muted_until > now() then raise exception 'muted'; end if;
-  perform throttle_do('w:' || p_kind || ':' || a.id, case when p_kind = 'dm' then 30 else 8 end, 60);
+  perform throttle_do('w:' || p_kind || ':' || a.id, case when p_kind in ('dm', 'room') then 30 else 8 end, 60);
 end $$;
 
 create or replace function biryeong_private.log(a biryeong_private.accounts, p_action text, p_target text, p_detail text) returns void
@@ -1054,9 +1054,224 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- ── vC.06 접속자 · 초대 · 선물 · 도깨비들의 터(일행 대화) ──
+-- 접속자: 최근 3분 안에 서버에 닿은 계정(who() 가 1분마다 last_seen 을 고친다. 화면은 25초마다 bry_presence 를 부른다).
+-- 일행(room): 초대를 받아들이면 생기고(또는 초대한 사람의 일행에 들어가고), 본편 파티 전투가 모이면 그 파티에도 하나 붙는다.
+--   일행이 끝나면(한 사람만 남거나 · 파티 전투가 끝나면) 대화는 그대로 남고, 누구나 날짜별로 읽을 수 있다.
+alter table biryeong_private.grants add column if not exists gift_from text not null default '';
+create table if not exists biryeong_private.rooms (
+  id         bigint generated always as identity primary key,
+  kind       text        not null default 'invite' check (kind in ('invite', 'battle')),
+  party_id   bigint      unique,
+  members    jsonb       not null default '[]',   -- [{ u, name }] 지금 남아 있는 사람
+  everyone   jsonb       not null default '[]',   -- [{ u, name }] 한 번이라도 들어온 사람(끝난 뒤 목록에 보인다)
+  status     text        not null default 'open' check (status in ('open', 'ended')),
+  created_at timestamptz not null default now(),
+  ended_at   timestamptz
+);
+create index if not exists rooms_status on biryeong_private.rooms (status, ended_at);
+create table if not exists biryeong_private.room_msgs (
+  id       bigint generated always as identity primary key,
+  room_id  bigint      not null references biryeong_private.rooms on delete cascade,
+  sender   text        not null default '',       -- 아이디(빈 칸 = 안내)
+  name     text        not null default '',
+  body     text        not null,
+  at       timestamptz not null default now()
+);
+create index if not exists room_msgs_room on biryeong_private.room_msgs (room_id, id);
+create table if not exists biryeong_private.invites (
+  id         bigint generated always as identity primary key,
+  from_id    bigint      not null references biryeong_private.accounts on delete cascade,
+  to_id      bigint      not null references biryeong_private.accounts on delete cascade,
+  status     text        not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'expired')),
+  created_at timestamptz not null default now()
+);
+create index if not exists invites_to on biryeong_private.invites (to_id, status);
+revoke all on biryeong_private.rooms, biryeong_private.room_msgs, biryeong_private.invites from anon, authenticated;
+
+create or replace function biryeong_private.room_open_notice(p_room bigint, p_battle boolean) returns void
+  language sql security definer set search_path = biryeong_private as $$
+  insert into room_msgs (room_id, body) values
+    (p_room, '[일행이 생성되었습니다. 자유롭게 대화를 나눌 수 있습니다.]'),
+    (p_room, '[파티 채팅은 캐릭터 이입이며(단, 전투 목적의 파티인 경우 전투와 관련된 메타 발언을 다소 허용합니다. ex : 왠지 내 체력이 100으로 치면 한 20정도 남은 기분이야!!) 파티 종료 후 채팅 내역을 모두가 확인할 수 있게 됩니다. 종단 간 암호화 대화는 아닙니다.]') $$;
+create or replace function biryeong_private.room_json(r biryeong_private.rooms) returns jsonb language sql stable as $$
+  select jsonb_build_object('id', r.id, 'kind', r.kind, 'status', r.status, 'members', r.members, 'everyone', r.everyone, 'created_at', r.created_at, 'ended_at', r.ended_at) $$;
+create or replace function biryeong_private.room_end(p_room bigint) returns void
+  language sql security definer set search_path = biryeong_private as $$
+  with u as (update rooms set status = 'ended', ended_at = now() where id = p_room and status = 'open' returning id)
+  insert into room_msgs (room_id, body) select id, '[일행이 끝났습니다. 이제 이 대화는 모두가 「다른 일행들의 대화 보기」에서 읽을 수 있습니다.]' from u $$;
+create or replace function biryeong_private.my_room(a biryeong_private.accounts) returns biryeong_private.rooms
+  language plpgsql security definer set search_path = biryeong_private as $$
+declare r biryeong_private.rooms;
+begin
+  -- 파티 전투가 끝났거나 사라진 일행은 여기서 닫는다
+  for r in select * from rooms where status = 'open' and kind = 'battle' and exists (select 1 from jsonb_array_elements(members) x where x->>'u' = a.username) loop
+    if not exists (select 1 from parties p where p.id = r.party_id and p.status in ('open', 'battle') and p.updated_at > now() - interval '15 minutes') then perform room_end(r.id); end if;
+  end loop;
+  select * into r from rooms where status = 'open' and exists (select 1 from jsonb_array_elements(members) x where x->>'u' = a.username) order by id desc limit 1;
+  return r;
+end $$;
+
+-- 접속 표시 + 받은 초대 + 내 일행(안 읽은 말 수는 화면이 마지막으로 본 번호로 센다)
+create or replace function public.bry_presence(p_token text, p_seen bigint default 0) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); r biryeong_private.rooms;
+begin
+  update invites set status = 'expired' where status = 'pending' and created_at < now() - interval '10 minutes';
+  r := my_room(a);
+  return jsonb_build_object(
+    'invites', (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'from', card(f), 'at', i.created_at) order by i.id), '[]'::jsonb)
+      from invites i join accounts f on f.id = i.from_id where i.to_id = a.id and i.status = 'pending'),
+    'room', case when r.id is null then null else room_json(r) || jsonb_build_object('last', (select coalesce(max(id), 0) from room_msgs where room_id = r.id),
+      'unread', (select count(*) from room_msgs m where m.room_id = r.id and m.id > coalesce(p_seen, 0) and m.sender <> a.username)) end);
+end $$;
+
+create or replace function public.bry_online(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  perform throttle_do('online:' || a.id, 30, 60);
+  return jsonb_build_object('users', (select coalesce(jsonb_agg(card(x) || jsonb_build_object('me', x.id = a.id, 'seen', x.last_seen,
+      'in_room', exists (select 1 from rooms r where r.status = 'open' and exists (select 1 from jsonb_array_elements(r.members) m where m->>'u' = x.username))) order by (x.id = a.id) desc, x.last_seen desc), '[]'::jsonb)
+    from accounts x where x.last_seen > now() - interval '3 minutes' and (x.banned_until is null or x.banned_until < now())));
+end $$;
+
+create or replace function public.bry_invite(p_token text, p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t biryeong_private.accounts; r biryeong_private.rooms;
+begin
+  select * into t from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found or t.id = a.id then raise exception 'not_found'; end if;
+  perform throttle_do('invite:' || a.id, 12, 600);
+  r := my_room(a);
+  if r.id is not null and jsonb_array_length(r.members) >= 6 then raise exception 'party_full'; end if;
+  if r.id is not null and exists (select 1 from jsonb_array_elements(r.members) x where x->>'u' = t.username) then raise exception 'already_member'; end if;
+  update invites set status = 'expired' where from_id = a.id and to_id = t.id and status = 'pending';
+  insert into invites (from_id, to_id) values (a.id, t.id);
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.bry_invite_answer(p_token text, p_id bigint, p_accept boolean) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); i biryeong_private.invites; f biryeong_private.accounts; r biryeong_private.rooms; me jsonb;
+begin
+  select * into i from invites where id = p_id and to_id = a.id for update;
+  if not found or i.status <> 'pending' or i.created_at < now() - interval '10 minutes' then raise exception 'not_found'; end if;
+  if not p_accept then update invites set status = 'declined' where id = i.id; return jsonb_build_object('ok', true); end if;
+  update invites set status = 'accepted' where id = i.id;
+  select * into f from accounts where id = i.from_id;
+  me := jsonb_build_object('u', a.username, 'name', a.display_name);
+  r := my_room(f);
+  if r.id is null then
+    insert into rooms (kind, members, everyone) values ('invite', jsonb_build_array(jsonb_build_object('u', f.username, 'name', f.display_name)), jsonb_build_array(jsonb_build_object('u', f.username, 'name', f.display_name))) returning * into r;
+    perform room_open_notice(r.id, false);
+  end if;
+  if jsonb_array_length(r.members) >= 6 then raise exception 'party_full'; end if;
+  -- 다른 일행에 있었다면 그 일행에서는 나온다
+  perform public.bry_room_leave(p_token, x.id) from rooms x where x.status = 'open' and x.id <> r.id and x.kind = 'invite' and exists (select 1 from jsonb_array_elements(x.members) m where m->>'u' = a.username);
+  if not exists (select 1 from jsonb_array_elements(r.members) x where x->>'u' = a.username) then
+    update rooms set members = members || jsonb_build_array(me),
+      everyone = case when exists (select 1 from jsonb_array_elements(everyone) x where x->>'u' = a.username) then everyone else everyone || jsonb_build_array(me) end where id = r.id;
+    insert into room_msgs (room_id, body) values (r.id, format('[%s 님이 일행에 들어왔습니다.]', a.display_name));
+  end if;
+  return jsonb_build_object('ok', true, 'room', r.id);
+end $$;
+
+-- 본편 파티 전투: 일행이 둘 이상 모이면 그 파티에 일행 대화를 붙인다(전투 목적의 일행)
+create or replace function public.bry_room_battle(p_token text, p_party bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); p biryeong_private.parties; r biryeong_private.rooms; mem jsonb;
+begin
+  select * into p from parties where id = p_party;
+  if not found or p.status not in ('open', 'battle') or not exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username) then raise exception 'not_found'; end if;
+  mem := (select coalesce(jsonb_agg(jsonb_build_object('u', x->>'u', 'name', x->>'name')), '[]'::jsonb) from jsonb_array_elements(p.members) x);
+  if jsonb_array_length(mem) < 2 then return jsonb_build_object('room', null); end if;
+  select * into r from rooms where party_id = p.id;
+  if not found then
+    insert into rooms (kind, party_id, members, everyone) values ('battle', p.id, mem, mem) returning * into r;
+    perform room_open_notice(r.id, true);
+  elsif r.status = 'open' then
+    update rooms set members = mem, everyone = (select jsonb_agg(distinct e) from (select jsonb_array_elements(r.everyone || mem) e) z) where id = r.id;
+  end if;
+  return jsonb_build_object('room', r.id);
+end $$;
+
+create or replace function public.bry_room_msgs(p_token text, p_room bigint, p_after bigint default 0) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); r biryeong_private.rooms;
+begin
+  select * into r from rooms where id = p_room;
+  if not found then raise exception 'not_found'; end if;
+  if r.status = 'open' and not exists (select 1 from jsonb_array_elements(r.members) x where x->>'u' = a.username) then raise exception 'forbidden'; end if;
+  return jsonb_build_object('room', room_json(r), 'msgs', (select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'u', m.sender, 'name', m.name, 'body', m.body, 'at', m.at) order by m.id), '[]'::jsonb)
+    from (select * from room_msgs where room_id = r.id and id > coalesce(p_after, 0) order by id limit 300) m));
+end $$;
+
+create or replace function public.bry_room_send(p_token text, p_room bigint, p_body text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); n bigint;
+begin
+  if length(btrim(coalesce(p_body, ''))) not between 1 and 500 then raise exception 'invalid_post'; end if;
+  if not exists (select 1 from rooms r where r.id = p_room and r.status = 'open' and exists (select 1 from jsonb_array_elements(r.members) x where x->>'u' = a.username)) then raise exception 'not_found'; end if;
+  perform can_write(a, 'room');
+  insert into room_msgs (room_id, sender, name, body) values (p_room, a.username, a.display_name, btrim(p_body)) returning id into n;
+  return jsonb_build_object('id', n);
+end $$;
+
+create or replace function public.bry_room_leave(p_token text, p_room bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); r biryeong_private.rooms;
+begin
+  select * into r from rooms where id = p_room for update;
+  if not found or r.status <> 'open' or not exists (select 1 from jsonb_array_elements(r.members) x where x->>'u' = a.username) then return jsonb_build_object('ok', true); end if;
+  update rooms set members = (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(members) x where x->>'u' <> a.username) where id = r.id returning * into r;
+  insert into room_msgs (room_id, body) values (r.id, format('[%s 님이 일행에서 나갔습니다.]', a.display_name));
+  if jsonb_array_length(r.members) <= 1 then perform room_end(r.id); end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- 다른 일행들의 대화: 끝난 일행을 날짜(서울 시각)별로. p_date 가 비면 날짜 목록만.
+create or replace function public.bry_rooms_ended(p_token text, p_date text default null) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if p_date is null or p_date = '' then
+    return jsonb_build_object('dates', (select coalesce(jsonb_agg(d order by d desc), '[]'::jsonb) from (select distinct to_char(ended_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') d from rooms where status = 'ended' and ended_at > now() - interval '60 days') z));
+  end if;
+  if p_date !~ '^\d{4}-\d{2}-\d{2}$' then raise exception 'invalid_value'; end if;
+  return jsonb_build_object('rooms', (select coalesce(jsonb_agg(room_json(r) || jsonb_build_object('count', (select count(*) from room_msgs m where m.room_id = r.id and m.sender <> '')) order by r.ended_at desc), '[]'::jsonb)
+    from rooms r where r.status = 'ended' and to_char(r.ended_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') = p_date));
+end $$;
+
+-- 선물: 보내는 사람의 화면이 먼저 소지품에서 덜어 낸 뒤 부른다. 받는 사람은 우편함(bry_inbox)으로 받는다.
+create or replace function public.bry_gift(p_token text, p_username text, p_payload jsonb, p_note text default '') returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t biryeong_private.accounts; n bigint;
+begin
+  select * into t from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found or t.id = a.id then raise exception 'not_found'; end if;
+  if jsonb_typeof(p_payload) <> 'object' or octet_length(p_payload::text) > 2000 or coalesce((p_payload->>'money')::int, 0) not between 0 and 100000
+     or coalesce((p_payload->>'spirit')::int, 0) <> 0 or (select count(*) from jsonb_object_keys(coalesce(p_payload->'items', '{}'::jsonb))) > 10 then raise exception 'invalid_value'; end if;
+  perform throttle_do('gift:' || a.id, 20, 3600);
+  insert into grants (target, payload, note, by_admin, gift_from) values (t.id, p_payload, left(coalesce(p_note, ''), 200), '', a.display_name) returning id into n;
+  return jsonb_build_object('ok', true, 'id', n);
+end $$;
+
+-- 우편함은 선물이면 보낸 사람 이름도 준다
+create or replace function public.bry_inbox(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('role', a.role, 'chat_title', a.chat_title,
+    'grants', (select coalesce(jsonb_agg(jsonb_build_object('id', g.id, 'payload', g.payload, 'note', g.note, 'created_at', g.created_at, 'gift_from', g.gift_from) order by g.id), '[]'::jsonb)
+      from grants g where (g.target = a.id or g.target is null) and not exists (select 1 from grant_claims c where c.grant_id = g.id and c.account_id = a.id)),
+    'notice', (select jsonb_build_object('body', n.body, 'updated_at', n.updated_at) from notice n where n.id = 1 and n.body <> ''),
+    'unread', (select count(*) from dm_threads t where a.id in (t.user_low, t.user_high) and t.last_by is not null and t.last_by <> a.id and t.last_at > case when t.user_low = a.id then t.seen_low else t.seen_high end));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'C.01', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'C.06', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

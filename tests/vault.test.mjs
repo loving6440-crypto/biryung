@@ -327,7 +327,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
-  assert17.equal(C.items.length, 429); assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
+  assert17.equal(C.items.length, 457) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
   // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
   for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
@@ -535,8 +535,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(q.includes("'EXTRA_TIER'") && q.includes('extraTier:'))
   const T = await import('../systems/play/src/tierScale.js')
   const e = T.rescaleEnemy({ tier: 10, hp: 1000, atk: 100, act: 60, spirit: 60, reward: 120 })
-  assert.ok(e.hp < 1000 && e.reward === e.spirit * 2); assert.equal(T.rescaleEnemy(e).hp, e.hp) // 두 번 불러도 한 번만
-  assert.equal(T.rescaleEnemy({ tier: 3, hp: 100, atk: 10, act: 5, spirit: 10 }).hp, 100)
+  assert.ok(e.hp < 1000 && e.reward === 120); assert.equal(T.rescaleEnemy(e).hp, e.hp) // 두 번 불러도 한 번만 · 보상은 그대로
   // 5 · 6 얼굴
   assert.ok(q.includes("const MAIN_CAST = ['윤진서', '연호수', '△△', '비', '서창현']") && q.includes("'秘靈'") && q.includes("'pt-seal is-plain'"))
   assert.ok(!/\[\.\.\.shown\]\[0\]/.test(q), '엑스트라 얼굴에 글자를 넣지 않는다')
@@ -555,5 +554,77 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', 'C\.01'/)
+  assert.match(sql, /'version', 'C\.0[16]'/)
+})
+
+test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
+  const { applyPatches } = await import('../systems/play/patches.mjs')
+  assert.ok(applyPatches('game/constants.js', readFileSync(join(VAULT, 'modules/game/constants.js'), 'utf8')).includes('export const STAT_MAX = 40 //'))
+  const D = {}; new Function('window', readFileSync(join(ROOT, 'game-data.js'), 'utf8'))(D)
+  assert.equal(D.BIRYEONG_DATA.rules.statMax, 40)
+  const T = await import('../systems/play/src/tierScale.js')
+  assert.equal(T.STAT_CAP, 40); assert.match(T.TIER_REC[10], /^50/)
+  const { ALL_ENEMIES } = await import('../systems/vault/modules/game/battle.js')
+  const list = ALL_ENEMIES.filter((e) => e.tier).map((e) => T.rescaleEnemy({ ...e }))
+  for (let t = 1; t <= 10; t++) {
+    const here = list.filter((e) => e.tier === t), normal = here.filter((e) => !e.boss && e.partySize <= 1), boss = here.filter((e) => e.boss)
+    assert.ok(boss.length >= 1 && normal.length >= 1, `${t}단계`)
+    const top = Math.max(...normal.map((e) => e.hp))
+    for (const b of boss) assert.ok(b.hp > top, `${t}단계 보스 ${b.name}의 체력은 보통 적보다 많다`)
+    assert.equal(here[0].rec, T.TIER_REC[t])
+  }
+  // 단계가 오를수록 보통 적은 단단해진다
+  const avg = (t) => { const n = list.filter((e) => e.tier === t && !e.boss && e.partySize <= 1); return n.reduce((x, e) => x + e.hp, 0) / n.length }
+  for (let t = 2; t <= 10; t++) assert.ok(avg(t) > avg(t - 1), `${t}단계 > ${t - 1}단계`)
+})
+
+test('vC.04: app.js 는 없는 이름(App)을 부르지 않는다 — 업데이트 노트 화면이 비어 버리던 원인', () => {
+  const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
+  assert.ok(!/(^|[^.\w])App\.[a-zA-Z]+\(/.test(app), 'app.js 안에서는 Auth · window.BiryeongApp 를 쓴다')
+  assert.ok(/function renderNotes\(\)[\s\S]{0,400}Auth\.isAdmin\(\)/.test(app))
+})
+
+test('vC.05: 막기는 1d(인내)만큼 더 막는다 · 튜토리얼 체력/의지력 기억 · 업적 · 아이템 가나다순', async () => {
+  const { applyPatches } = await import('../systems/play/patches.mjs')
+  const b = applyPatches('game/battle.js', readFileSync(join(VAULT, 'modules/game/battle.js'), 'utf8'))
+  assert.ok(b.includes('const blockD = die(Math.max(1, Math.floor(stats.endurance || 0)), rng)') && b.includes('dmg = Math.max(0, reduced - blockD)'))
+  assert.ok(b.includes("1d(인내)만큼 더 막는다"))
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes('tutorialSnap: { hp: cur.hp, mp: cur.mp }, hp: cur.hpMax, mp: cur.mpMax') && host.includes('onTutorialActive,'))
+  const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
+  assert.ok(app.includes("ACHIEVEMENTS.filter((a) => a.group === group.id).sort(byName)") && app.includes('.sort(byName).forEach((i) =>'))
+})
+
+test('vC.06: 몸의 이상 · 동아리 활동 · 인물의 부탁 · 실습장 상대 · 접속자/도깨비들의 터 · 업적/도감 창', async () => {
+  const A = await import('../systems/play/src/ailments.js')
+  assert.equal(A.AILMENTS.length, 10)
+  const now = Date.now()
+  let p = { stats: { insight: 10, aggression: 10, endurance: 10, control: 10, agility: 10, comprehension: 10 }, inventory: {} }
+  p = A.addAilment(p, 'sadok', now); p = A.addAilment(p, 'sadok', now, 9)
+  assert.equal(p.ailments.sadok.stack, 5, '사독은 5겹까지')
+  p = A.addAilment(p, 'salgi', now)
+  assert.equal(A.ailmentStatBonus(p, now).insight, -2)
+  assert.equal(A.cureAilments(p, ['sadok']).player.ailments.sadok, undefined)
+  assert.ok(A.shortenAilments(p, ['salgi'], 5 * 60000, now).player.ailments.salgi.until <= now + 5 * 60000)
+  for (const a of A.AILMENTS) { const c = A.curesFor(a.id); assert.ok(c.cure.length && c.restore.length && c.shorten.length, `${a.name}: 완치 · 완치+회복 · 시간 줄이기`) }
+  // 무거운 이상 둘을 한 번에 낫게 하는 물건은 없다
+  for (const it of A.AIL_ITEMS) if ((it.effect.cureAil || []).length > 1) assert.ok(it.effect.cureAil.every((id) => !A.AIL[id].heavy), it.name)
+  const codex = readFileSync(join(ROOT, 'codex-data.js'), 'utf8')
+  assert.ok(codex.includes('먹구렁이에게서 빼앗은 영능력') && codex.includes('무쇠 장승') && !codex.includes('을(를) 30번'))
+  const patches = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
+  assert.ok(patches.includes('__ailRound()') && patches.includes('__ailStat(player, now)') && patches.includes('<NpcQuests place='))
+  // 인물의 부탁: 셋이 15건씩, 사당에는 없다
+  const NQ = readFileSync(join(ROOT, 'systems/play/src/npcQuests.js'), 'utf8')
+  for (const npc of ['yeon', 'seo', 'yoon']) assert.equal((NQ.match(new RegExp(`Q\\('[a-z]\\d\\d', '${npc}'`, 'g')) || []).length, 15, npc)
+  assert.ok(!/Q\('[a-z]\d\d', '[a-z]+', 'shrine/.test(NQ), '사당에는 부탁이 없다')
+  // 동아리 활동
+  const C = readFileSync(join(ROOT, 'systems/play/src/clubQuests.js'), 'utf8')
+  assert.ok(C.includes("id: 'win10'") && C.includes("e.tier === tier && !e.boss"))
+  // 화면
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  assert.ok(html.includes('id="onlineBtn"') && !html.includes('id="storyBtn"') && html.includes('data-party-open') && html.includes('id="codexDialog"') && html.includes('id="statusConditions"'))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('[일행이 생성되었습니다. 자유롭게 대화를 나눌 수 있습니다.]') && sql.includes('종단 간 암호화 대화는 아닙니다.]') && sql.includes('function public.bry_rooms_ended'))
+  const titles = readFileSync(join(ROOT, 'titles.js'), 'utf8')
+  assert.ok(!titles.includes('지신성') && titles.includes('도깨비들의 터'))
 })

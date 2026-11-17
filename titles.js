@@ -80,9 +80,9 @@ window.BIRYEONG_TITLES = [
 ];
 window.BIRYEONG_ACHIEVEMENTS = [
   { id: 'r-zones', group: 'roam', name: '사방 답사', desc: '오방을 모두 디뎠다.', hint: '다섯 구역에 모두 들어가고, 탐사에서 서로 다른 곳 5군데를 살핀다.', when: { all: [{ set: 'zones', n: 5 }, { pset: 'spots', n: 5 }] }, title: 't-r-zones' },
-  { id: 'r-archive', group: 'roam', name: '기록 열람', desc: '다섯 빛깔과 그날의 문서를 모두 보았다.', hint: '메인 배너 다섯 쪽을 모두 넘기고, 사건 기록을 읽는다.', when: { all: [{ set: 'banner', n: 5 }, { flag: 'caseRead' }] }, title: 't-r-archive' },
+  { id: 'r-archive', group: 'roam', name: '기록 열람', desc: '다섯 빛깔과 그날의 문서를 모두 보았다.', hint: '메인 배너 다섯 쪽을 모두 넘기고, [주요 이야기]에서 사건 기록을 읽는다.', when: { all: [{ set: 'banner', n: 5 }, { flag: 'caseRead' }] }, title: 't-r-archive' },
   { id: 'r-scenes', group: 'roam', name: '복도의 끝', desc: '갈 수 있는 곳은 일단 가 본다.', hint: '탐사에서 서로 다른 곳 15군데를 살핀다.', when: { pset: 'spots', n: 15 }, title: 't-r-scenes' },
-  { id: 'r-doors', group: 'roam', name: '세 개의 문', desc: '지신성과 두 터의 문을 모두 두드렸다.', hint: '지신성 · 낮새들의 터 · 밤쥐들의 터를 모두 열어 본다.', when: { set: 'community', n: 3 }, title: 't-r-doors' },
+  { id: 'r-doors', group: 'roam', name: '세 개의 문', desc: '도깨비들의 터와 두 터의 문을 모두 두드렸다.', hint: '도깨비들의 터 · 낮새들의 터 · 밤쥐들의 터를 모두 열어 본다.', when: { set: 'community', n: 3 }, title: 't-r-doors' },
   { id: 'r-pages', group: 'roam', name: '살림 파악', desc: '학당의 살림이 어디에 있는지 안다.', hint: '서로 다른 화면 25곳을 열어 본다.', when: { set: 'pages', n: 25 }, title: 't-r-pages' },
   { id: 'd-wins', group: 'day', name: '하루치 실습', desc: '하루에 다섯 번 물리쳤다.', hint: '전투에서 5번 이긴다.', when: { count: 'battleWins', n: 5 }, title: 't-d-wins' },
   { id: 'd-courses', group: 'day', name: '시간표', desc: '세 과목을 돌았다.', hint: '서로 다른 수업 3과목을 마친다.', when: { pset: 'courses', n: 3 }, title: 't-d-courses' },
