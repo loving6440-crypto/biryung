@@ -113,6 +113,25 @@ export const SOURCE_PATCHES = [
       ['text-[10px] text-gold">{MULTI_TAG}</span>', 'text-[10px] text-gold">{view.members.length > 1 ? MULTI_TAG : \'1인 전투\'}</span>'],
     ],
   },
+  // ── vC.07.3 일행 전투: 상대 카드마다 [일행과 함께 겨루기](RoomFight.jsx) — 추가전투 · 퇴마 실습 모두 ──
+  {
+    file: 'ui/components/locations/Battle.jsx',
+    edits: [
+      ["import { MULTI_TAG, isMulti } from '../../../game/mbattle'", "import { MULTI_TAG, isMulti } from '../../../game/mbattle'\nimport RoomFight from '@story/RoomFight.jsx'"],
+      [`                  <button type="button" disabled={!!slowFight} onClick={() => requestStart(e.id)} className="flat-btn flat-btn-fight mt-3 justify-center">
+                    <Swords size={15} aria-hidden />
+                    겨루기
+                  </button>
+                )}
+`, `                  <button type="button" disabled={!!slowFight} onClick={() => requestStart(e.id)} className="flat-btn flat-btn-fight mt-3 justify-center">
+                    <Swords size={15} aria-hidden />
+                    겨루기
+                  </button>
+                )}
+                {!isMulti(e) && <RoomFight enemy={e} disabled={!!slowFight} />}
+`],
+    ],
+  },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

@@ -51,11 +51,13 @@ const pct = (mb, p) => Math.max(1, Math.ceil(mb.enemy.hp * p))
 const cutCost = (m) => (['fan', 'staff'].includes(m?.fx) ? 4 : 8)
 
 /** 3인 상대 만들기 */
-function partyEnemy(enemy, size = 3) {
-  return size > 1 ? { ...enemy, hp: Math.round(enemy.hp * PARTY_HP), boss: false, partySize: 3 } : { ...enemy, boss: false, partySize: 1 }
+// vC.07.3 체력은 실제로 함께 싸우는 사람 수(NPC 포함)에 맞춘다: 1명 1배 · 2명 1.8배 · 3명 2.6배
+const hpMul = (n) => (n <= 1 ? 1 : n === 2 ? 1.8 : PARTY_HP)
+function partyEnemy(enemy, size = 3, n = 3) {
+  return size > 1 ? { ...enemy, hp: Math.round(enemy.hp * hpMul(n)), boss: false, partySize: Math.max(1, Math.min(3, n)) } : { ...enemy, boss: false, partySize: 1 }
 }
 function newMB(enemy, members, size = 3) {
-  const mb = createMB(partyEnemy(enemy, size), members)
+  const mb = createMB(partyEnemy(enemy, size, members.length), members)
   const p = enemy.story?.pattern
   mb.story = { p, key: enemy.story?.key, hits: 0, broken: false, calm: 0, asked: 0, roots: 3, baseAtk: mb.enemy.atk, has: enemy.story?.has || {} }
   openingInitiative(mb)
@@ -187,14 +189,14 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   const [parties, setParties] = useState([])
   const [party, setParty] = useState(null) // { id, host, members, status }
   // vC.06 둘 이상 모이면 이 파티에도 일행 대화(도깨비들의 터)를 붙인다 — party.js 가 받는다
-  const partyRoomKey = party?.id && (party.members?.length || 0) >= 2 ? `${party.id}:${party.members.length}` : ''
+  const partyRoomKey = fight.mode !== 'room' && party?.id && (party.members?.length || 0) >= 2 ? `${party.id}:${party.members.length}` : '' // 일행 전투는 이미 일행 대화가 있다
   useEffect(() => { if (partyRoomKey) window.dispatchEvent(new CustomEvent('biryeong:party-room', { detail: { party: Number(partyRoomKey.split(':')[0]) } })) }, [partyRoomKey])
   const [itemsOpen, setItemsOpen] = useState(false)
   const mbRef = useRef(null), partyRef = useRef(null), doneRef = useRef(0), turnAt = useRef({ id: null, at: 0 }), finished = useRef(false), lastSeq = useRef({ seq: -1, at: Date.now() })
-  const size = fight.size ?? 3, helper = fight.helper ?? null, npcUsed = !!fight.npcUsed
+  const size = fight.size ?? 3, helper = fight.helper ?? null, npcUsed = !!fight.npcUsed, roomFight = fight.mode === 'room' // vC.07.3 일행 전투(추가전투 · 실습)
   const meMember = { ...memberOf({ id: me.id, name: me.name, stats, player }), ...(helper ? { helper: true } : {}) }
   // 돕는 선배로 왔다면 곧바로 그 파티에 들어간다
-  useEffect(() => { if (helper?.partyId && mode === 'choose') joinParty(helper.partyId) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (helper?.partyId && mode === 'choose') joinParty(helper.partyId); else if (roomFight && mode === 'choose') { if (fight.join) joinParty(fight.join); else createParty() } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const isHost = mode === 'battle'
 
   // 로비 목록
@@ -321,7 +323,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     try {
       const r = await call('bry_party_join', { p_id: id, p_member: meMember }); partyRef.current = id; setParty({ ...r.party, is_host: false }); setMode('lobby') } catch (e) { setMsg(e.message); refreshList() }
   }
-  const leaveParty = async () => { const id = partyRef.current; partyRef.current = null; setParty(null); if (helper) onFinish({ win: false, fled: true, enemy, cancelled: true, helper: true }); else setMode('choose'); if (id) try { await call('bry_party_leave', { p_id: id }) } catch { /* 무시 */ } }
+  const leaveParty = async () => { const id = partyRef.current; partyRef.current = null; setParty(null); if (helper || roomFight) onFinish({ win: false, fled: true, enemy, cancelled: true, helper: !!helper }); else setMode('choose'); if (id) try { await call('bry_party_leave', { p_id: id }) } catch { /* 무시 */ } }
   const startParty = async () => {
     const id = partyRef.current
     let g; try { g = await call('bry_party_get', { p_id: id }) } catch (e) { setMsg(e.message); return }
@@ -338,6 +340,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     <div role="dialog" aria-modal="true" aria-label="본편 이야기 전투" className="ink-panel max-h-[92dvh] w-full max-w-4xl overflow-y-auto rounded-lg p-4 sm:p-6">{children}</div>
   </div>
 
+  if (mode === 'choose' && roomFight) return shell(<section aria-label="일행 전투 준비"><p className="text-[11px] tracking-widest text-paper/50">일행 전투</p><h2 className="mt-1 font-serif text-2xl text-gold">{enemy.name}</h2><p className="mt-2 text-sm text-paper/70">{msg || (fight.join ? '일행의 전투에 들어가는 중…' : '일행을 부르는 중… (도깨비들의 터 일행에게 알림이 간다)')}</p><button type="button" className="flat-chip mt-3" onClick={() => onFinish({ win: false, fled: true, enemy, cancelled: true })}>물러난다</button></section>)
   if (mode === 'choose' && helper) return shell(<section aria-label="돕는 선배로 참가"><p className="text-sm text-paper/70">{msg || '파티에 들어가는 중…'}</p><button type="button" className="flat-chip mt-3" onClick={() => onFinish({ win: false, fled: true, enemy, cancelled: true, helper: true })}>물러난다</button></section>)
   if (mode === 'choose' && size <= 1) return shell(<section aria-label="본편 전투 준비">
     <p className="text-[11px] tracking-widest text-paper/50">본편 이야기 전투 · 1인</p>
@@ -376,7 +379,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   </section>)
 
   if (mode === 'lobby') return shell(<section aria-label="파티 대기">
-    <h2 className="font-serif text-xl text-gold">{enemy.name} — 파티 {party?.is_host ? '모집 중' : '대기 중'}</h2>
+    <h2 className="font-serif text-xl text-gold">{enemy.name} — {roomFight ? '일행 전투' : '파티'} {party?.is_host ? '모집 중' : '대기 중'}</h2>{roomFight && <p className="mt-1 text-[11px] text-paper/55">도깨비들의 터 일행에게 알림이 갔다. 세 명까지 함께 싸운다. 체력은 모인 사람 수에 맞춰진다(2명 1.8배 · 3명 2.6배). 보상은 각자 평소대로(영력은 하루 3번).</p>}
     <ul className="mt-3 space-y-1.5 text-sm">{(party?.members || []).map((x) => <li key={x.u} className="rounded border border-edge/25 px-3 py-2">{x.name} <small className="text-paper/50">@{x.u}{x.u === party?.host ? ' · 방장' : ''}{x.helper ? ' · 돕는 선배(영력 · 최초 보상 없음, 냥 2배)' : ''}</small></li>)}
       {Array.from({ length: Math.max(0, 3 - (party?.members?.length || 0)) }).map((_, i) => <li key={`e${i}`} className="rounded border border-dashed border-edge/25 px-3 py-2 text-paper/45">{npcUsed ? '빈 자리' : `빈 자리 — 시작하면 ${NPCS[i]?.name ?? 'NPC'}가 채운다`}</li>)}
     </ul>

@@ -650,3 +650,13 @@ test('vC.07.2: Pages 배포가 맨 위의 화면 파일(party.js 포함)을 모�
   assert.ok(wf.includes('party.js?v=$V'))
   assert.ok(!/grep -o 'src="\[a-z\]\*\\\.js\?v=\[0-9a-f\]\*"'/.test(wf), '옛 grep(판 번호 C.07.1 에서 실패)은 없어야 한다')
 })
+
+test('vC.07.3: 일행 전투 — 도깨비들의 터 일행끼리 추가전투 · 실습 상대와 함께', () => {
+  const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
+  assert.ok(sp.includes("roomFight = fight.mode === 'room'") && sp.includes('const hpMul = (n)') && sp.includes("fight.mode !== 'room' && party?.id"))
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes('const roomFight = (enemyId, join = null)') && host.includes("if (fight.mode === 'room')"))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8').includes('<RoomFight enemy={e}'))
+  assert.ok(readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8').includes("p.stage = 'room:' || r.id"))
+  assert.ok(readFileSync(join(ROOT, 'party.js'), 'utf8').includes('function showFight(f)'))
+})

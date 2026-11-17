@@ -157,6 +157,16 @@
     card.append(h('p', '', `${inv.from?.display_name || inv.from?.username}님이 일행에 초대했다.`), btn('flat-btn', '함께한다', () => answer(true)), btn('ghost-btn', '거절한다', () => answer(false)));
     inviteBox.append(card);
   }
+  function showFight(f) {
+    const key = `fight:${f.id}`;
+    if (answered.has(key) || inviteBox.querySelector(`[data-invite="${key}"]`)) return;
+    const api = App.playApi();
+    const card = h('div', 'invite-card'); card.dataset.invite = key;
+    card.append(h('p', '', `${f.host_name || '일행'}님이 일행 전투를 연다 — [${api?.enemyName?.(f.foe) ?? f.foe}] (${f.members?.length || 1}/3)`),
+      btn('flat-btn', '함께 싸운다', () => { answered.add(key); card.remove(); const a = App.playApi(); if (!a?.roomFight) { toast('일행 전투', '실행 화면을 불러오는 중이다.'); return; } a.roomFight(f.foe, f.id); }),
+      btn('ghost-btn', '지금은 안 된다', () => { answered.add(key); card.remove(); }));
+    inviteBox.append(card);
+  }
   let polling = false;
   async function presence() {
     if (!live() || polling) return;
@@ -164,6 +174,7 @@
     try {
       const r = await call('bry_presence', { p_seen: lastSeen });
       (r.invites || []).forEach(showInvite);
+      if (r.fight) showFight(r.fight); // vC.07.3 같은 일행이 추가전투 · 실습 파티를 열었다
       const was = room?.id;
       room = r.room || null;
       paintButtons(room?.unread || 0);

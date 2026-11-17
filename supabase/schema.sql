@@ -1137,7 +1137,11 @@ begin
     'invites', (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'from', card(f), 'at', i.created_at) order by i.id), '[]'::jsonb)
       from invites i join accounts f on f.id = i.from_id where i.to_id = a.id and i.status = 'pending'),
     'room', case when r.id is null then null else room_json(r) || jsonb_build_object('last', (select coalesce(max(id), 0) from room_msgs where room_id = r.id),
-      'unread', (select count(*) from room_msgs m where m.room_id = r.id and m.id > coalesce(p_seen, 0) and m.sender <> a.username)) end);
+      'unread', (select count(*) from room_msgs m where m.room_id = r.id and m.id > coalesce(p_seen, 0) and m.sender <> a.username)) end,
+    -- vC.07.3 일행 전투: 같은 일행의 누군가가 추가전투 · 실습 파티를 열었다
+    'fight', case when r.id is null then null else (select party_json(p) || jsonb_build_object('host_name', (select x->>'name' from jsonb_array_elements(p.members) x limit 1))
+      from parties p where p.stage = 'room:' || r.id and p.status = 'open' and p.host <> a.id and p.updated_at > now() - interval '15 minutes' and jsonb_array_length(p.members) < 3
+        and not exists (select 1 from jsonb_array_elements(p.members) x where x->>'u' = a.username) order by p.id desc limit 1) end);
 end $$;
 
 create or replace function public.bry_online(p_token text) returns jsonb

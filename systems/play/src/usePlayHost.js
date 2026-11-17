@@ -727,6 +727,16 @@ export function usePlayHost() {
   }
   // vC.06 1인 · 다인: STORY_FOES[key].size, 없으면 패턴이 있는 상대(보스)는 다인, 없는 상대는 1인
   const storySize = (key) => STORY_FOES[key]?.size ?? (STORY_FOES[key]?.pattern ? 3 : 1)
+  /** vC.07.3 일행 전투: 도깨비들의 터 일행끼리 추가전투 · 실습 상대와 함께 싸운다(StoryParty 의 파티 방식을 그대로 쓴다) */
+  const roomFight = (enemyId, join = null) => {
+    if (battleRef.current || playerRef.current.sleeping || playerRef.current.training || playerRef.current.slowFight) { notify('지금은 싸울 수 없다. (잠 · 수련 · 느린 싸움 · 다른 전투 중)'); return false }
+    const room = globalThis.BiryeongParty?.room
+    if (!room?.id) { notify('일행이 없다. [접속자 확인하기]에서 초대해 일행을 만든다.'); return false }
+    const enemy = enemyById(enemyId)
+    if (!enemy) { notify('그 상대를 찾지 못했다.'); return false }
+    setStoryFight({ key: enemy.id, stage: `room:${room.id}`, enemy: { ...enemy }, size: 3, mode: 'room', join, npcUsed: true, first: false })
+    return true
+  }
   /** vC.06 돕는 선배: 이미 깬 다인 전투의 다른 학생 파티에 다시 들어간다(영력 · 최초 보상 없음, 냥 2배) */
   const storyHelp = ({ key, tier, i = 0, name, blurb, partyId, stage, ctx = {} }) => {
     if (battleRef.current || playerRef.current.sleeping || playerRef.current.training) { notify('지금은 싸울 수 없다. (잠 · 수련 · 다른 전투 중)'); return false }
@@ -755,6 +765,12 @@ export function usePlayHost() {
     const calm = !!enemy?.calmed
     let drop = null, recipes = []
     if (result.cancelled) { persist(); return } // 고르는 창에서 물러났다 — 아무 일도 없었다
+    if (fight.mode === 'room') { // vC.07.3 일행 전투: 보상 · 패배는 혼자 싸울 때와 같다(각자)
+      const cur = playerRef.current
+      commit({ ...cur, hp: Math.max(result.win ? 1 : 0, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) })
+      finishBattle({ win: !!result.win, fled: !!result.fled, enemy: enemyById(fight.key) ?? fight.enemy })
+      persist(); return
+    }
     if (fight.helper) { // vC.06 돕는 선배: 영력 · 전리품 · 진도 없음, 이기면 냥 2배. 져도 쇠약은 없다.
       const cur = playerRef.current
       let p = { ...cur, hp: Math.max(1, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) }
@@ -857,7 +873,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   setAilmentSource(() => playerRef.current) // vC.06 혼자 하는 전투의 라운드 피해가 지금 걸린 몸의 이상을 읽는다
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
-    save: persist, storyBattle, storyHelp, storySize, spendMp, effStats: () => effStats, giveAway,
+    save: persist, storyBattle, storyHelp, storySize, roomFight, enemyName: (id) => enemyById(id)?.name ?? id, spendMp, effStats: () => effStats, giveAway,
     // vC.06 동아리 활동(오늘의 할일 · 이번주에 할일) — 부실에서 ClubQuests.jsx 가 부른다
     clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
     adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용
