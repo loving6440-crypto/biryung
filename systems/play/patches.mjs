@@ -315,14 +315,14 @@ export function itemMatches(item, query0) {
     edits: [
       ["export const cleansed = () => ({ ps: {}, curse: 0, bound: false })", "export const cleansed = () => ({ ps: {}, curse: 0, bound: false })\n// vD.02.1 나쁜 상태 하나만 푼다. 따라붙는 자료 칸(독의 주사위 등)도 함께 지운다.\nconst BS_DATA = { thorns: ['thornsDie'], poison: ['poisonDie'], guardTrap: ['guardTrapDie'], burn: ['burnPct'], statSwap: ['swap'], plague: ['plagueDie'], paralyze: ['paralyzeChance'], statDown: ['downStat'] }\nexport const BS_EXTRA = { curse: '저주', bound: '속박' }\nexport function cureOneBs(o, key) {\n  if (!o || !key) return false\n  if (key === 'curse') { const had = (o.curse || 0) > 0; o.curse = 0; return had }\n  if (key === 'bound') { const had = !!o.bound; o.bound = false; return had }\n  const ps = { ...(o.ps || {}) }; const had = (ps[key] || 0) > 0\n  delete ps[key]; for (const d of BS_DATA[key] ?? []) delete ps[d]\n  o.ps = ps\n  return had\n}\n/** 지금 걸린 나쁜 상태 칸 이름들 */\nexport const activeBs = (o) => [...Object.keys(o?.ps || {}).filter((k) => typeof o.ps[k] === 'number' && o.ps[k] > 0 && !/Die$|Pct$|Chance$/.test(k) && k !== 'swap' && k !== 'downStat'), ...((o?.curse || 0) > 0 ? ['curse'] : []), ...(o?.bound ? ['bound'] : [])]"],
       ["export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse', 'dmgCut']", "export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse', 'dmgCut', 'cureBs']"],
-      ["  if (effect.cleanse) {\n    Object.assign(s, cleansed())", "  if (effect.cureBs) {\n    cureOneBs(s, effect.cureBs)\n    parts.push(`[${effect.cureBsLabel || effect.cureBs}] 상태가 풀렸다`)\n  }\n  if (effect.cleanse) {\n    Object.assign(s, cleansed())"],
+      ["  if (effect.cleanse) {\n    Object.assign(s, cleansed())", "  if (effect.cureBs) {\n    for (const k of [].concat(effect.cureBs)) cureOneBs(s, k)\n    parts.push(`[${effect.cureBsLabel || [].concat(effect.cureBs).join(' · ')}] 상태가 풀렸다`)\n  }\n  if (effect.cleanse) {\n    Object.assign(s, cleansed())"],
     ],
   },
   {
     file: 'game/mbattle.js',
     edits: [
       ["import { cleansed, rollItemHit } from './battleItems.js'", "import { cleansed, rollItemHit, cureOneBs } from './battleItems.js'"],
-      ["  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }", "  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }\n  if (e.cureBs) { cureOneBs(m, e.cureBs); parts.push(`[${e.cureBsLabel || e.cureBs}] 해제`) } // vD.02.1 응급 처치 상자\n  if (e.cureOneBs && !e.cureBs) parts.push(e.cureAilLabel ? `${e.cureAilLabel} 나았다` : '응급 처치')"],
+      ["  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }", "  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }\n  if (e.cureBs) { for (const k of [].concat(e.cureBs)) cureOneBs(m, k); parts.push(`[${e.cureBsLabel || [].concat(e.cureBs).join(' · ')}] 해제`) } // vD.02.1 응급 처치 상자\n  if (e.cureOneBs && !e.cureBs) parts.push(e.cureAilLabel ? `${e.cureAilLabel} 나았다` : '응급 처치')"],
     ],
   },
   {
@@ -385,6 +385,80 @@ export function itemMatches(item, query0) {
     file: 'game/battle.js',
     edits: [
       ["  group: { label: '단체 공격', note: '약공이 일행 전원에게 들어온다.' },\n}", "  group: { label: '단체 공격', note: '약공이 일행 전원에게 들어온다.' },\n  none: { label: '멈춤', note: '이번 턴은 움직이지 않는다.' },\n}"],
+    ],
+  },
+  // ── vD.02.3 동아리 신청서의 학년은 프로필에서 고른 학년으로 고정(나이와 따로) ──
+  {
+    file: 'ui/components/ClubRoomPanel.jsx',
+    edits: [
+      ["  const [form, setForm] = useState({ name: '', grade: 1, age: 17, hope: '' })", "  const fixedGrade = globalThis.BiryeongPlayGrade?.() ?? null\n  const [form, setForm] = useState({ name: '', grade: fixedGrade ?? 1, age: 17, hope: '' })"],
+      ["              onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}\n              className=\"h-8 rounded-lg", "              onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}\n              disabled={fixedGrade != null}\n              title={fixedGrade != null ? '학년은 내 프로필에서 고른 학년이다' : undefined}\n              className=\"h-8 rounded-lg disabled:opacity-70"],
+    ],
+  },
+  // ── vD.02.3 요괴 영능력 · 전투 기록: 수치 · 핵심 낱말 · [상태]를 강조하고, 같은 효과 글이 두 번 나오지 않게 ──
+  {
+    file: 'ui/components/SpBanner.jsx',
+    edits: [
+      ["import { SPECIAL_PERCENT } from '../../game/battle'", "import { SPECIAL_PERCENT } from '../../game/battle'\nimport { Emph } from '@story/emph.jsx'"],
+      ["      <p className=\"mt-1 text-sm text-paper/90\">{sp.note}</p>\n      {sp.detail && <p className=\"mt-2 text-xs leading-relaxed text-paper/75\">{sp.detail}</p>}", "      <p className=\"mt-1 text-sm text-paper/90\"><Emph text={sp.note} /></p>\n      {sp.detail && sp.detail !== (sp.effects ?? []).join(' · ') && <p className=\"mt-2 text-xs leading-relaxed text-paper/75\"><Emph text={sp.detail} /></p>}"],
+      ["        <p data-sp-chance>\n          <b className=\"text-gold\">발동 확률 {sp.chance ?? SPECIAL_PERCENT}%</b> · 상대 턴마다 d10 을 굴려 10 이 나오면 (기 모은 직후 턴 제외)\n        </p>", "        <p data-sp-chance className=\"text-[10px] text-paper/45\">\n          발동 확률 {sp.chance ?? SPECIAL_PERCENT}% · 상대 턴마다 d10 이 10 이면 (기 모은 직후 턴 제외)\n        </p>"],
+      ["          <p key={i}>· {l}</p>", "          <p key={i}>· <Emph text={l} /></p>"],
+      ["            ▶ 이번 결과: {sp.result}", "            ▶ 이번 결과: <Emph text={sp.result} />"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Battle.jsx',
+    edits: [
+      ["import { MULTI_TAG, isMulti } from '../../../game/mbattle'", "import { MULTI_TAG, isMulti } from '../../../game/mbattle'\nimport { Emph } from '@story/emph.jsx'"],
+      ["            className={l.kind === 'enemy' ? 'text-crimson' : l.kind === 'warn' || l.kind === 'end' || l.kind === 'rash' || l.kind === 'special' ? 'text-gold' : 'text-paper/80'}\n          >\n            {l.text}", "            className={l.kind === 'enemy' ? 'text-crimson' : l.kind === 'warn' || l.kind === 'end' || l.kind === 'rash' || l.kind === 'special' ? 'text-gold' : 'text-paper/80'}\n          >\n            <Emph text={l.text} />"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/MultiBattle.jsx',
+    edits: [
+      ["import LanguageBarrierPicker from '../LanguageBarrierPicker'", "import LanguageBarrierPicker from '../LanguageBarrierPicker'\nimport { Emph } from '@story/emph.jsx'"],
+      ["  const textOf = (l) => {\n    if (l.kind !== 'special') return l.text\n    return spText.current[l.id] ?? specialSummary(l)\n  }", "  const textOf0 = (l) => {\n    if (l.kind !== 'special') return l.text\n    return spText.current[l.id] ?? specialSummary(l)\n  }\n  const textOf = (l) => <Emph text={textOf0(l)} /> // vD.02.3 강조"],
+    ],
+  },
+  // ── vD.02.3 일반 공격 주사위 최솟값: (안목 + 호전) 합이 20 → 최소 10 · 30 → 20 · 40 → 30 … (그 굴림의 최댓값을 넘지는 않는다) ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["  const power = die(stats.aggression, rng)\n  return { hit: raw, power, dmg: power * 2 + hit, miss: false }\n}", "  const power = die(stats.aggression, rng)\n  const dmg0 = power * 2 + hit, floor = attackFloor(stats), top = Math.max(1, Math.floor(stats.aggression || 1)) * 2 + Math.max(1, Math.floor(stats.insight || 0) + 1)\n  if (floor > dmg0) return { hit: raw, power, dmg: Math.min(floor, top), miss: false, floored: Math.min(floor, top) }\n  return { hit: raw, power, dmg: dmg0, miss: false }\n}\n/** vD.02.3 일반 공격의 최솟값 — 안목 + 호전 합 20부터 10씩: 20 → 10, 30 → 20, 40 → 30 … */\nexport function attackFloor(stats) {\n  const t = Math.floor(stats?.insight || 0) + Math.floor(stats?.aggression || 0)\n  return t >= 20 ? (Math.floor(t / 10) - 1) * 10 : 0\n}"],
+      ["    let note = r.miss ? '' : `${bn}${noteOf(fb.notes)}${cr.note}`\n    if (!r.miss && braced) {\n      if (bowActive) {", "    let note = r.miss ? '' : `${bn}${noteOf(fb.notes)}${cr.note}${r.floored ? ` (최솟값 ${r.floored})` : ''}`\n    if (!r.miss && braced) {\n      if (bowActive) {"],
+    ],
+  },
+  // ── vD.02.3 도깨비 탈: 아군을 칠 확률 안에서 '나 자신'도 대상 — 인원수(나 포함)로 나눈다. 혼자면 그 확률 그대로 제 몸을 친다 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["/** 도깨비 탈: 단체 전투에서 일반 공격이 아군에게 갈 확률(%) = ⌊호전/3⌋ */", "/** 도깨비 탈: 일반 공격이 아군(나 자신 포함)에게 갈 확률(%) = ⌊호전/3⌋ — 대상은 나를 포함한 인원 가운데 무작위(혼자면 나) */"],
+      ["    s.ehp = Math.max(0, s.ehp - dmg)\n    ev.push({ kind: 'player', roll: r.hit, dmg, text: `${buffed ? '효험! ' : ''}${strike(r)}${r.miss ? '' : ` ${dmg} 피해${note}`}${buffNote}` })\n    if (!r.miss && stats.special === 'black-wisteria') {",
+       "    const ffP = !s.party && !r.miss && dmg > 0 ? maskFriendlyFirePercent(stats) : 0 // vD.02.3 혼자일 때: 그 확률이면 제 몸을 친다\n    if (ffP > 0 && 1 + Math.floor(rng() * 100) <= ffP) {\n      const hurt = Math.min(dmg, Math.max(0, (s.php ?? 100) - 1))\n      s.php = (s.php ?? 100) - hurt\n      ev.push({ kind: 'warn', text: `도깨비 탈에 홀려 제 몸을 쳤다! 상대 대신 내가 ${hurt} 피해를 받았다. (홀릴 확률 ${ffP}% · 체력은 1 아래로 내려가지 않는다)` })\n    } else {\n    s.ehp = Math.max(0, s.ehp - dmg)\n    ev.push({ kind: 'player', roll: r.hit, dmg, text: `${buffed ? '효험! ' : ''}${strike(r)}${r.miss ? '' : ` ${dmg} 피해${note}`}${buffNote}` })\n    }\n    if (!r.miss && stats.special === 'black-wisteria') {"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["    const others = aliveOf(mb).filter((x) => x.id !== m.id)\n    const roll = 1 + Math.floor(rng() * 100)\n    const dealt = Math.max(0, v.ehp - r.state.ehp)\n    if (others.length && roll <= ffPercent && dealt > 0) {\n      const victim = others[Math.floor(rng() * others.length)]\n      const hurt = Math.min(dealt, Math.max(0, victim.php - 1))\n      victim.php -= hurt",
+       "    const others = aliveOf(mb) // vD.02.3 나 자신도 대상 — 인원수(나 포함)로 나눈다\n    const roll = 1 + Math.floor(rng() * 100)\n    const dealt = Math.max(0, v.ehp - r.state.ehp)\n    if (others.length && roll <= ffPercent && dealt > 0) {\n      const victim = others[Math.floor(rng() * others.length)]\n      const selfHit = victim.id === m.id\n      const hurt = Math.min(dealt, Math.max(0, (selfHit ? (r.state.php ?? m.php) : victim.php) - 1))\n      if (selfHit) r = { ...r, state: { ...r.state, php: (r.state.php ?? m.php) - hurt } }\n      else victim.php -= hurt"],
+      ["{ kind: 'warn', text: `도깨비 탈에 홀려 ${victim.name}을(를) 공격했다! 상대 대신 ${victim.name}이(가) 맞았다.", "{ kind: 'warn', text: selfHit ? `도깨비 탈에 홀려 제 몸을 쳤다! 상대 대신 내가 맞았다.` : `도깨비 탈에 홀려 ${victim.name}을(를) 공격했다! 상대 대신 ${victim.name}이(가) 맞았다."],
+    ],
+  },
+  // ── vD.02.3 숯: 제작 재료이면서 쓸 수도 있다 — 1개: 10 미만 스탯 하나 +1 · 체력 −30 / 99개 한 번에: 어떤 스탯이든 +1 · 체력 −90 ──
+  {
+    file: 'game/items.js',
+    edits: [
+      ["  if (isMaterial(item)) return { ok: false, why: '재료 아이템이다. 직접 쓰는 물건이 아니다' }", "  if (isMaterial(item) && !item.effect?.trainUnder10) return { ok: false, why: '재료 아이템이다. 직접 쓰는 물건이 아니다' }"],
+    ],
+  },
+  {
+    file: 'ui/components/InventoryModal.jsx',
+    edits: [
+      ["  const useN = picked && !inBattle && multiUsable(picked) ? Math.max(1, Math.min(pn ?? 1, discardQty)) : 1", "  const useN = picked?.effect?.trainUnder10 ? (discardQty >= 99 && (pn ?? 0) >= 99 ? 99 : 1) : picked && !inBattle && multiUsable(picked) ? Math.max(1, Math.min(pn ?? 1, discardQty)) : 1 // vD.02.3 숯은 1개 또는 99개"],
+      ["                {picked && picked.id !== BAG_ID && !isMaterial(picked) && !isGear(picked) && (\n                  <button\n                    type=\"button\"\n                    disabled={!pu.ok || (picked.effect?.trainUnder10", "                {picked && picked.id !== BAG_ID && (!isMaterial(picked) || picked.effect?.trainUnder10) && !isGear(picked) && (\n                  <button\n                    type=\"button\"\n                    disabled={!pu.ok || (picked.effect?.trainUnder10"],
+      ["                <p className=\"text-xs text-paper/70\">육조 중 하나를 선택해. 기본 수치 10 미만만 가능하며 체력 30이 소모돼.</p>", "                <p className=\"text-xs text-paper/70\">{useN >= 99 ? '숯 99개를 한 번에 — 어떤 육조든 하나 +1, 체력 90이 소모돼.' : '육조 중 하나를 선택해. 기본 수치 10 미만만 가능하며 체력 30이 소모돼. (수량을 99로 맞추면 99개를 한 번에 써서 10 이상인 육조도 +1 · 체력 90)'}</p>"],
+      ["                      disabled={(player.stats?.[stat] ?? 0) >= 10 || player.hp <= 30}", "                      disabled={useN >= 99 ? player.hp <= 90 : (player.stats?.[stat] ?? 0) >= 10 || player.hp <= 30}"],
     ],
   },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──

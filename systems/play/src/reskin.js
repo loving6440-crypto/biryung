@@ -67,7 +67,7 @@ import { RECIPES } from '@vault/game/crafting.js'
 import { COOK_RECIPES } from '@vault/game/cooking.js'
 import { HIKE_PATHS } from '@vault/game/hike.js'
 import { NEW_RECIPES, RECIPE_TIERS } from '../../biryeong/reskin.data.js'
-import { AIL_RECIPES } from './ailments.js'
+import { AIL_RECIPES, NURSE_STOCK } from './ailments.js'
 import { NEW_SPIRIT_RECIPES } from './newSpirits.js'
 const TIER_NOTE = { 1: '1단계 · 바탕', 2: '2단계 · 바탕으로 만든다', 3: '3단계 · 상급 공정' }
 for (const r of [...RECIPES, ...COOK_RECIPES]) if (r.tier == null) r.tier = RECIPE_TIERS[r.id] ?? 2
@@ -86,6 +86,12 @@ for (const r of STORY_RECIPES) {
   const { place, ...rest } = r
   if (rest.unlock === 'open') delete rest.unlock // 처음부터 열려 있다
   ;(place === 'K' ? COOK_RECIPES : RECIPES).push({ ...rest, note: `${OPEN_NOTE(r.unlock)} · ${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
+}
+
+// ── vD.02.3 어딘가에서 살 수 있는 물건(매점 · 양호실 · 정원 씨앗)은 제작법을 두지 않는다 — 헷갈리기만 한다 ──
+{
+  const sold = new Set([...ITEMS.filter((i) => i.price != null).map((i) => i.id), ...NURSE_STOCK.map((x) => x.id)])
+  for (const list of [RECIPES, COOK_RECIPES]) for (let i = list.length - 1; i >= 0; i--) if (sold.has(list[i].result)) list.splice(i, 1)
 }
 
 // ── v1.0 추가전투는 퇴마 실습장으로 옮겼다: 뒷산 둘레길(교외 옆)의 [추가전투] 칸을 뺀다. ──

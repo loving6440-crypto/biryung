@@ -56,11 +56,12 @@ export const ENEMY_AILMENT = {
 // 개척 터 → 채집 · 수렵할 때 가끔 걸리는 이상 [id, 한 번에 걸릴 확률(%)]
 export function siteAilment(site) {
   const id = String(site?.id ?? ''), name = String(site?.name ?? '')
-  if (/lake|호수|샘터/.test(id + name)) return [['hangi', 5], ['gobul', 1]]
-  if (/cave|동굴/.test(id + name)) return [['hyeongi', 4], ['gyundok', 3]]
-  if (/tomb|grave|묘소/.test(id + name)) return [['salgi', 4], ['gyundok', 2]]
-  if (/산마루|봉우리|능선|summit|peak/.test(id + name)) return [['hyeongi', 3], ['hangi', 2]]
-  return [['otdok', 4]] // 숲길 · 들길 · 오솔길
+  // vD.02.3 너무 자주 걸려서 대략 절반으로
+  if (/lake|호수|샘터/.test(id + name)) return [['hangi', 3], ['gobul', 1]]
+  if (/cave|동굴/.test(id + name)) return [['hyeongi', 2], ['gyundok', 1.5]]
+  if (/tomb|grave|묘소/.test(id + name)) return [['salgi', 1.5], ['gyundok', 1]]
+  if (/산마루|봉우리|능선|summit|peak/.test(id + name)) return [['hyeongi', 1.5], ['hangi', 1]]
+  return [['otdok', 2]] // 숲길 · 들길 · 오솔길
 }
 
 const clampStack = (a, n) => Math.max(1, Math.min(a.max, n))
@@ -114,16 +115,34 @@ export function ailmentRoundTicks(now = Date.now()) {
 export function ailmentStatSource(player, now = Date.now()) { return ailmentStatBonus(player, now) }
 
 // ── 걸리는 때 ──
+// vD.02.3 완화: 전투 뒤 — 지면 40% · 이겨도 체력 4할 밑 18% · 7할 밑 6% · 그 위 2% (무거운 이상 — 살기 · 고뿔 · 균독 — 은 그 6할)
+export function battleAilChance(fam, lost, hpFrac) {
+  const base = lost ? 0.4 : hpFrac < 0.4 ? 0.18 : hpFrac < 0.7 ? 0.06 : 0.02
+  return AIL[fam]?.heavy ? base * 0.6 : base
+}
+/** 표(배드 스테이터스 시트)에 적을 걸릴 확률 글 */
+export function chanceText(id) {
+  const pct = (x) => `${Math.round(x * 1000) / 10}%`
+  const fromEnemy = Object.values(ENEMY_AILMENT).includes(id)
+  const bits = []
+  if (fromEnemy) bits.push(`그 상대와 싸운 뒤: 지면 ${pct(battleAilChance(id, true, 0))} · 체력 4할 밑 ${pct(battleAilChance(id, false, 0.3))} · 7할 밑 ${pct(battleAilChance(id, false, 0.5))} · 그 위 ${pct(battleAilChance(id, false, 1))}`)
+  const sites = [['호수 · 샘터', 'lake'], ['동굴', 'cave'], ['묘소', 'tomb'], ['산마루', 'summit'], ['숲길 · 들길', 'trail']]
+  for (const [label, key] of sites) { const hit = siteAilment({ id: key }).find(([x]) => x === id); if (hit) bits.push(`개척 ${label}: 채집 · 수렵 한 번에 ${hit[1]}%`) }
+  if (id === 'gobul') bits.push('[한기] 든 채로 지면 30% · 호수에서 [한기] 든 채로 채집하면 +6%')
+  if (id === 'geunyuk') bits.push('수련을 마칠 때 12% · 개척 행동을 끝까지 다 썼을 때 12%')
+  return bits.join(' / ')
+}
 /** 전투가 끝났다(혼자 · 개척 전투). lost: 졌나, hpFrac: 끝난 뒤 체력 비율. 반환 { player, got: [id] } */
 export function afterBattleAilment(player, enemy, { lost = false, hpFrac = 1 } = {}, rng = Math.random, now = Date.now()) {
   let p = player
   const got = []
-  const fam = ENEMY_AILMENT[enemy?.id] ?? (enemy?.ghost || /귀|혼|령/.test(enemy?.name ?? '') ? 'salgi' : null)
+  // vD.02.3 이름에 「귀 · 혼 · 령」만 들어가도 살기를 걸던 것을 뺐다(살기가 너무 잦았다) — 표에 적힌 상대만 건다
+  const fam = ENEMY_AILMENT[enemy?.id] ?? null
   if (fam) {
-    const chance = lost ? 0.6 : hpFrac < 0.4 ? 0.35 : hpFrac < 0.7 ? 0.15 : 0.05
+    const chance = battleAilChance(fam, lost, hpFrac)
     if (rng() < chance) { const st = AIL[fam].max > 1 ? (lost ? 2 : 1) : 1; p = addAilment(p, fam, now, st); got.push(fam) }
   }
-  if (lost && p.ailments?.hangi?.until > now && rng() < 0.5) { p = addAilment(p, 'gobul', now); got.push('gobul') }
+  if (lost && p.ailments?.hangi?.until > now && rng() < 0.3) { p = addAilment(p, 'gobul', now); got.push('gobul') }
   return { player: p, got }
 }
 /** 개척에서 채집 · 수렵을 한 번 했다 */
@@ -135,11 +154,11 @@ export function huntAilment(player, site, { finished = false } = {}, rng = Math.
     if (id === 'gobul' && p.ailments?.hangi?.until > now) c += 6
     if (rng() * 100 < c) { p = addAilment(p, id, now); got.push(id) }
   }
-  if (finished && rng() < 0.25) { p = addAilment(p, 'geunyuk', now); got.push('geunyuk') }
+  if (finished && rng() < 0.12) { p = addAilment(p, 'geunyuk', now); got.push('geunyuk') }
   return { player: p, got }
 }
 /** 수련을 마쳤다 · 다인 전투가 끝났다 */
-export function effortAilment(player, chance = 0.25, rng = Math.random, now = Date.now()) {
+export function effortAilment(player, chance = 0.12, rng = Math.random, now = Date.now()) {
   if (rng() >= chance) return { player, got: [] }
   return { player: addAilment(player, 'geunyuk', now), got: ['geunyuk'] }
 }

@@ -29,6 +29,7 @@ import { parseHash } from './routes.js'
 import { usePlayHost } from './usePlayHost.js'
 import { bridge } from './bridge.js'
 import BsPicker from './BsPicker.jsx'
+import { itemOf } from '@vault/game/items.js'
 
 // vC.01 추가전투 단계 공개: 처음에는 1단계만. 관리자가 [스토리 관리]에서 한 단계씩 연다(서버에 공개 — 장을 공개하듯이).
 const openExtraTier = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
@@ -197,7 +198,7 @@ export default function App() {
       , document.getElementById('playPortal') ?? document.body)}
       {/* vD.02.1 응급 처치 상자: 나쁜 상태가 여럿이면 하나를 고른다 */}
       {host.bsPick && createPortal(
-        <BsPicker options={host.bsPick.options} onPick={(k) => H.useItem(host.bsPick.id, k)} onClose={() => host.setBsPick(null)} />
+        <BsPicker options={host.bsPick.options} max={host.bsPick.max || 1} title={itemOf(host.bsPick.id)?.name} onPick={(k) => H.useItem(host.bsPick.id, k)} onClose={() => host.setBsPick(null)} />
       , document.getElementById('playPortal') ?? document.body)}
 
       {host.confirm && (

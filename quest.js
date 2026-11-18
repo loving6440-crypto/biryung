@@ -150,13 +150,22 @@
   const persist = () => App.persist();
   const playerName = () => App.profile()?.name || '학생';
   const hasBatchim = (word) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 !== 0 : /[13678lmnr]$/i.test(word); };
+  // vD.02.4: 이름 뒤 조사를 받침에 맞춘다 — OO(학생 이름)와 △△(신에게 지어 준 이름) 모두.
+  function josaFill(text, tok, n) {
+    const b = hasBatchim(n), c = n.charCodeAt(n.length - 1), rieul = c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 === 8 : /[lr]$/i.test(n);
+    const T = tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), re = (src) => new RegExp(T + src, 'g');
+    return text
+      .replace(re('\\(이\\)가'), n + (b ? '이' : '가')).replace(re('\\(은\\)는'), n + (b ? '은' : '는')).replace(re('\\(을\\)를'), n + (b ? '을' : '를'))
+      .replace(re('\\(과\\)와'), n + (b ? '과' : '와')).replace(re('\\(아\\)야'), n + (b ? '아' : '야')).replace(re('\\(으\\)로'), n + (b && !rieul ? '으로' : '로'))
+      .replace(re('\\(이\\)'), n + (b ? '이' : ''))
+      .replace(re('[은는]'), n + (b ? '은' : '는')).replace(re('[을를]'), n + (b ? '을' : '를')).replace(re('[과와]'), n + (b ? '과' : '와'))
+      .replace(re('(?:이(?=[^가-힣]|$)|가)'), n + (b ? '이' : '가'))
+      .replace(re('이?(라면|라고|라는|라서|랑|든지|든가|나마)'), (_, j) => n + (b ? '이' : '') + j)
+      .replace(re('으?로'), n + (b && !rieul ? '으로' : '로'))
+      .replace(re(''), n);
+  }
   function fill(text) {
-    const n = playerName(), b = hasBatchim(n);
-    return String(text ?? '')
-      .replace(/OO\(이\)가/g, n + (b ? '이' : '가')).replace(/OO\(은\)는/g, n + (b ? '은' : '는')).replace(/OO\(을\)를/g, n + (b ? '을' : '를'))
-      .replace(/OO는/g, n + (b ? '은' : '는')).replace(/OO가/g, n + (b ? '이' : '가')).replace(/OO를/g, n + (b ? '을' : '를')).replace(/OO와/g, n + (b ? '과' : '와'))
-      .replace(/OO/g, n)
-      .replace(/△△/g, godName())
+    return josaFill(josaFill(String(text ?? ''), 'OO', playerName()), '△△', godName())
       .replace(/\{유품\}/g, heir()?.name || '유품').replace(/\{무구\}/g, heir() ? itemName(heir().weapon) : '무구');
   }
 
@@ -366,7 +375,7 @@
       if (n.type === 'battle') {
         const foe = D.foes[n.arg];
         const size = App.playApi()?.storySize?.(n.arg) ?? 3;
-        out.push(btn('solid-btn quest-act', `${foe.name}와(과) ${n.calm ? '마주한다' : '싸운다'} · ${size > 1 ? '다인' : '1인'}`, () => {
+        out.push(btn('solid-btn quest-act', `${foe.name}${hasBatchim(foe.name) ? '과' : '와'} ${n.calm ? '마주한다' : '싸운다'} · ${size > 1 ? `${size}인` : '1인'}`, () => {
           const a = App.playApi(); if (!a) { toast('본편', '실행 화면을 불러오는 중이다.'); return; }
           a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName(), god: godName() }, taint: taintOf(q), family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 }, first: !q.beaten[n.arg], npcUsed: !!claims().claimed[`npc:${n.arg}`] } });
         }));
@@ -497,7 +506,7 @@
     card({ kind: 'chapter', head: ch ? `제${ch}장 완료` : '프롤로그 완료', title: `《${c.title}》`, sub: `장면 ${list.length}개`, lines: [
       ...(picks.length ? [`고른 것 — ${picks.slice(0, 3).join(' / ')}${picks.length > 3 ? ' …' : ''}`] : []),
       ...(title ? [`칭호 「${title.name}」`] : []),
-      next ? (isOpen(next.n) ? `${next.n}장 「${next.title}」이(가) 산문 너머에 열려 있다.` : `${next.n}장 「${next.title}」 — [아직 열리지 않은 이야기입니다.]`) : '',
+      next ? (isOpen(next.n) ? `${next.n}장 「${next.title}」${hasBatchim(next.title) ? '이' : '가'} 산문 너머에 열려 있다.` : `${next.n}장 「${next.title}」 — [아직 열리지 않은 이야기입니다.]`) : '',
     ] });
   }
 

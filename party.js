@@ -179,6 +179,25 @@
     App.ding?.('invite');
   }
   let polling = false, lastDm = 0, lastUnread = 0;
+  // vD.02.3 팝업 공지: 한 번 본 것은 다시 띄우지 않는다(이 브라우저 기준)
+  function showPopup(pp) {
+    const id = Number(pp?.id) || 0; if (!id) return;
+    let seen = 0; try { seen = Number(localStorage.getItem('biryeong-popup-seen')) || 0; } catch (_) { /* 저장 불가 */ }
+    if (id <= seen || document.getElementById('popupNotice')) return;
+    try { localStorage.setItem('biryeong-popup-seen', String(id)); } catch (_) { /* 저장 불가 */ }
+    const d = document.createElement('dialog'); d.id = 'popupNotice'; d.className = 'popup-notice'; d.setAttribute('aria-labelledby', 'popupNoticeTitle');
+    const box = document.createElement('div'); box.className = 'popup-notice-box';
+    const t = document.createElement('p'); t.className = 'popup-notice-over'; t.textContent = '公告 · 알림';
+    const h2 = document.createElement('h2'); h2.id = 'popupNoticeTitle'; h2.textContent = '관리자 공지';
+    const body = document.createElement('p'); body.className = 'popup-notice-body'; body.textContent = String(pp.body || '');
+    const row = document.createElement('div'); row.className = 'popup-notice-actions';
+    if (pp.reload) { const re = document.createElement('button'); re.type = 'button'; re.className = 'solid-btn'; re.textContent = '지금 새로고침'; re.addEventListener('click', () => { try { window.BiryeongAuth?.pushSave?.(); } catch (_) { /* */ } setTimeout(() => location.reload(), 400); }); row.append(re); }
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'ghost-btn'; close.textContent = pp.reload ? '나중에' : '확인'; close.addEventListener('click', () => d.close());
+    row.append(close); box.append(t, h2, body, row); d.append(box); document.body.append(d);
+    d.addEventListener('close', () => d.remove());
+    try { d.showModal(); } catch (_) { d.setAttribute('open', ''); }
+    App.ding?.('dm');
+  }
   async function presence() {
     if (!live() || polling) return;
     polling = true;
@@ -186,6 +205,7 @@
       const r = await call('bry_presence', { p_seen: lastSeen });
       (r.invites || []).forEach(showInvite);
       if (r.fight) showFight(r.fight); // vC.07.3 같은 일행이 추가전투 · 실습 파티를 열었다
+      if (r.popup) showPopup(r.popup); // vD.02.3 관리자의 팝업 공지
       if (r.mail > 0) window.BiryeongServer?.poll?.(); // vC.07.5 우편이 왔다(관리자의 상태 고침 · 선물 · 하사) — 받을 때 띠링
       // vD.01 밀담: 접속 확인이 안 읽은 밀담 수까지 준다 — 늘었으면 띠링 + 알림(언제나)
       const dm = Number(r.dm) || 0;

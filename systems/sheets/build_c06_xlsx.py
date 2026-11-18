@@ -1,4 +1,4 @@
-"""秘靈 · 비령 vC.06 표.  node systems/sheets/build_c06.mjs > c06.json && python3 systems/sheets/build_c06_xlsx.py c06.json 비령_표_vC.06.xlsx [도트 폴더]"""
+"""秘靈 · 비령 표 (vC.06 ~ vD.02.3).  node systems/sheets/build_c06.mjs > c06.json && python3 systems/sheets/build_c06_xlsx.py c06.json 비령_표_vC.06.xlsx [도트 폴더]"""
 import json, sys, os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -74,9 +74,9 @@ sheet('영능력', ['번호', '영능력', '구분', '빼앗는 상대', '설명
 
 # ── 몸의 이상(배드 스테이터스) ──
 def dur(m): return f"{m // 60}시간" + (f" {m % 60}분" if m % 60 else '') if m >= 60 else f"{m}분"
-sheet('배드 스테이터스', ['번호', '이름', '한자', '무게', '효과', '지속', '최대 겹', '걸리는 때', '완치', '완치 + 회복', '남은 시간 5분으로', '글', 'ID'],
-      [6, 10, 8, 8, 40, 9, 8, 52, 26, 26, 30, 30, 10],
-      [[n, a['name'], a['hanja'], a['heavy'], a['effect'], dur(a['minutes']), a['max'], a['from'], a['cure'], a['restore'], a['shorten'], a['text'], a['id']] for n, a in enumerate(d['ailments'], 1)])
+sheet('배드 스테이터스', ['번호', '이름', '한자', '무게', '효과', '지속', '최대 겹', '걸리는 때', '걸릴 확률 (vD.02.3 완화)', '완치', '완치 + 회복', '남은 시간 5분으로', '글', 'ID'],
+      [6, 10, 8, 8, 40, 9, 8, 52, 60, 26, 26, 30, 30, 10],
+      [[n, a['name'], a['hanja'], a['heavy'], a['effect'], dur(a['minutes']), a['max'], a['from'], a.get('chance', ''), a['cure'], a['restore'], a['shorten'], a['text'], a['id']] for n, a in enumerate(d['ailments'], 1)])
 
 # ── 아이템 ──
 def group(kind):

@@ -1612,9 +1612,80 @@ begin
        limit 300) q), '[]'::jsonb));
 end $$;
 
+-- ── vD.02.3 학년은 프로필에서 고른 학년(profile.grade)이 먼저 — 나이와 따로(빠른년생 · 한 해 쉰 사람). 고른 적 없으면 예전처럼 나이로 ──
+create or replace function biryeong_private.save_grade(d jsonb) returns int language sql immutable as $$
+  select case
+    when (d #>> '{profile,grade}') ~ '^[1-3]$' then (d #>> '{profile,grade}')::int
+    when (d #>> '{game,grade}') ~ '^[1-3]$' then (d #>> '{game,grade}')::int
+    else least(3, greatest(1, coalesce(nullif(regexp_replace(coalesce(d #>> '{game,age}', d #>> '{profile,age}', ''), '\D', '', 'g'), '')::int, 17) - 16))
+  end $$;
+
+create or replace function public.bry_club_members(p_token text, p_club text) returns jsonb
+  language plpgsql stable security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('ok', true, 'members', coalesce((
+    select jsonb_agg(m order by (m ->> 'joinedAt')) from (
+      select jsonb_build_object('id', x.username, 'me', x.id = a.id,
+               'name', left(coalesce(nullif(btrim(s.data #>> '{counts,club,name}'), ''), x.display_name), 40),
+               'grade', biryeong_private.save_grade(s.data), 'age', s.data #> '{counts,club,age}',
+               'hope', left(coalesce(s.data #>> '{counts,club,hope}', ''), 200), 'joinedAt', s.data #> '{counts,club,joinedAt}') as m
+        from saves s join accounts x on x.id = s.account_id
+       where (x.banned_until is null or x.banned_until < now())
+         and s.data #>> '{counts,club,id}' = p_club
+       limit 300) q), '[]'::jsonb));
+end $$;
+
+-- ── vD.02.3 팝업 공지: 관리자가 올리면, 정해 둔 시간(기본 30분) 안에 접속해 있는 사람의 화면에 한 번 뜬다(「단장했으니 새로고침 해 주세요!」) ──
+create table if not exists biryeong_private.popups (
+  id bigserial primary key,
+  body text not null,
+  reload boolean not null default true,
+  created_at timestamptz not null default now(),
+  until timestamptz not null
+);
+create index if not exists popups_until on biryeong_private.popups (until desc);
+
+create or replace function public.bry_admin_popup(p_token text, p_body text, p_reload boolean default true, p_minutes int default 30) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); v_id bigint;
+begin
+  if length(btrim(coalesce(p_body, ''))) = 0 then
+    update popups set until = now() where until > now(); -- 비우고 보내면 떠 있는 팝업을 거둔다
+    perform log(a, 'popup', '', '(거둠)');
+    return jsonb_build_object('ok', true, 'cleared', true);
+  end if;
+  if length(p_body) > 400 or coalesce(p_minutes, 30) not between 1 and 1440 then raise exception 'invalid_value'; end if;
+  insert into popups (body, reload, until) values (btrim(p_body), coalesce(p_reload, true), now() + make_interval(mins => coalesce(p_minutes, 30))) returning id into v_id;
+  delete from popups where until < now() - interval '7 days';
+  perform log(a, 'popup', '', left(p_body, 200));
+  return jsonb_build_object('ok', true, 'id', v_id);
+end $$;
+
+create or replace function public.bry_presence(p_token text, p_seen bigint default 0) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); r biryeong_private.rooms;
+begin
+  perform maint_tick();
+  r := my_room(a);
+  return jsonb_build_object(
+    'invites', (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'from', card(f), 'at', i.created_at) order by i.id), '[]'::jsonb)
+      from invites i join accounts f on f.id = i.from_id where i.to_id = a.id and i.status = 'pending' and i.created_at > now() - interval '10 minutes'),
+    'room', case when r.id is null then null else room_json(r) || jsonb_build_object('last', (select coalesce(max(id), 0) from room_msgs where room_id = r.id),
+      'unread', (select count(*) from room_msgs m where m.room_id = r.id and m.id > coalesce(p_seen, 0) and m.sender <> a.username)) end,
+    'mail', (select count(*) from grants g where (g.target = a.id or g.target is null) and g.created_at > now() - interval '30 days' and not exists (select 1 from grant_claims c where c.grant_id = g.id and c.account_id = a.id)),
+    -- vD.01 안 읽은 밀담 수도 여기서 — 밀담 알림(띠링)이 25~30초 안에 온다
+    'dm', (select count(*) from dm_threads t where a.id in (t.user_low, t.user_high) and t.last_by is not null and t.last_by <> a.id and t.last_at > case when t.user_low = a.id then t.seen_low else t.seen_high end),
+    'fight', case when r.id is null then null else (select party_json(p) || jsonb_build_object('host_name', (select x->>'name' from jsonb_array_elements(p.members) x limit 1))
+      from parties p where p.stage = 'room:' || r.id and p.status = 'open' and p.host <> a.id and p.updated_at > now() - interval '15 minutes' and jsonb_array_length(p.members) < 3
+        and not (p.members @> jsonb_build_array(jsonb_build_object('u', a.username))) order by p.id desc limit 1) end,
+    -- vD.02.3 관리자의 팝업 공지(정해 둔 시간 안에 접속해 있는 사람에게 한 번 뜬다)
+    'popup', (select jsonb_build_object('id', pp.id, 'body', pp.body, 'reload', pp.reload, 'at', pp.created_at) from popups pp where pp.until > now() order by pp.id desc limit 1));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.02.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.02.3', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

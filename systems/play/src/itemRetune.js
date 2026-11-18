@@ -44,6 +44,11 @@ export const ITEM_RETUNE = {
   'w-spear': { effectText: '매 공격마다 (10 + 호전/2, 내림)% 확률로 치명타. 공격력이 적용되는 영능력·일반 공격·부적·효험에 적용되며, 치명타가 나면 그 공격이 1.2배~2배 사이의 값으로 들어간다.' },
   'w-mace': { effectText: '모든 기본 공격력이 1.5배(내림)가 된다. 단, 적에게서 받는 모든 공격도 2배가 된다.' },
   'w-bow': { effectText: '모든 공격이 반드시 명중하며, 모든 일반 공격이 상대의 방어 태세를 무시한다. 단체 전투일 경우 활을 든 사람이 한 명만 있어도 일행 전원이 이 효과를 받는다.' },
+  // ── vD.02.3 응급 처치 상자와 같은 일을 하는 제작품 — 낮은 단계(털실 인형)는 하나, 높은 단계(재액부)는 둘 ──
+  'yarn-doll': { only: null, oncePerBattle: null, effect: { cureOneBs: 1 }, effectText: '나쁜 상태 하나를 골라 인형에 옮겨 푼다 — 전투 중 상태 이상 · 저주 · 속박 · 몸의 이상 (전투 중에도 쓸 수 있다)', battle: true, tags: ['완성품', '#몸의 이상', '#턴소모無'] },
+  'jaeaek-charm': { only: null, oncePerBattle: null, effect: { cureOneBs: 2 }, effectText: '나쁜 상태를 둘까지 골라 한 번에 푼다 — 전투 중 상태 이상 · 저주 · 속박 · 몸의 이상 (전투 중에도 쓸 수 있다)', battle: true, tags: ['완성품', '#몸의 이상', '#부적', '#턴소모無'] },
+  // ── vD.02.3 숯: 제작 재료 그대로 + 쓸 수도 있다 ──
+  charcoal: { effect: { trainUnder10: true }, effectText: '제작용 재료. 써도 된다 — 10 미만인 스탯 하나 +1 · 체력 −30 / 99개를 한 번에 쓰면 레벨과 상관없이 스탯 하나 +1 · 체력 −90 (전투 밖에서)' },
   // ── vD.02 조리실 음식: 대체로 'n분 동안' 기운이 드는 것으로(전투용 몇 가지는 그대로) ──
   'mushroom-stew': { effect: { hp: 10, timed: { kind: 'hpRegen', v: 2, min: 30 } }, effectText: '체력 +10 / 30분 동안 1분마다 체력 +2 (전투 밖에서)', battle: false },
   'king-mushroom-stew': { effect: { hp: 15, timed: { kind: 'hpRegen', v: 3, min: 30 } }, effectText: '체력 +15 / 30분 동안 1분마다 체력 +3 (전투 밖에서)', battle: false },
@@ -63,7 +68,13 @@ export const ITEM_RETUNE = {
   'nw-raccoon-tag': { effect: { dmgCut: 0.667, oncePerBattle: true, onlyBattle: true }, effectText: '전투 중 사용(한 전투에 1번 · 턴을 쓰지 않는다): 다음에 받는 공격의 피해가 무조건 1/3 줄어든다', tags: ['완성품', '전투 중 사용 가능', '#턴소모無'] },
   'nw-brick-shrine': { effect: { hunt: { bonus: 12, ward: 3 } }, effectText: '개척 중: 이번 개척 동안 추가 보상 확률 +12% / 3턴 동안 요괴가 다가오지 못한다' },
 }
+// vD.02.3 매점 값 — 요즘은 냥이 넉넉하다(추가전투 한 판에 수십 냥). 효과가 센 것일수록 더 올렸다.
+export const STORE_PRICES = {
+  picnic: 15, chocolate: 25, ramen: 20, dumpling: 30, chewy: 20, energy: 80, 'cone-icecream': 25, 'bag-snack': 40, 'slice-cake': 40,
+  firecracker: 90, 'twin-pop': 25, hotbar: 120, brush: 25, hanji: 12, 'carving-knife': 25, pouch: 20, inkstick: 25, bag: 300, 'st-tangerine': 10, 'st-seaweed': 12,
+}
 export function retuneItems(items) {
-  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
+  for (const it of items) if (STORE_PRICES[it.id] != null && it.price != null) it.price = STORE_PRICES[it.id]
+  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === true) it.battle = true; for (const k of ['only', 'oncePerBattle']) if (k in r) { if (r[k] == null) delete it[k]; else it[k] = r[k] } if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
   return items
 }

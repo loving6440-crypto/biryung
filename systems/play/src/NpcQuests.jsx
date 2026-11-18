@@ -1,5 +1,5 @@
 // 비령 vC.06 — 조사 장소의 [이 장소에서 받을 수 있는 퀘스트]. 그 장소에서 받고, 그 장소로 돌아와 마친다(npcQuests.js).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { bridge } from './bridge.js'
 import { NPCS, rewardText, goalText } from './npcQuests.js'
 
@@ -10,14 +10,20 @@ const srcsetOf = (src) => (/assets\/portraits\/[^/]+\.webp$/.test(src || '') ? `
 export default function NpcQuests({ place }) {
   const api = bridge.api
   // vD.01 방금 받거나 마쳤을 때의 한마디 — 그 장소에서만 보인다(다른 장소로 옮겨도 남아 잔상처럼 보이던 문제)
+  // vD.02.3 방금 한 말은 잠깐만(8초) — 남아서 메아리처럼 쌓이거나, 그 줄이 계속 그 사람의 대사로 굳어 버리던 문제
+  const SAY_MS = 8000
   const [saidAt, setSaidAt] = useState({ place, m: {} })
-  const said = saidAt.place === place ? saidAt.m : {}
+  const now = Date.now()
+  const said = saidAt.place === place ? Object.fromEntries(Object.entries(saidAt.m).filter(([, v]) => now - v.at < SAY_MS).map(([k, v]) => [k, v.line])) : {}
   const setSaid = (fn) => setSaidAt((cur) => ({ place, m: fn(cur.place === place ? cur.m : {}) }))
   const [, setTick] = useState(0)
+  useEffect(() => { setSaidAt({ place, m: {} }) }, [place]) // 장소가 바뀌면 바로 비운다
+  const sayingN = Object.keys(said).length
+  useEffect(() => { if (!sayingN) return undefined; const t = setTimeout(() => setTick((x) => x + 1), SAY_MS + 50); return () => clearTimeout(t) }, [sayingN, saidAt])
   if (!api?.npcPlace || !place) return null
   const rows = api.npcPlace(place)
   if (!rows.length && !Object.keys(said).length) return null
-  const act = (kind, id) => { const line = api.npcAct(kind, id); if (line != null) { setSaid((m) => ({ ...m, [id]: line })); setTick((x) => x + 1) } }
+  const act = (kind, id) => { const line = api.npcAct(kind, id); if (line != null) { setSaid(() => ({ [id]: { line, at: Date.now() } })); setTick((x) => x + 1) } } // 한 번에 한 마디만
   return (
     <section className="mt-4 rounded-lg border border-gold/25 bg-shade/25 p-3" aria-label="이 장소에서 받을 수 있는 퀘스트" data-npc-quests={place}>
       <p className="text-[12px] tracking-wide text-gold">[이 장소에서 받을 수 있는 퀘스트]</p>

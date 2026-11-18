@@ -84,6 +84,15 @@
     call('bry_inbox').then((b) => { nIn.value = b.notice?.body || ''; }).catch(() => {});
     nf.addEventListener('submit', guard(async (e) => { e.preventDefault(); await call('bry_admin_notice', { p_body: nIn.value }); toast('서버 관리', nIn.value.trim() ? '공지를 올렸다.' : '공지를 내렸다.'); poll(); }));
 
+    /* vD.02.3 팝업 공지 — 지금 접속해 있는 사람의 화면 가운데에 한 번 뜬다 */
+    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '팝업 공지 — 지금 접속해 있는 사람(정한 시간 안에 들어오는 사람 포함)의 화면에 한 번 뜬다. 예: 「단장했으니 새로고침 해 주세요!」'));
+    const pf = h('form', 'admin-form server-form'); const pIn = h('textarea'); pIn.maxLength = 400; pIn.rows = 2; pIn.placeholder = '띄울 말 (비우고 보내면 떠 있는 팝업을 거둔다)'; pIn.value = '단장했으니 새로고침 해 주세요!';
+    const pRow = h('div', 'admin-grid'); const pReload = input('checkbox'); pReload.checked = true; const pReloadLab = h('label', '', ' [지금 새로고침] 단추 함께'); pReloadLab.prepend(pReload);
+    const pMin = h('select'); [[10, '10분 동안'], [30, '30분 동안'], [60, '1시간 동안'], [180, '3시간 동안']].forEach(([v, t]) => pMin.append(new Option(t, String(v), false, v === 30)));
+    pRow.append(pReloadLab, pMin);
+    const pSend = h('button', 'solid-btn', '지금 띄우기'); pSend.type = 'submit'; pf.append(pIn, pRow, pSend); body.append(pf);
+    pf.addEventListener('submit', guard(async (e) => { e.preventDefault(); const r = await call('bry_admin_popup', { p_body: pIn.value, p_reload: pReload.checked, p_minutes: Number(pMin.value) }); toast('서버 관리', r.cleared ? '떠 있던 팝업을 거뒀다.' : '팝업 공지를 띄웠다. 접속 중인 사람에게 30초 안에 뜬다.'); }));
+
     /* 하사 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '하사 — 학생에게 냥 · 영력 · 아이템 · 영능력을 보낸다(받는 사람이 접속하면 들어간다)'));
     const gf = h('form', 'admin-form server-form'); const grid = h('div', 'admin-grid');

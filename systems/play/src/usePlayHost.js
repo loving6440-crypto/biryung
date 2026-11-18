@@ -69,9 +69,15 @@ const josa = (word, pair) => {
   return word + (b ? pair[0] : pair[1])
 }
 
-/** 메인 화면의 내 프로필 → 초록동색 규칙의 캐릭터 */
+/** 메인 화면의 내 프로필 → 게임 캐릭터 */
 function playerFromProfile(profile) {
-  return syncCodex(createPlayer({ name: profile.name, age: Number.parseInt(profile.age, 10) || 17, avatar: null, stats: profile.stats, greeting: profile.intro ?? '' }))
+  return syncCodex(createPlayer({ name: profile.name, age: Number.parseInt(profile.age, 10) || 17, grade: profileGrade(profile), avatar: null, stats: profile.stats, greeting: profile.intro ?? '' }))
+}
+/** vD.02.3 학년은 프로필에서 고른 학년(1~3) — 나이와 상관없다(빠른년생 · 한 해 쉰 사람). 고른 적이 없으면 나이로 */
+export function profileGrade(profile) {
+  const g = Number(profile?.grade)
+  if (g >= 1 && g <= 3) return g
+  return Math.min(3, Math.max(1, (Number.parseInt(profile?.age, 10) || 17) - 16))
 }
 
 /** vC.05 튜토리얼 전에 기억해 둔 체력 · 의지력으로 되돌린다 */
@@ -100,7 +106,7 @@ export function usePlayHost() {
     // 이름 · 한줄소개는 메인 화면의 프로필을 따른다.
     // vC.05 튜토리얼 도중에 창을 닫았으면, 다음에 들어올 때 튜토리얼 전의 체력 · 의지력으로 돌려놓는다.
     const back = restored?.tutorialSnap ? untutor(restored) : restored
-    return { ...back, name: profile.name, greeting: profile.intro ?? '' }
+    return { ...back, name: profile.name, greeting: profile.intro ?? '', grade: profileGrade(profile) } // vD.02.3 학년도 프로필을 따른다
   })
   const playerRef = useRef(player)
   // v1.3 본편 제작법 잠금: 보관고 제작 칸 · 제작법 목록(patches.mjs)이 이걸 본다. 관리자는 모두 열린다.
@@ -318,7 +324,7 @@ export function usePlayHost() {
     return out
   }
   /** vD.02.1 다인 전투에서 고른 몸의 이상을 푼다(StoryParty 가 부른다) */
-  const cureAilOne = (key) => { const c = playerRef.current; const r = cureAilments(c, [key]); if (r.cured?.length) { commit(r.player); addLog(`응급 처치: ${ailLabel(key)} 나았다.`) } }
+  const cureAilOne = (key) => { const keys = [].concat(key); const c = playerRef.current; const r = cureAilments(c, keys); if (r.cured?.length) { commit(r.player); addLog(`응급 처치: ${r.cured.map(ailLabel).join(' · ')} 나았다.`) } }
   /** vD.02 시간 기운 이름 */
   const TIMED_LABEL = { hpRegen: (v) => `1분마다 체력 +${v}`, mpRegen: (v) => `1분마다 의지력 +${v}`, huntOdds: (v) => `개척 성공률 +${v}%`, huntBonus: (v) => `개척 추가 보상 확률 +${v}%`, winMoney: (v) => `전투 승리 냥 +${v}%` }
   /** vD.02 양호실 물품 사기(매점 영업시간과 상관없다) */
@@ -625,19 +631,23 @@ export function usePlayHost() {
     })
     if (!ok.ok) { notify(ok.why); return }
     if (isHuntItem(item)) { huntActionRef.current?.({ type: 'item', itemId: id }); return }
-    if (item.effect?.cureOneBs) { // vD.02.1 응급 처치 상자: 걸린 나쁜 상태 하나를 골라 푼다(여럿이면 고른다)
+    if (item.effect?.cureOneBs) { // vD.02.1 응급 처치 상자: 걸린 나쁜 상태 하나를 골라 푼다(여럿이면 고른다) · vD.02.3 cureOneBs: 2 면 둘까지
+      const max = Math.max(1, Number(item.effect.cureOneBs) || 1)
       const options = bsOptions(cur, battleRef.current ? afflictRef.current.bs : [])
       if (!options.length) { notify('현재는 사용할 필요가 없습니다.'); return }
-      const pick = options.find((o) => o.key === target) ?? (options.length === 1 ? options[0] : null)
-      if (!pick) { setBsPick({ id, options }); return }
+      const want = target == null ? [] : [].concat(target).flatMap((t) => String(t).split(','))
+      const chosen = options.length <= max ? options : options.filter((o) => want.includes(o.key)).slice(0, max)
+      if (!chosen.length) { setBsPick({ id, options, max }); return }
       setBsPick(null)
+      const pick = { ail: false, key: chosen.map((o) => o.key), label: chosen.map((o) => o.label).join(' · ') }
       if (battleRef.current && afflictRef.current.itemSeal) { notify('주머니를 빼앗겨 지금은 아이템을 쓸 수 없다.'); return }
       let p1 = cur
-      if (pick.ail) p1 = cureAilments(p1, [pick.key]).player
+      const ails = chosen.filter((o) => o.ail).map((o) => o.key), bsKeys = chosen.filter((o) => !o.ail)
+      if (ails.length) p1 = cureAilments(p1, ails).player
       const inventory = { ...p1.inventory, [id]: (p1.inventory?.[id] || 0) - 1 }
       if (inventory[id] <= 0) delete inventory[id]
       commit({ ...p1, inventory })
-      if (!pick.ail && battleRef.current) setSoloItemFx({ seq: Date.now() + Math.random(), name: item.name, effect: { cureBs: pick.key, cureBsLabel: pick.label.replace(/[[\]]/g, '') } })
+      if (bsKeys.length && battleRef.current) setSoloItemFx({ seq: Date.now() + Math.random(), name: item.name, effect: { cureBs: bsKeys.map((o) => o.key), cureBsLabel: bsKeys.map((o) => o.label.replace(/[[\]]/g, '')).join(' · ') } })
       if (battleRef.current) setBattleUsedItems((arr) => (arr.includes(id) ? arr : [...arr, id]))
       bump('itemsUsed')
       addLog(`${item.name}을(를) 사용했다. (${pick.label} 풀림)`)
@@ -673,13 +683,15 @@ export function usePlayHost() {
     const healOnly = Object.keys(e).every((k) => ['hp', 'mp', 'giveHp', 'giveMp'].includes(k))
     if (battleRef.current && afflictRef.current.itemSeal) { notify('주머니를 빼앗겨 지금은 아이템을 쓸 수 없다.'); return }
     if (battleRef.current && afflictRef.current.healBlock && healOnly && (e.hp || e.giveHp)) { notify('돌림병 탓에 지금은 회복 아이템이 듣지 않는다.'); return }
-    if (e.trainUnder10) {
-      if (!ENH_STATS.includes(target) || (cur.stats?.[target] ?? 0) >= 10) { notify('스탯이 10 미만인 육조를 골라야 한다.'); return }
-      if ((cur.hp || 0) <= 30) { notify('사용하려면 체력이 30보다 많아야 한다.'); return }
-      const inventory = { ...cur.inventory, [id]: cur.inventory[id] - 1 }
+    if (e0.trainUnder10) { // vD.02.3 숯: 1개 = 10 미만 스탯 +1 · 체력 −30 / 99개 = 어떤 스탯이든 +1 · 체력 −90
+      const big = nWant >= 99 && (cur.inventory?.[id] || 0) >= 99
+      const n = big ? 99 : 1, cost = big ? 90 : 30
+      if (!ENH_STATS.includes(target) || (!big && (cur.stats?.[target] ?? 0) >= 10)) { notify(big ? '올릴 육조를 골라야 한다.' : '스탯이 10 미만인 육조를 골라야 한다. (99개를 한 번에 쓰면 10 이상도 된다)'); return }
+      if ((cur.hp || 0) <= cost) { notify(`사용하려면 체력이 ${cost}보다 많아야 한다.`); return }
+      const inventory = { ...cur.inventory, [id]: cur.inventory[id] - n }
       if (inventory[id] <= 0) delete inventory[id]
-      commit({ ...cur, inventory, hp: cur.hp - 30, stats: { ...cur.stats, [target]: (cur.stats[target] ?? 0) + 1 } })
-      addLog(`숯을 사용했다. ${STAT_META[target].label} +1 / 체력 -30.`)
+      commit({ ...cur, inventory, hp: cur.hp - cost, stats: { ...cur.stats, [target]: (cur.stats[target] ?? 0) + 1 } })
+      addLog(`숯을 ${n}개 사용했다. ${STAT_META[target].label} +1 / 체력 -${cost}.`)
       return
     }
     if (e.randomProduct) {
@@ -804,7 +816,9 @@ export function usePlayHost() {
 
   // ───── 동아리 (가입 정보는 저장 기록에 담겨 서버로 간다 — 멤버 목록은 서버가 모아 준다 · vD.02.1) ─────
   const [club, setClub] = useState(() => first.counts?.club ?? null)
-  const applyClub = async (clubId, name, grade, age, hope) => {
+  globalThis.BiryeongPlayGrade = () => playerRef.current?.grade ?? profileGrade(first.profile) // vD.02.3 동아리 신청서가 본다
+  const applyClub = async (clubId, name, grade0, age, hope) => {
+    const grade = playerRef.current?.grade ?? profileGrade(first.profile) ?? grade0 // vD.02.3 학년은 프로필 학년으로 못 박는다
     if (countsRef.current.club) return { error: 'already-in-club' }
     const mine = { id: clubId, name, grade, age, hope, joinedAt: Date.now() }
     countsRef.current = { ...countsRef.current, club: mine, clubJoins: (countsRef.current.clubJoins || 0) + 1 }
@@ -864,7 +878,7 @@ export function usePlayHost() {
     return true
   }
   // vC.06 1인 · 다인: STORY_FOES[key].size, 없으면 패턴이 있는 상대(보스)는 다인, 없는 상대는 1인
-  const storySize = (key) => STORY_FOES[key]?.size ?? (STORY_FOES[key]?.pattern ? 3 : 1)
+  const storySize = () => 3 // vD.02.4 본편 이야기 전투는 모두 3인(빈자리는 연호수 · 윤진서)
   /** vC.07.3 일행 전투: 도깨비들의 터 일행끼리 추가전투 · 실습 상대와 함께 싸운다(StoryParty 의 파티 방식을 그대로 쓴다) */
   const roomFight = (enemyId, join = null) => {
     if (!join && globalThis.BiryeongParty && globalThis.BiryeongParty.isLeader === false) { notify('일행 전투는 파티장만 열 수 있다.'); return } // vD.02

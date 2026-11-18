@@ -29,3 +29,8 @@ button:has(> svg[data-item-kind]) > .truncate, div:has(> svg[data-item-kind]) > 
 /* vD.02 아이템 마우스오버 설명(마우스 바로 위) */
 /* vD.02 가방에 넣을 것으로 고른 칸 */
 .play-scope [data-bag-picked="1"]{outline:2px solid #e9cf98;outline-offset:-2px;background:rgba(233,207,152,.16)}
+/* vD.02.3 전투 글 강조 */
+.emph-num{color:#ff8a7a;font-weight:700}
+.emph-key{color:#f2d24a;font-weight:700;text-decoration:underline;text-decoration-color:rgba(242,210,74,.5);text-underline-offset:2px}
+.emph-status{color:#ffb86b;font-weight:700}
+.emph-soft{color:#9fd3a8;font-weight:700}

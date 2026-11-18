@@ -702,37 +702,37 @@
     addTo('pages', 'profile');
     if (!p || editing) renderProfileForm(p); else renderProfileCard(p);
   }
-  function renderProfileCard(p) {
+  function renderProfileCard(p, root = panelBody, inPop = false) { // vD.02.3 root: 팝업(내 프로필 창)에도 같은 카드
     const card = h('div', 'profile-card');
     const avatar = h('div', 'profile-avatar'); avatarInto(avatar, p.photo, p.name);
     const info = h('div', 'profile-info');
     info.append(h('small', 'profile-title', p.title && ownsTitle(p.title) ? `「${titleById[p.title].name}」` : '칭호 없음'), h('h3', '', p.name));
-    const meta = h('p', 'profile-meta'); meta.append(h('span', '', `나이 ${p.age || '—'}`), h('span', '', `성별 ${p.gender || '—'}`));
+    const meta = h('p', 'profile-meta'); meta.append(h('span', '', `${Number(p.grade) >= 1 ? `${p.grade}학년` : '학년 —'}`), h('span', '', `나이 ${p.age || '—'}`), h('span', '', `성별 ${p.gender || '—'}`));
     if (save.story.heirloom) meta.append(h('span', '', `유품 ${HEIRLOOM[save.story.heirloom]?.name ?? ''}`));
     info.append(meta, h('p', 'profile-intro', p.intro || '(한줄소개가 비어 있다)'));
     card.append(avatar, info);
-    panelBody.append(card, h('div', 'panel-rule'));
+    root.append(card, h('div', 'panel-rule'));
     const grid = h('div', 'profile-stats'); const st = statsNow();
     R.statKeys.forEach((k) => { const c = h('div', 'profile-stat'); c.title = R.stats[k].detail; c.append(h('span', '', R.stats[k].label), h('b', '', String(Math.floor(st[k] ?? 1)))); grid.append(c); });
-    panelBody.append(h('p', 'panel-label', '육조 스탯'), grid);
+    root.append(h('p', 'panel-label', '육조 스탯'), grid);
     const pick = h('div', 'profile-field');
     const sel = h('select'); sel.id = 'profileTitleSelect';
     sel.append(new Option('칭호 없음', ''));
     ownedTitles().forEach((t) => sel.append(new Option(`${t.name} — ${t.perkText ?? ''}`, t.id, false, p.title === t.id)));
-    sel.addEventListener('change', () => { p.title = sel.value || null; persist(); renderStatus(); route(); });
+    sel.addEventListener('change', () => { p.title = sel.value || null; persist(); renderStatus(); if (inPop) openMyProfile(); else route(); });
     const lab = h('label', '', `칭호 고르기 (가진 칭호 ${ownedTitles().length} / ${TITLES.length})`); lab.htmlFor = sel.id;
     pick.append(lab, sel);
     if (p.title && titleById[p.title]) pick.append(h('small', '', titleById[p.title].desc), h('small', 'perk-line', `기능 — ${titleById[p.title].perkText ?? '없음'}`));
     else pick.append(h('small', '', '칭호를 달면 그 칭호의 기능 하나가 듣는다.'));
-    panelBody.append(pick);
+    root.append(pick);
     const foot = h('div', 'profile-actions');
-    foot.append(btn('ghost-btn', '프로필 고치기', () => openProfile(true)), btn('ghost-btn', '업적 / 도감', () => openCodex('titles')));
+    foot.append(btn('ghost-btn', '프로필 고치기', () => { if (inPop) myProfileDialog.close(); openProfile(true); }), btn('ghost-btn', '업적 / 도감', () => { if (inPop) myProfileDialog.close(); openCodex('titles'); }));
     if (window.BiryeongOpening) foot.append(btn('ghost-btn', '오프닝 다시 보기', () => window.BiryeongOpening.play({ replay: true })));
-    panelBody.append(foot, h('p', 'panel-fine', Auth.server ? '프로필과 진행 기록은 비령 서버에 함께 보관됩니다. 다른 기기에서도 같은 아이디로 이어집니다.' : '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
+    root.append(foot, h('p', 'panel-fine', Auth.server ? '프로필과 진행 기록은 비령 서버에 함께 보관됩니다. 다른 기기에서도 같은 아이디로 이어집니다.' : '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
   function renderProfileForm(p) {
     const creating = !p;
-    const draft = { name: p?.name ?? '', age: p?.age ?? '', gender: p?.gender ?? '', intro: p?.intro ?? '', photo: p?.photo ?? null, stats: p ? { ...p.stats } : blankStats() };
+    const draft = { name: p?.name ?? '', age: p?.age ?? '', grade: Number(p?.grade) || 0, gender: p?.gender ?? '', intro: p?.intro ?? '', photo: p?.photo ?? null, stats: p ? { ...p.stats } : blankStats() };
     panelBody.replaceChildren();
     const form = h('form', 'profile-form'); form.noValidate = true;
     if (creating) form.append(h('p', 'panel-intro panel-p', '산문 명부에 이름을 남깁니다. 스탯은 처음 한 번만 나눌 수 있고, 나머지는 언제든 고칠 수 있습니다.'));
@@ -754,6 +754,11 @@
     const nameIn = field('pfName', `이름 (${R.nameMax}자까지)`, draft.name, { maxLength: R.nameMax, required: true, autocomplete: 'off' });
     nameIn.addEventListener('input', () => { if (!draft.photo) avatarInto(av, null, nameIn.value); });
     const ageIn = field('pfAge', '나이', draft.age, { maxLength: 12, autocomplete: 'off' });
+    // vD.02.3 학년 — 나이와 따로 고른다(빠른년생 · 한 해 쉰 사람도 있으니). 동아리 · 학생기록부는 이 학년을 따른다.
+    const gradeWrap = h('div', 'profile-field'); const gradeLab = h('label', '', '학년'); gradeLab.htmlFor = 'pfGrade';
+    const gradeSel = h('select'); gradeSel.id = 'pfGrade'; gradeSel.required = true;
+    gradeSel.append(new Option('학년을 고른다', ''), ...[1, 2, 3].map((g) => new Option(`${g}학년`, String(g), false, draft.grade === g)));
+    gradeWrap.append(gradeLab, gradeSel, h('small', '', '나이와 상관없이 이 학년으로 지낸다. 동아리 · 학생기록부에 이 학년으로 적힌다.')); form.append(gradeWrap);
     const genderIn = field('pfGender', '성별 (자유롭게 적기)', draft.gender, { maxLength: 20, autocomplete: 'off' });
     const introIn = field('pfIntro', `한줄소개 (${R.introMax}자까지)`, draft.intro, { maxLength: R.introMax, autocomplete: 'off' });
     // 스탯
@@ -789,9 +794,11 @@
       event.preventDefault();
       const name = nameIn.value.trim();
       if (!name) { error.textContent = '이름을 적어 주세요.'; error.hidden = false; nameIn.focus(); return; }
+      const grade = Number(gradeSel.value) || 0;
+      if (!grade) { error.textContent = '학년을 골라 주세요.'; error.hidden = false; gradeSel.focus(); return; }
       if (creating && spent() < R.startPoints) { error.textContent = `남은 스탯 ${R.startPoints - spent()}점을 모두 나눠 주세요.`; error.hidden = false; return; }
       const base = p ?? { stats: draft.stats, title: null, hp: R.hpMax, mp: R.mpMax, spirit: R.spiritStart, money: R.startMoney, inventory: {}, createdAt: Date.now() };
-      save.profile = Object.assign(base, { name, age: ageIn.value.trim(), gender: genderIn.value.trim(), intro: introIn.value.trim(), photo: draft.photo });
+      save.profile = Object.assign(base, { name, age: ageIn.value.trim(), grade, gender: genderIn.value.trim(), intro: introIn.value.trim(), photo: draft.photo });
       persist();
       if (creating) {
         const added = R.statKeys.map((k) => draft.stats[k] - R.statMin);
@@ -999,6 +1006,17 @@
     });
   }
 
+  // vD.02.3 내 프로필도 화면을 바꾸지 않고 위에 뜬다(닫으면 보던 화면 그대로). 프로필이 아직 없으면 만들기 화면으로.
+  const myProfileDialog = $('#myProfileDialog');
+  function openMyProfile() {
+    const p = profile();
+    if (!p) { go('#/profile'); return; }
+    const body = $('#myProfileBody'); body.replaceChildren();
+    renderProfileCard(p, body, true);
+    if (!myProfileDialog.open) { try { myProfileDialog.showModal(); } catch (_) { myProfileDialog.setAttribute('open', ''); } }
+  }
+  $('#myProfileClose').addEventListener('click', () => myProfileDialog.close());
+  myProfileDialog.addEventListener('click', (e) => { if (e.target === myProfileDialog) myProfileDialog.close(); });
   // vC.06 업적 / 도감은 화면을 바꾸지 않고 소지품처럼 위에 뜬다(codexDialog).
   const codexDialog = $('#codexDialog');
   let codexTab = 'achievements';
@@ -1159,8 +1177,8 @@
   });
   // 공개된 장(권)은 서버에서 늦게 오므로 한 번 더 그리고, 공지 새 글 표시도 확인한다
   setTimeout(drawVolumes, 1500); setTimeout(drawVolumes, 4000); setTimeout(() => drawBoard().catch(() => {}), 2500);
-  $('#journalBtn').addEventListener('click', () => go('#/profile'));
-  $('#statusWho').addEventListener('click', () => go('#/profile'));
+  $('#journalBtn').addEventListener('click', () => openMyProfile()); // vD.02.3 팝업
+  $('#statusWho').addEventListener('click', () => openMyProfile());
   $('#accountName').textContent = Auth.session();
   $('#accountBtn').addEventListener('click', () => { if (window.confirm('로그아웃할까요? 기록은 이 브라우저에 그대로 남습니다.')) { try { playApi()?.save(); } catch (_) { /* 무시 */ } Auth.logout(); } });
   if (Auth.isAdmin()) { const slot = $('[data-admin-slot]'); const b = btn('', '', () => go('#/admin')); b.dataset.menu = 'admin'; b.append(h('i', '', '管'), h('span', '', '관리자')); slot.replaceWith(b); }

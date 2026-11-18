@@ -1,5 +1,5 @@
 // 비령 v1.9.5 — 본편 이야기 전투를 3인 전투로.
-// vC.06 — 1인 전투도 있다(STORY_FOES.size, 기본: 패턴이 있는 상대 = 다인 · 없는 상대 = 1인).
+// vC.06 — 1인 전투도 있었다 · vD.02.4부터 본편 이야기 전투는 모두 3인(storySize).
 //   다인 전투: ① NPC(연호수 · 윤진서)와 함께 — 전투마다 계정당 1번(이기면 다 쓴 것)  ② 같은 진도의 학생과 파티
 //              ③ 이미 깬 학생이 「돕는 선배」로 다른 학생의 파티에 다시 들어갈 수 있다 — 영력 · 최초 보상은 없고 냥은 2배.
 //                 처음 싸우는 학생(방장)이 있는 파티에만 들어갈 수 있다(돕는 사람은 파티를 열 수 없다).
@@ -15,6 +15,7 @@ import { createMB, openingInitiative, beginRound, resolveTurn, submit, survive, 
 import MultiBattle from '@vault/ui/components/locations/MultiBattle.jsx'
 import { itemOf, weaponFx, trinketFx, equipOf, itemTurnFree } from '@vault/game/items.js'
 import { ownedPassives } from '@vault/game/battle.js'
+import { TIER_REC } from './tierScale.js'
 import BattleBag from './BattleBag.jsx'
 import BringPicker from '@vault/ui/components/BringPicker.jsx'
 import PassivePicker from '@vault/ui/components/PassivePicker.jsx'
@@ -44,12 +45,15 @@ export function memberOf({ id, name, stats, player, revive = false, boost = fals
     psychics: player.psychics ?? [], baseAggression: player.stats?.aggression, curseUntil: player.curseUntil || 0,
   }
 }
-/** NPC 둘: 내 육조 스탯 합만큼을 저마다의 성향대로 나눠 가진다. */
-function npcMembers(me) {
+/** vD.02.3 상대의 적정 스탯 위쪽 끝(「16~18」→ 18 · 「4」→ 4) */
+const recTop = (enemy) => { const nums = String(enemy?.rec ?? TIER_REC[enemy?.tier] ?? '').match(/\d+/g); return nums ? Math.max(...nums.map(Number)) : 0 }
+/** NPC 둘: vD.02.3 여섯 스탯 모두 「상대 적정 스탯 + 1」(적정 16~18 → 모두 19 · 적정 4 → 모두 5). 적정을 모르면 예전처럼 내 스탯 합을 성향대로 나눈다. */
+function npcMembers(me, enemy) {
+  const top = recTop(enemy)
   const total = STAT_KEYS.reduce((s, k) => s + (me.stats[k] || 1), 0)
   return NPCS.map((n) => ({
     id: n.id, name: n.name, fx: n.fx, npc: true,
-    stats: Object.fromEntries(STAT_KEYS.map((k) => [k, Math.max(1, Math.round(total * n.w[k]))])),
+    stats: Object.fromEntries(STAT_KEYS.map((k) => [k, top ? top + 1 : Math.max(1, Math.round(total * n.w[k]))])),
     hp: me.hpMax, hpMax: me.hpMax, mp: me.mpMax, mpMax: me.mpMax, psychics: [],
   }))
 }
@@ -195,8 +199,9 @@ function npcTurn(mb, m) {
   if (st?.p === 'roots' && m.id === 'npc-jinseo' && st.roots > 0 && m.mp >= cutCost(m)) { if (storyAct(mb, m.id, 'cut').ok) return }
   // 이름 부르기는 플레이어만 한다(NPC 가 부르면 정답이 드러난다)
   let action = 'attack'
+  // vD.02.3 부적도 쓴다: 상대가 방어 태세면 꼭, 그 밖에도 부적이 남아 있고 의지력이 넉넉하면 절반쯤은 부적으로(마지막 하나는 방어 태세용으로 아낀다)
   if (['smash', 'special', 'group'].includes(intent) && !m.bound) action = 'guard'
-  else if (intent === 'guard' && m.charms > 0) action = 'charm'
+  else if (m.charms > 0 && m.mp >= 12 && (intent === 'guard' || (m.charms > 1 && Math.random() < 0.5) || mb.ehp <= mb.enemy.hp * 0.25)) action = 'charm'
   const r = submit(mb, m.id, { action })
   if (r.error) submit(mb, m.id, { action: 'attack' })
   resolveWithStory(mb, m.id, action !== 'guard')
@@ -332,7 +337,8 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
         if (a.survive != null) { if (m.pendingDeath) { survive(mb, m.id, !!a.survive); changed = true } continue }
         if (a.item) { // vC.07.6 건네기: target 이 일행이면 그 사람에게. 결과는 acks 로 알려 준다(받아 줬을 때만 그 사람의 소지품에서 빠진다)
           const it0 = itemOf(a.item), to = mb.members.some((y) => y.id === a.target) ? a.target : m.id
-          const it = it0 && (a.bs || a.ailLabel) ? { ...it0, effect: { ...it0.effect, ...(a.bs ? { cureBs: String(a.bs), cureBsLabel: String(a.bsLabel || a.bs) } : { cureAilLabel: String(a.ailLabel) }) } } : it0 // vD.02.1 응급 처치 상자
+          const bsIn = a.bs ? [].concat(a.bs).map(String).filter((x) => /^[A-Za-z]{1,20}$/.test(x)).slice(0, Math.max(1, Number(it0?.effect?.cureOneBs) || 1)) : []
+          const it = it0 && (bsIn.length || a.ailLabel) ? { ...it0, effect: { ...it0.effect, ...(bsIn.length ? { cureBs: bsIn, cureBsLabel: String(a.bsLabel || bsIn.join(' · ')).slice(0, 80) } : {}), ...(a.ailLabel ? { cureAilLabel: String(a.ailLabel).slice(0, 80) } : {}) } } : it0 // vD.02.1 응급 처치 상자
           const r = it ? useItemMB(mb, m.id, it, to) : { error: 'not-battle-item' }
           mb.acks = { ...(mb.acks || {}), [m.id]: { k: a.k ?? null, ok: !r.error, err: r.error ?? null } }
           if (!r.error && m.act?.action === 'item') resolveWithStory(mb, m.id, false)
@@ -429,12 +435,13 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   const hostStory = (act, arg) => { const mb = mbRef.current; if (!mb) return; const r = storyAct(mb, me.id, act, arg); if (r.error) setMsg(r.error); publish() }
   const hostItem = (id, target, pick = null) => {
     const mb = mbRef.current, it0 = itemOf(id); if (!mb || !it0) return
-    const it = pick ? { ...it0, effect: { ...it0.effect, ...(pick.ail ? { cureAilLabel: pick.label } : { cureBs: pick.key, cureBsLabel: pick.label.replace(/[[\]]/g, '') }) } } : it0
+    const picks = pick ? [].concat(pick) : [], pb = picks.filter((o) => !o.ail), pa = picks.filter((o) => o.ail) // vD.02.3 둘까지
+    const it = picks.length ? { ...it0, effect: { ...it0.effect, ...(pb.length ? { cureBs: pb.map((o) => o.key), cureBsLabel: pb.map((o) => o.label.replace(/[[\]]/g, '')).join(' · ') } : {}), ...(pa.length ? { cureAilLabel: pa.map((o) => o.label).join(' · ') } : {}) } } : it0
     const to = target && target !== 'self' && mb.members.some((x) => x.id === target) ? target : me.id
     const r = useItemMB(mb, me.id, it, to)
     if (r.error) { setMsg(itemErr(r.error)); setItemsOpen(false); return }
     onSpendItem(id); setItemsOpen(false)
-    if (pick?.ail) onCureAil?.(pick.key) // vD.02.1 몸의 이상은 내 기록에서 푼다
+    if (pa.length) onCureAil?.(pa.map((o) => o.key)) // vD.02.1 몸의 이상은 내 기록에서 푼다
     if (to !== me.id) onLog?.([`${it.name}을(를) ${mb.members.find((x) => x.id === to)?.name ?? '일행'}에게 건넸다.`])
     if (mb.members.find((x) => x.id === me.id)?.act?.action === 'item') resolveWithStory(mb, me.id, false)
     publish()
@@ -473,9 +480,10 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     if (pendingItem.current) { setMsg('앞서 쓴 아이템을 방장의 판이 받는 중이다.'); return }
     const k = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const to = target && target !== 'self' ? target : me.id
-    pendingItem.current = { k, id, to, at: Date.now(), ail: pick?.ail ? pick.key : null }
+    const picks = pick ? [].concat(pick) : [], pb = picks.filter((o) => !o.ail), pa = picks.filter((o) => o.ail)
+    pendingItem.current = { k, id, to, at: Date.now(), ail: pa.length ? pa.map((o) => o.key) : null }
     setItemsOpen(false)
-    const r = await guestAct({ item: id, target: to, k, ...(pick ? (pick.ail ? { ailLabel: pick.label } : { bs: pick.key, bsLabel: pick.label.replace(/[[\]]/g, '') }) : {}) })
+    const r = await guestAct({ item: id, target: to, k, ...(pb.length ? { bs: pb.map((o) => o.key), bsLabel: pb.map((o) => o.label.replace(/[[\]]/g, '')).join(' · ') } : {}), ...(pa.length ? { ailLabel: pa.map((o) => o.label).join(' · ') } : {}) })
     if (r.error) { pendingItem.current = null; setMsg(r.error) }
   }
   // 일행: 방장이 아이템을 받아 줬는지(acks) 보고 소지품에서 뺀다 · 전투 기록은 활동 기록에도 흘려 보낸다
@@ -505,7 +513,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     const id = partyRef.current
     let g; try { g = await call('bry_party_get', { p_id: id, p_raw: true }) } catch (e) { setMsg(e.message); return }
     const humans = (g.raw || []).map((x) => ({ ...x.m, id: x.u, name: x.name }))
-    const fill = npcUsed ? [] : npcMembers(meMember).slice(0, Math.max(0, 3 - humans.length)) // NPC를 이미 쓴 방장은 사람끼리만
+    const fill = npcUsed ? [] : npcMembers(meMember, enemy).slice(0, Math.max(0, 3 - humans.length)) // NPC를 이미 쓴 방장은 사람끼리만
     const v = beginPick([...humans, ...fill], id) // vC.07.6 출발 — 보스면 저마다 가져갈 것을 고른 뒤 판이 열린다
     try { await call('bry_party_start', { p_id: id, p_view: v }) } catch (e) { setMsg(e.message) }
   }
@@ -537,7 +545,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     {rules.length > 0 && <ul className="mt-3 space-y-1 rounded-lg border border-gold/25 p-3 text-xs text-paper/75">{rules.map((r, i) => <li key={i}>· {r}</li>)}</ul>}
     <p className="mt-3 text-xs text-paper/60">다인 전투 — 세 사람까지 함께 싸운다. 같이 싸울 사람을 고른다. 이미 이 전투를 깬 선배가 도우러 올 수도 있다.{bossFight ? ' 보스 전투 — 출발하면 저마다 가져갈 아이템 3개 · 영능력 2개를 고른다.' : ''}</p>
     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-      <button type="button" data-story-npc disabled={npcUsed} className="flat-btn flex-col !items-start !gap-0.5 text-left disabled:opacity-40" onClick={() => beginPick([meMember, ...npcMembers(meMember)])}>
+      <button type="button" data-story-npc disabled={npcUsed} className="flat-btn flex-col !items-start !gap-0.5 text-left disabled:opacity-40" onClick={() => beginPick([meMember, ...npcMembers(meMember, enemy)])}>
         <span className="font-serif text-base text-gold">연호수 · 윤진서와 함께</span><span className="text-[11px] text-paper/60">{npcUsed ? '이 전투는 이미 두 사람과 함께 깼다. (계정당 1번)' : '두 사람이 곁에서 싸운다. 바로 시작한다. (이 전투에서 계정당 1번)'}</span>
       </button>
       <button type="button" data-story-party disabled={!live() || !fight.stage} className="flat-btn flex-col !items-start !gap-0.5 text-left disabled:opacity-40" onClick={createParty}>
@@ -604,8 +612,9 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     if (!it?.effect?.cureOneBs) return onItem0(id, target)
     const opts = bsOptions ? bsOptions(player, __activeBs(mine ?? {})) : []
     if (!opts.length) { setMsg('현재는 사용할 필요가 없습니다.'); setItemsOpen(false); return }
-    if (opts.length === 1) return onItem0(id, me.id, opts[0])
-    setItemsOpen(false); setBsPick({ id, options: opts })
+    const max = Math.max(1, Number(it.effect.cureOneBs) || 1)
+    if (opts.length <= max) return onItem0(id, me.id, opts)
+    setItemsOpen(false); setBsPick({ id, options: opts, max })
   }
   // vC.07.6 전투 중 소지품: 보관고 소지품 창 그대로 — 일행에게 건네기 · 보스전은 가져온 것만
   const bagItems = view.bringLimit
@@ -619,7 +628,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
     {itemsOpen && <BattleBag items={bagItems} mates={view.members.filter((m) => m.id !== me.id && m.status === 'alive')} pending={!!pendingItem.current}
       ctx={{ myTurn: !view.over && view.phase === 'input' && view.turn === me.id, isParty: view.members.length > 1, reviveOn: !!mine?.revive, boostOn: !!mine?.boost, usedItems: mine?.energyUsed ? ['energy'] : [], downed: !!mine?.pendingDeath || mine?.status === 'down', bringLimit: !!view.bringLimit }}
       onUse={(id, target) => onItem(id, target)} onClose={() => setItemsOpen(false)} />}
-    {bsPick && <BsPicker options={bsPick.options} onClose={() => setBsPick(null)} onPick={(k) => { const o = bsPick.options.find((x) => x.key === k); const id = bsPick.id; setBsPick(null); if (o) onItem0(id, me.id, o) }} />}
+    {bsPick && <BsPicker options={bsPick.options} max={bsPick.max || 1} title={itemOf(bsPick.id)?.name} onClose={() => setBsPick(null)} onPick={(k) => { const keys = [].concat(k); const os = bsPick.options.filter((x) => keys.includes(x.key)); const id = bsPick.id; setBsPick(null); if (os.length) onItem0(id, me.id, os) }} />}
     {msg && <p className="mb-2 text-xs text-crimson">{msg}</p>}
     <MultiBattle meId={me.id} view={view} stats={stats} seen={seen} specials={specials} psychics={psychics}
       onAct={async (a) => { setMsg(''); const r = await act(a); if (r?.error) setMsg(typeof r.error === 'string' && r.error.length > 12 ? r.error : '지금은 할 수 없다.'); return r }}

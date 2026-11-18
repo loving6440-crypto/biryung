@@ -22,8 +22,8 @@ const psychics = CX.psychics.map((p) => ({
 // ── 몸의 이상 ──
 const A = await import(join(ROOT, 'systems/play/src/ailments.js'))
 const ailments = [
-  { id: 'weak', name: A.WEAK_INFO.name, hanja: A.WEAK_INFO.hanja, heavy: '무거움', effect: A.WEAK_INFO.effect, minutes: 24 * 60, max: 1, from: A.WEAK_INFO.from, text: A.WEAK_INFO.text, cure: '영양제 등 [쇠약] 회복 아이템', restore: '', shorten: '' },
-  ...A.AILMENTS.map((a) => { const c = A.curesFor(a.id); return { id: a.id, name: a.name, hanja: a.hanja, heavy: a.heavy ? '무거움' : '가벼움', effect: a.effect, minutes: a.minutes, max: a.max, from: a.from, text: a.text, cure: c.cure.join(' / '), restore: c.restore.join(' / '), shorten: c.shorten.join(' / ') } }),
+  { id: 'weak', name: A.WEAK_INFO.name, hanja: A.WEAK_INFO.hanja, heavy: '무거움', effect: A.WEAK_INFO.effect, minutes: 24 * 60, max: 1, from: A.WEAK_INFO.from, chance: '전투에서 지면 반드시', text: A.WEAK_INFO.text, cure: '영양제 등 [쇠약] 회복 아이템', restore: '', shorten: '' },
+  ...A.AILMENTS.map((a) => { const c = A.curesFor(a.id); return { id: a.id, name: a.name, hanja: a.hanja, heavy: a.heavy ? '무거움' : '가벼움', effect: a.effect, minutes: a.minutes, max: a.max, from: a.from, chance: A.chanceText(a.id), text: a.text, cure: c.cure.join(' / '), restore: c.restore.join(' / '), shorten: c.shorten.join(' / ') } }),
 ]
 
 // ── 아이템 · 제작법: 표 자료(export.mjs)에 레벨을 더한다 ──
