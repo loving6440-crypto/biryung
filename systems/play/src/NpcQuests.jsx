@@ -5,9 +5,14 @@ import { NPCS, rewardText, goalText } from './npcQuests.js'
 
 // vC.06 메인 인물 그림(config.js 의 BIRYEONG_PORTRAITS) — 부탁을 마칠 수 있을 때는 웃는 얼굴
 const faceOf = (name, mood) => { const p = globalThis.BIRYEONG_PORTRAITS?.[name]; if (!p) return null; if (typeof p === 'string') return p; return p[mood] || p.base }
+// vD.01 미리 매끈하게 줄여 둔 72 · 144 크기(도트처럼 깨지지 않게)
+const srcsetOf = (src) => (/assets\/portraits\/[^/]+\.webp$/.test(src || '') ? `${src.replace(/\.webp$/, '-72.webp')} 72w, ${src.replace(/\.webp$/, '-144.webp')} 144w, ${src} 240w` : undefined)
 export default function NpcQuests({ place }) {
   const api = bridge.api
-  const [said, setSaid] = useState({}) // 방금 받거나 마쳤을 때의 한마디
+  // vD.01 방금 받거나 마쳤을 때의 한마디 — 그 장소에서만 보인다(다른 장소로 옮겨도 남아 잔상처럼 보이던 문제)
+  const [saidAt, setSaidAt] = useState({ place, m: {} })
+  const said = saidAt.place === place ? saidAt.m : {}
+  const setSaid = (fn) => setSaidAt((cur) => ({ place, m: fn(cur.place === place ? cur.m : {}) }))
   const [, setTick] = useState(0)
   if (!api?.npcPlace || !place) return null
   const rows = api.npcPlace(place)
@@ -22,7 +27,7 @@ export default function NpcQuests({ place }) {
           return (
             <li key={q.id} data-npc-quest={q.id} data-state={state}>
               <div className="flex gap-3">
-              {faceOf(who.name, 'base') && <img src={faceOf(who.name, state === 'active' && pr?.done ? 'smile' : 'base')} alt={`${who.name} 초상`} className="size-14 flex-none border border-gold/50 bg-[#0b1522] object-cover" />}
+              {faceOf(who.name, 'base') && <img src={faceOf(who.name, state === 'active' && pr?.done ? 'smile' : 'base')} srcSet={srcsetOf(faceOf(who.name, state === 'active' && pr?.done ? 'smile' : 'base'))} sizes="56px" alt={`${who.name} 초상`} className="size-14 flex-none border border-gold/50 bg-[#0b1522] object-cover" />}
               <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-baseline gap-2 text-[13px]">
                 <b style={{ color: who.color }}>{who.name}</b>

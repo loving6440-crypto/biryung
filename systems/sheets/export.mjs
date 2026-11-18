@@ -12,11 +12,12 @@ const { RECIPES } = await imp('crafting.js')
 const { COOK_RECIPES } = await imp('cooking.js')
 const hunt = await imp('huntSites.js')
 // vC.06: 실행 화면과 같은 개척 터 레벨 · 이름(만렙 40 기준) — huntLevels.js
-;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(hunt.HUNT_SITES, hunt.HUNT_PATHS)
+;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(hunt.HUNT_SITES, hunt.HUNT_PATHS, hunt.HUNT_SPECIES)
 const garden = await imp('garden.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 const AIL = await import(join(ROOT, 'systems/play/src/ailments.js')) // vC.06 몸의 이상을 낫게 하는 물건
-const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
+const { ITEM_RETUNE } = await import(join(ROOT, 'systems/play/src/itemRetune.js')) // vD.01
+const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)).map((i) => (ITEM_RETUNE[i.id] ? { ...i, ...ITEM_RETUNE[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
 const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
 const name = (id) => R.ITEM_RESKIN[id]?.name ?? ITEMS.find((i) => i.id === id)?.name ?? id
 const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]))

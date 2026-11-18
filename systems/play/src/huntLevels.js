@@ -12,6 +12,8 @@
 // 이름 · 설명: 산길 5~20 은 지금 붙어 있던 이름(도토리 숲길 · 칡덩굴 비탈 …)을 그대로 터 이름으로 쓴다. 산길 1~4 · 호수 · 묘소 · 동굴은 새로 붙였다.
 // 순서: 개척 터 단추는 수월한 스탯(관련 스탯 평균)이 낮은 순서로 늘어선다.
 
+import { HUNT_EXTRA } from '../../biryeong/reskin.data.js'
+
 const PTS = [[0, 0], [19, 19], [29.5, 25], [39.5, 30], [46, 36], [50, 43], [60, 50], [100, 80]]
 /** 관련 스탯 평균(만렙 50 기준) → 만렙 40 기준 */
 export function remapS(x) {
@@ -50,7 +52,7 @@ function siteS(site) {
  * HUNT_SITES · HUNT_PATHS 를 그 자리에서 고친다(두 번 불러도 한 번만).
  * huntSites.js 끝(patches.mjs)과 도감 · 표 만들기(codex · sheets)에서 부른다.
  */
-export function remapHuntSites(HUNT_SITES, HUNT_PATHS) {
+export function remapHuntSites(HUNT_SITES, HUNT_PATHS, HUNT_SPECIES = null) {
   if (!HUNT_SITES || HUNT_SITES[DONE]) return HUNT_SITES
   Object.defineProperty(HUNT_SITES, DONE, { value: true, enumerable: false })
   const oldNames = {}
@@ -79,5 +81,91 @@ export function remapHuntSites(HUNT_SITES, HUNT_PATHS) {
       .sort((a, b) => (HUNT_SITES[a.id] ? siteS(HUNT_SITES[a.id]) : 1e9) - (HUNT_SITES[b.id] ? siteS(HUNT_SITES[b.id]) : 1e9) || a._i - b._i)
       .map(({ _i, ...s }) => s)
   }
+  if (HUNT_SPECIES) rebalanceHuntMaterials(HUNT_SITES, HUNT_SPECIES)
   return HUNT_SITES
+}
+
+// ───────── vD.01 개척 재료 다시 나누기 ─────────
+// · 한 재료는 개척 터 두 곳까지만 나온다(쉬운 터부터 보아 처음 나온 두 곳). 세 번째부터는 그 터에 이미 있는 같은 종류(식물 · 장애물 · 동물)의
+//   다른 칸으로 바꾸고, 같은 종류가 없으면 아직 두 곳이 차지 않은 재료의 칸을(레벨이 가까운 것부터) 새로 들인다.
+// · 두 곳에서 나오는 재료는 레벨이 높은 터에서 한 번에 더 많이(주사위 +1, 덤 +1) 나온다.
+// · 성공 덤(부산물)은 모든 터에 똑같이 붙던 고운 나뭇조각 · 자갈돌 · 덫 부스러기 대신, 그 칸의 재료 1개를 더 준다.
+//   고운 나뭇조각 · 덫 부스러기는 낮은 터 두 곳씩의 칸(쓰러진 고목 · 버려진 덫)에서 나온다.
+export const HUNT_EXTRA_SPECIES = {
+  fallenLog: { name: '쓰러진 고목', kind: 'plant', rewards: [{ item: 'fine-woodchip', dice: 2 }] },
+  oldTrap: { name: '버려진 덫', kind: 'obstacle', rewards: [{ item: 'trap-scraps', dice: 2 }] },
+}
+const PLACE_EXTRA = [['left-trail-1', 'fallenLog'], ['left-trail-5', 'fallenLog'], ['left-trail-2', 'oldTrap'], ['left-trail-4', 'oldTrap']]
+const mainItem = (sp) => sp?.rewards?.find((r) => r.chance == null)?.item ?? sp?.rewards?.[0]?.item ?? null
+const itemsOf = (sp) => (sp?.rewards ?? []).map((r) => r.item)
+const bump = (r) => ({ ...r, ...(r.dice ? { dice: r.dice + 1 } : { amount: (r.amount ?? 1) }), plus: (r.plus ?? 0) + 1 })
+export function rebalanceHuntMaterials(HUNT_SITES, SPECIES) {
+  for (const [k, v] of Object.entries(HUNT_EXTRA_SPECIES)) if (!SPECIES[k]) SPECIES[k] = v
+  // 개척 덤(hunt-extra.txt — 얻을 곳이 없던 아이템의 낮은 확률 덤)도 먼저 붙여 두고 함께 센다(reskin.js 는 이미 붙은 것을 건너뛴다)
+  for (const x of HUNT_EXTRA) { const sp = SPECIES[x.species]; if (sp && !sp.rewards.some((r) => r.item === x.item)) sp.rewards.push({ item: x.item, chance: x.chance, amount: x.amount }) }
+  const med = (site) => { const ls = (site.nodes ?? []).map((n) => n.level).filter(Number.isFinite).sort((a, b) => a - b); return ls.length ? ls[Math.floor(ls.length / 2)] : 0 }
+  const sites = Object.values(HUNT_SITES).map((s) => ({ s, m: med(s) })).sort((a, b) => a.m - b.m || String(a.s.id).localeCompare(String(b.s.id))).map((x) => x.s)
+  const rank = new Map(sites.map((s, i) => [s.id, i]))
+  // 낮은 터의 부산물 칸: 그 터에서 가장 흔한 같은 종류 칸 하나를 바꾼다
+  for (const [id, sk] of PLACE_EXTRA) {
+    const site = HUNT_SITES[id]; if (!site) continue
+    const kind = SPECIES[sk].kind
+    const same = (site.nodes ?? []).filter((n) => n.kind === kind && n.species !== sk)
+    const cnt = {}; for (const n of same) cnt[n.species] = (cnt[n.species] || 0) + 1
+    const pick = same.filter((n) => cnt[n.species] > 1).sort((a, b) => a.level - b.level)[0] ?? same.sort((a, b) => a.level - b.level)[0]
+    if (pick) pick.species = sk
+  }
+  // 재료마다 들어간 터(쉬운 순서로 처음 두 곳)
+  const homes = {} // item → [siteId, siteId]
+  const claim = (item, siteId) => { const h = (homes[item] ||= []); if (h.includes(siteId)) return true; if (h.length >= 2) return false; h.push(siteId); return true }
+  const okIn = (sp, siteId) => itemsOf(sp).every((it) => (homes[it] ?? []).includes(siteId) || (homes[it] ?? []).length < 2)
+  // 바꿀 후보: 레벨 근처 터들에서 쓰이던 종(같은 종류)
+  const origin = {} // species → 처음 나온 터 순위
+  for (const site of sites) for (const n of site.nodes ?? []) if (origin[n.species] == null) origin[n.species] = rank.get(site.id)
+  for (const site of sites) {
+    // 영물 전리품도 두 곳까지 — 세 번째 터부터의 영물은 그 터의 가장 깊은 산물을 한 아름(1d3+1) 내준다(아래에서 정한다)
+    site.spirits = (site.spirits ?? []).map((sp) => { const ok = (sp.rewards ?? []).every((r) => claim(r.item, site.id)); return ok ? sp : { ...sp, rewards: null, _late: true } })
+    if (site.spirit) site.spirit = site.spirits[0] ?? site.spirit
+    const nodes = (site.nodes ?? []).filter((n) => SPECIES[n.species] && ['plant', 'obstacle', 'animal'].includes(n.kind))
+    for (const n of nodes) {
+      const sp = SPECIES[n.species]
+      if (okIn(sp, site.id)) { itemsOf(sp).forEach((it) => claim(it, site.id)); continue }
+      // 산물이 여럿인 칸: 두 곳이 찬 산물만 빼고 나머지는 남긴다(그 칸에서만 나오던 재료가 사라지지 않게)
+      const keep = (sp.rewards ?? []).filter((r) => (homes[r.item] ?? []).includes(site.id) || (homes[r.item] ?? []).length < 2)
+      if (keep.length) { n.rewards = keep; keep.forEach((r) => claim(r.item, site.id)); continue }
+      // ① 이 터에 이미 있는 같은 종류의 다른 칸
+      const here = nodes.filter((x) => x !== n && x.kind === n.kind && x.species !== n.species && okIn(SPECIES[x.species], site.id) && itemsOf(SPECIES[x.species]).every((it) => (homes[it] ?? []).includes(site.id)))
+      let next = here[0]?.species
+      // ② 아직 두 곳이 차지 않은 같은 종류의 종(처음 나온 터가 가까운 것부터)
+      if (!next) {
+        const r0 = rank.get(site.id)
+        next = Object.keys(SPECIES).filter((k) => SPECIES[k].kind === n.kind && k !== n.species && origin[k] != null && okIn(SPECIES[k], site.id))
+          .sort((a, b) => Math.abs(origin[a] - r0) - Math.abs(origin[b] - r0) || a.localeCompare(b))[0]
+      }
+      if (!next) continue // 바꿀 것이 없으면 그대로 둔다(테스트가 알려 준다)
+      n.species = next
+      itemsOf(SPECIES[next]).forEach((it) => claim(it, site.id))
+    }
+  }
+  for (const site of sites) {
+    site.spirits = (site.spirits ?? []).map((sp) => {
+      if (!sp._late) return sp
+      const eff = (n) => mainItem({ rewards: n.rewards ?? SPECIES[n.species]?.rewards })
+      const deep = [...(site.nodes ?? [])].filter((n) => SPECIES[n.species] && eff(n) && (homes[eff(n)] ?? []).includes(site.id)).sort((a, b) => b.level - a.level)[0]
+      const { _late, ...rest } = sp
+      return { ...rest, rewards: deep ? [{ item: eff(deep), dice: 3, plus: 1 }] : [], note: `이 터의 영물은 「${deep ? SPECIES[deep.species].name : '이 터'}」의 산물을 한 아름 모아 두었다.` }
+    })
+    if (site.spirit) site.spirit = site.spirits[0] ?? site.spirit
+  }
+  // 두 곳에서 나오는 재료: 레벨이 높은 터는 한 번에 더 많이 · 부산물은 그 칸의 재료 1개
+  for (const site of sites) {
+    for (const n of site.nodes ?? []) {
+      const sp = SPECIES[n.species]; if (!sp?.rewards) continue
+      const base = n.rewards ?? sp.rewards
+      const rewards = base.map((r) => { const h = homes[r.item] ?? []; return h.length === 2 && h[1] === site.id ? bump(r) : r })
+      if (rewards.some((r, i) => r !== base[i]) || n.rewards) n.rewards = rewards
+      const it = mainItem(sp); if (it && ['plant', 'obstacle', 'animal'].includes(n.kind)) n.bonus = { item: it, amount: 1 }
+    }
+  }
+  return homes
 }

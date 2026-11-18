@@ -46,6 +46,7 @@ import {
 import { readSave, writeHost } from './store.js'
 import { bridge } from './bridge.js'
 import { makeStoryEnemy, dropOf, bossRecipes, STORY_FOES } from './storyBoss.js'
+import { saveBossSlot as __saveBossSlot } from '@vault/game/bossSlots.js'
 import { STORY_ITEMS, STORY_RECIPES } from '../../biryeong/reskin.data.js'
 import { baseIdOf, enhTotal } from '@vault/game/items.js'
 
@@ -720,6 +721,12 @@ export function usePlayHost() {
     const pool = BESTIARY_ENEMIES.filter((e) => e.tier === tier && !e.boss && (e.partySize ?? 1) <= 1)
     const base = pool[Math.min(i, pool.length - 1)] ?? BESTIARY_ENEMIES.find((e) => e.tier === tier)
     if (!base) return false
+    // vD.01 죽음을 들은 자: 흐린 영정 조각을 손에 쥐고 들어간다(없으면 이때 받는다) — 싸움에서 [보인다]로 쓴다
+    if (key === 'heard' && !((playerRef.current.inventory ?? {})['st-portrait'] > 0) && itemOf('st-portrait')) {
+      const cur = playerRef.current
+      commit({ ...cur, inventory: { ...cur.inventory, 'st-portrait': 1 } })
+      addLog('서울 다세대 주택에서 주운 흐린 영정 조각을 손에 쥐었다. 「죽음을 들은 자」에게 보여 줄 수 있다.')
+    }
     const inv = playerRef.current.inventory ?? {}
     const has = Object.fromEntries(STORY_ITEMS.filter((it) => inv[it.id] > 0).map((it) => [it.id, true]))
     setStoryFight({ key, stage: ctx.stage || '', enemy: makeStoryEnemy(base, { key, name, blurb }, { ...ctx, has }), size: storySize(key), npcUsed: !!ctx.npcUsed, first: ctx.first !== false })
@@ -765,6 +772,12 @@ export function usePlayHost() {
     const calm = !!enemy?.calmed
     let drop = null, recipes = []
     if (result.cancelled) { persist(); return } // 고르는 창에서 물러났다 — 아무 일도 없었다
+    { // vC.07.6 일행 전투가 끝나면: 부활 · 마이쭈 대기는 이 전투로 끝, 끊어진 기합의 띠 · 고독의 저주를 내 몸에도 남긴다
+      setReviveOn(false); setBoostOn(false)
+      if (result.mb?.headbandUsed) breakHeadband()
+      const cu = Number(result.mb?.curseUntil) || 0, cur = playerRef.current
+      if (cu > (cur.curseUntil || 0)) commit({ ...cur, curseUntil: cu, weakUntil: Math.max(cur.weakUntil || 0, cu) })
+    }
     if (fight.mode === 'room') { // vC.07.3 일행 전투: 보상 · 패배는 혼자 싸울 때와 같다(각자)
       const cur = playerRef.current
       commit({ ...cur, hp: Math.max(result.win ? 1 : 0, Math.min(cur.hpMax, Math.round(result.hp ?? cur.hp))), mp: Math.max(0, Math.min(cur.mpMax, Math.round(result.mp ?? cur.mp))) })
@@ -807,6 +820,8 @@ export function usePlayHost() {
     persist()
     bridge.quest('storyBattle', { key: fight.key, win: !!result.win, fled: !!result.fled, calm, drop, recipes, name: enemy?.name, withNpc: !!result.withNpc })
   }
+  /** vC.07.6 보스 전투 슬롯(아이템 3개 · 영능력 2개 조합) 저장 */
+  const saveBossSlot = (i, items, psychics) => { commit(__saveBossSlot(playerRef.current, i, items, psychics)); persist() }
   /** 3인 전투에서 쓴 아이템 하나를 소지품에서 뺀다 */
   const spendItem = (id) => { const cur = playerRef.current; const n = cur.inventory?.[id] || 0; if (n <= 0) return false; const inventory = { ...cur.inventory }; if (n <= 1) delete inventory[id]; else inventory[id] = n - 1; commit({ ...cur, inventory }); addLog(`[${itemOf(id)?.name ?? id}]을(를) 썼다.`); return true }
   const spendMp = (amount) => { const cur = playerRef.current; if ((cur.mp || 0) < amount) return false; commit({ ...cur, mp: cur.mp - amount }); return true }
@@ -939,7 +954,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   } : null
 
   return {
-    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, roomFight, spendItem, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
+    profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, roomFight, spendItem, saveBossSlot, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
     reviveOn, boostOn, battleUsedItems, notify, addLog,
     handlers: {
       beginTraining, endTraining, beginSleep, endSleep, beginRest, endRest, upgradeStat,

@@ -14,7 +14,7 @@
   const live = () => !!(Auth.server && Auth.token());
   const call = (name, args) => Auth.call(name, args);
   const when = (v) => { try { return v ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(v)) : '—'; } catch (_) { return '—'; } };
-  const itemNames = () => Object.fromEntries((App.playApi()?.admin?.items || []).map((x) => [x.id, x.name]));
+  const itemNames = () => { const api = App.playApi(); const m = Object.fromEntries((api?.admin?.items || []).map((x) => [x.id, x.name])); return new Proxy(m, { get: (o, k) => o[k] ?? api?.itemName?.(k) ?? undefined }); };
   function payloadText(p) {
     const names = itemNames();
     if (p?.edit) return `상태 고침(${Object.keys(p.edit).map((k) => ({ stats: '육조 스탯', hp: '체력', mp: '의지력', hpMax: '최대 체력', mpMax: '최대 의지력', spirit: '영력', weak: '쇠약', ailments: '몸의 이상', psychicsAdd: '영능력 주기', psychicsRemove: '영능력 거두기' })[k] || k).join(' · ')})`;
@@ -43,6 +43,7 @@
           if (p.edit) { // vC.07.5 관리자가 상태를 고쳤다
             const done = api.adminEdit?.(p.edit, '관리자');
             setTimeout(() => App.renderStatus?.(), 400);
+            App.ding?.('notice');
             toast('관리자', Array.isArray(done) && done.length ? `상태가 고쳐졌다: ${done.join(' · ')}${g.note ? ` — ${g.note}` : ''}` : '관리자가 상태를 확인했다.');
             continue;
           }
@@ -50,6 +51,7 @@
           if (Array.isArray(p.psychics) && p.psychics.length) api.adminEdit?.({ psychicsAdd: p.psychics }, g.gift_from || '관리자'); // vC.07.5 영능력 하사
           api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `${kind}을(를) 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });
           toast(g.gift_from ? '선물' : '하사', `${g.gift_from ? `${g.gift_from}님이 보냈다: ` : ''}${payloadText(p)}${g.note ? ` — ${g.note}` : ''}`);
+          App.ding?.('gift'); // vD.01 선물 · 하사는 언제나 띠링
         }
         App.renderStatus?.();
         Auth.pushSave();
@@ -58,7 +60,7 @@
       if (e.code === 'banned' || e.code === 'login_required') location.reload(); // auth.js 가 다시 확인하고 내보낸다
     } finally { polling = false; }
   }
-  if (live()) { setTimeout(poll, 2500); setInterval(() => { if (!document.hidden) poll(); }, 90000); /* vC.01: 가려진 탭은 묻지 않는다 · 90초마다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
+  if (live()) { setTimeout(poll, 2500); setInterval(() => { if (!document.hidden) poll(); }, 300000); /* vD.01: 받을 우편 · 밀담 수는 접속 확인(25초)이 알려 준다 — 여기는 공지만 5분마다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
 
   /* ───────── 서버 관리 ───────── */
   const field = (label, input) => { const w = h('label', 'admin-num'); w.append(h('span', '', label), input); return w; };
@@ -220,5 +222,5 @@
     body.append(para('밀담 감사 열람은 「밤쥐들의 터」 안의 [운영자 · 전체 대화 열람]에서, 글 삭제는 각 글의 [지우기]에서, 급식실 익명 사연은 급식실의 교내 신문에서 뗀다.'));
   }
 
-  window.BiryeongServer = { renderAdmin, poll };
+  window.BiryeongServer = { payloadText, renderAdmin, poll };
 })();

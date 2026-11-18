@@ -180,7 +180,8 @@ export default function App() {
         <StoryParty key={`story-${host.storyFight.key}-${host.storyFight.enemy.id}`} fight={host.storyFight}
           me={{ id: globalThis.BiryeongAuth?.session?.() || 'me', name: host.profile?.name || '나' }} player={host.player} stats={host.effStats}
           seen={battleProps.seen} specials={battleProps.specials} psychics={battleProps.psychics} inventory={host.player.inventory}
-          onSpendItem={host.spendItem} onSpecialSeen={battleProps.onSpecialSeen} onScan={battleProps.onScan} onFinish={host.finishStoryBattle} />
+          onSpendItem={host.spendItem} onSpecialSeen={battleProps.onSpecialSeen} onScan={battleProps.onScan} onFinish={host.finishStoryBattle}
+          onLog={battleProps.onLog} onSaveSlot={host.saveBossSlot} reviveOn={host.reviveOn} boostOn={host.boostOn} />
       , document.getElementById('playPortal') ?? document.body)}
 
       {/* 소지품 창은 어느 페이지에서나 떠야 하므로(실행 화면 칸이 감춰져 있어도) 바깥의 #playPortal 에 그린다. */}

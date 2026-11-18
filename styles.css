@@ -820,3 +820,8 @@ body.is-opening{overflow:hidden}
 .admin-edit .admin-ail .admin-num{display:flex;align-items:center;gap:4px}.admin-edit .admin-ail .admin-num span{min-width:56px}
 .admin-psy{display:flex;flex-wrap:wrap;gap:4px 12px;max-height:220px;overflow:auto;padding:6px;border:1px solid #68725766;font-size:12px}
 .admin-check{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+/* vD.01 [현재 상태] 마우스 바로 위 설명 */
+.cond-tip{position:fixed;z-index:4000;max-width:260px;padding:8px 10px;border:1px solid #c9a961;background:#0a1725f2;color:#ede1c8;font-size:12px;line-height:1.55;box-shadow:3px 3px 0 #030711;pointer-events:none;border-radius:6px}
+.cond-tip b{display:block;color:#f3d79e;font-size:13px}
+.cond-tip .cond-tip-left{display:block;color:#ffb9b5;font-size:11px;margin-top:1px}
+.cond-tip p{margin:4px 0 0}.cond-tip .cond-tip-eff{color:#bfe0e6}

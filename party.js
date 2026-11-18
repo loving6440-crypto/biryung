@@ -30,7 +30,7 @@
     head.append(t, x);
     const tabs = h('nav', 'community-tabs'); const body = h('div', 'community-content party-body');
     w.append(head, tabs, body); d.append(w);
-    d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+    d.addEventListener('click', (e) => { if (e.target === d && !d.classList.contains('party-dock')) d.close(); });
     document.body.append(d);
     return { d, tabs, body, head };
   }
@@ -156,6 +156,7 @@
     };
     card.append(h('p', '', `${inv.from?.display_name || inv.from?.username}님이 일행에 초대했다.`), btn('flat-btn', '함께한다', () => answer(true)), btn('ghost-btn', '거절한다', () => answer(false)));
     inviteBox.append(card);
+    App.ding?.('invite'); // vD.01 파티 초대는 언제나 띠링
   }
   function showFight(f) {
     const key = `fight:${f.id}`;
@@ -166,8 +167,9 @@
       btn('flat-btn', '함께 싸운다', () => { answered.add(key); card.remove(); const a = App.playApi(); if (!a?.roomFight) { toast('일행 전투', '실행 화면을 불러오는 중이다.'); return; } a.roomFight(f.foe, f.id); }),
       btn('ghost-btn', '지금은 안 된다', () => { answered.add(key); card.remove(); }));
     inviteBox.append(card);
+    App.ding?.('invite');
   }
-  let polling = false;
+  let polling = false, lastDm = 0, lastUnread = 0;
   async function presence() {
     if (!live() || polling) return;
     polling = true;
@@ -175,10 +177,19 @@
       const r = await call('bry_presence', { p_seen: lastSeen });
       (r.invites || []).forEach(showInvite);
       if (r.fight) showFight(r.fight); // vC.07.3 같은 일행이 추가전투 · 실습 파티를 열었다
-      if (r.mail > 0) window.BiryeongServer?.poll?.(); // vC.07.5 우편이 왔다(관리자의 상태 고침 등)
+      if (r.mail > 0) window.BiryeongServer?.poll?.(); // vC.07.5 우편이 왔다(관리자의 상태 고침 · 선물 · 하사) — 받을 때 띠링
+      // vD.01 밀담: 접속 확인이 안 읽은 밀담 수까지 준다 — 늘었으면 띠링 + 알림(언제나)
+      const dm = Number(r.dm) || 0;
+      document.querySelectorAll('[data-community="dm"],[data-community-tab="dm"]').forEach((b) => { if (dm > 0) b.dataset.unread = String(dm); else delete b.dataset.unread; });
+      if (dm > lastDm && !(document.getElementById('communityDialog')?.open && document.querySelector('[data-community-tab="dm"][aria-selected="true"]'))) { App.ding?.('dm'); toast('밤쥐들의 터', `새 밀담이 왔다. (안 읽은 대화 ${dm})`); }
+      lastDm = dm;
       const was = room?.id;
       room = r.room || null;
-      paintButtons(room?.unread || 0);
+      const unread = room?.unread || 0;
+      // vD.01 일행 대화의 새 말: 숫자는 언제나, 띠링은 [알림 소리]가 켜져 있을 때만
+      if (unread > lastUnread && !(party.d.open && partyTab === 'room')) App.ding?.('chat');
+      lastUnread = unread;
+      paintButtons(unread);
       if (was && !room && party.d.open && partyTab === 'room') renderParty();
       if (room && was !== room.id && party.d.open && partyTab === 'room') renderParty();
     } catch (_) { /* 다음에 */ } finally { polling = false; }
@@ -188,9 +199,12 @@
     document.querySelectorAll('[data-party-open]').forEach((b) => { if (unread > 0 && !(party.d.open && partyTab === 'room')) b.dataset.unread = String(unread); else delete b.dataset.unread; });
     const head = $('#partyHeadBtn'); if (head) head.hidden = !inRoom;
   }
-  if (live()) { setTimeout(presence, 1500); setInterval(() => { if (!document.hidden) presence(); }, 25000); document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
+  if (live()) { setTimeout(presence, 1500); setInterval(() => { if (!document.hidden) presence(); }, 25000); /* vD.01 이 한 번으로 초대 · 우편 · 밀담 · 일행 대화 알림을 모두 받는다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
   // 본편 파티 전투가 둘 이상 모였다(StoryParty)
-  window.addEventListener('biryeong:party-room', async (e) => { if (!live() || !e.detail?.party) return; try { await call('bry_room_battle', { p_party: e.detail.party }); presence(); } catch (_) { /* 없으면 그만 */ } });
+  window.addEventListener('biryeong:party-room', async (e) => { if (!live() || !e.detail?.party) return; try { await call('bry_room_battle', { p_party: e.detail.party }); await presence(); if (wantBattleChat && room) { wantBattleChat = false; openParty('room'); } } catch (_) { /* 없으면 그만 */ } });
+  // vD.01 파티 전투가 열리면 일행 대화를 옆에 띄운다(전투와 같이 본다)
+  let wantBattleChat = false;
+  window.addEventListener('biryeong:battle-chat', async () => { if (!live()) return; if (!room) await presence(); if (room) { if (!party.d.open) openParty('room'); } else wantBattleChat = true; });
 
   /* ───────── 도깨비들의 터 ───────── */
   const party = dialog('partyDialog', '도깨비들의 터', '鬼市 / PARTY TALK');
@@ -198,7 +212,37 @@
   const tabBtn = (id, label) => { const b = btn('', label, () => { partyTab = id; renderParty(); }); b.dataset.partyTab = id; return b; };
   party.tabs.append(tabBtn('room', '일행과의 대화'), tabBtn('others', '다른 일행들의 대화 보기'));
   party.d.addEventListener('close', () => { clearInterval(timer); timer = null; paintButtons(0); });
-  function openParty(tab) { partyTab = tab || (room ? 'room' : 'others'); openDlg(party.d); App.addTo?.('community', 'party'); renderParty(); }
+  /* vD.01 도깨비들의 터는 화면을 덮지 않는 옆 창 — 전투와 같이 보고, 머리를 끌어 옮기고, 오른쪽 아래 모서리로 크기를 바꾸고, 접어 둘 수 있다 */
+  party.d.classList.add('party-dock');
+  {
+    const tools = h('div', 'party-dock-tools');
+    const sound = btn('ghost-btn party-sound', '', () => { App.setChatSound?.(!App.chatSoundOn?.()); paintSound(); });
+    const paintSound = () => { const on = App.chatSoundOn?.() !== false; sound.textContent = on ? '🔔 새 말 소리 켜짐' : '🔕 새 말 소리 꺼짐'; sound.setAttribute('aria-pressed', String(on)); sound.title = on ? '일행 대화에 새 말이 오면 띠링 소리가 난다(끄면 숫자만 뜬다)' : '새 말은 도깨비들의 터 단추 위 숫자로만 알린다'; };
+    const fold = btn('ghost-btn party-fold', '접기', () => { const min = party.d.classList.toggle('is-min'); fold.textContent = min ? '펴기' : '접기'; });
+    paintSound(); tools.append(sound, fold);
+    party.head.insertBefore(tools, party.head.lastChild);
+    let drag = null;
+    party.head.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      const r = party.d.getBoundingClientRect(); drag = { x: e.clientX - r.left, y: e.clientY - r.top };
+      party.head.setPointerCapture?.(e.pointerId);
+    });
+    party.head.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const w = party.d.offsetWidth, ht = party.head.offsetHeight;
+      party.d.style.left = `${Math.max(0, Math.min(window.innerWidth - Math.min(w, 120), e.clientX - drag.x))}px`;
+      party.d.style.top = `${Math.max(0, Math.min(window.innerHeight - ht, e.clientY - drag.y))}px`;
+      party.d.style.right = 'auto'; party.d.style.bottom = 'auto';
+    });
+    const end = () => { drag = null; };
+    party.head.addEventListener('pointerup', end); party.head.addEventListener('pointercancel', end);
+  }
+  function openParty(tab) {
+    partyTab = tab || (room ? 'room' : 'others');
+    if (!party.d.open) { try { party.d.show(); } catch (_) { party.d.setAttribute('open', ''); } }
+    party.d.classList.remove('is-min'); party.d.querySelector('.party-fold') && (party.d.querySelector('.party-fold').textContent = '접기');
+    App.addTo?.('community', 'party'); renderParty();
+  }
   function msgLine(m) {
     const li = h('li', `party-msg${m.u ? '' : ' is-notice'}${m.u && m.u === me() ? ' is-me' : ''}`);
     if (m.u) li.append(h('b', '', m.name || m.u), h('span', '', m.body), h('time', '', kst(m.at)));
@@ -241,11 +285,12 @@
         if (near || lastId && list.childElementCount === (r.msgs || []).length) list.scrollTop = list.scrollHeight;
         lastSeen = Math.max(lastSeen, lastId); try { localStorage.setItem(seenKey(), String(lastSeen)); } catch (_) { /* 괜찮다 */ }
         paintButtons(0);
+        lastUnread = 0; // 읽었으니 다음 새 말부터 다시 센다
         if (r.room?.status === 'ended') { room = null; list.append(msgLine({ body: '[일행이 끝났다.]' })); clearInterval(timer); timer = null; }
       } catch (_) { /* 다음에 */ }
     }
     await pull();
-    timer = setInterval(() => { if (!document.hidden) pull(); }, 4000);
+    timer = setInterval(() => { if (!document.hidden && !party.d.classList.contains('is-min')) pull(); }, 5000); // vD.01 4초 → 5초 · 접어 두면 묻지 않는다(숫자는 접속 확인이 준다)
     input.focus();
   }
   async function renderOthers(body) {

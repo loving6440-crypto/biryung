@@ -8,6 +8,7 @@ import { LOCATIONS } from '@vault/game/constants.js'
 import { REC_STATS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { rescaleEnemy, TIER_REC } from './tierScale.js'
 import { reconceptPractice } from './practiceEnemies.js'
+import { retuneItems } from './itemRetune.js'
 // vC.01 추가전투 6~10단계를 주 단위 공개 기준으로 다시 맞춘다(tierScale.js). 본편 보스 · 산길 요괴도 이 수치를 바탕으로 쓴다.
 for (const e of BESTIARY_ENEMIES) rescaleEnemy(e)
 Object.assign(REC_STATS, TIER_REC)
@@ -27,6 +28,7 @@ for (const item of ITEMS) {
   if (ITEM_EDITS[item.id]) Object.assign(item, ITEM_EDITS[item.id]) // v1.6 아이템 시트에서 고친 해설 · 효과
   if (ITEM_PIXELS[item.id]) item.pixel = ITEM_PIXELS[item.id] // 도트 아이콘: { t: 틀 이름, p: 팔레트 이름 }
 }
+retuneItems(ITEMS) // vD.01 아이템 효과 겹침 정리(itemRetune.js)
 for (const e of ALL_ENEMIES) {
   const r = ENEMY_RESKIN[e.id]
   if (!r) continue

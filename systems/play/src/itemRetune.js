@@ -1,0 +1,48 @@
+// 비령 vD.01 — 아이템 효과 겹침 정리.
+// · 효과가 완전히 똑같은 아이템이 둘 이상 없게 한다.
+// · 체력 · 의지력만 채우던 음식은 가게에서 파는 기본 몇 가지(피크닉 · 초콜릿 · 컵라면 · 만두 · 아이스크림 · 홍삼 사탕)와
+//   전투용(보리개떡 · 왕버섯 구이 · 감초 엿 · 쑥물 부적), 본편 선물(귀 · 미역국 · 감자)만 남기고,
+//   저마다 재료에 어울리는 덤(몸의 이상 줄이기 · 짧은 육조 기운 · 쇠약 줄이기 · 영력 한 줌)을 붙였다.
+// · 개척용도 같은 것끼리 겹치던 것(턴 +3 넷 · 턴 +4 둘 · 멈춤 3 둘 · 요괴 막기 4 둘 · 추가 보상 15 둘 · 2배 1 둘)을 서로 다르게.
+// 적용: reskin.js(실행 화면) · systems/sheets/export.mjs(표 · 도감)
+const H = 3 // 짧은 기운의 시간(시간)
+export const ITEM_RETUNE = {
+  // ── 음식(회복만 하던 것) ──
+  'lost-love-letter': { effect: { mp: 20, buff: { stat: 'comprehension', amount: 2, hours: 6 } }, effectText: '의지력 +20 / 이해 +2 (6시간)' },
+  'rice-cake': { effect: { hp: 15, mp: 15, shortenAil: ['hangi'] }, effectText: '체력 +15 / 의지력 +15 / [한기] 남은 시간 5분' },
+  bibimbap: { effect: { hp: 30, mp: 20, buff: { stat: 'insight', amount: 1, hours: 6 } }, effectText: '체력 +30 / 의지력 +20 / 안목 +1 (6시간)' },
+  'herb-salad': { effect: { hp: 10, mp: 10, shortenAil: ['otdok'] }, effectText: '체력 +10 / 의지력 +10 / [옻독] 남은 시간 5분' },
+  'lake-mushroom-soup': { effect: { hp: 18, mp: 8, shortenAil: ['gyundok'] }, effectText: '체력 +18 / 의지력 +8 / [균독] 남은 시간 5분' },
+  'cabbage-soup': { effect: { hp: 25, shortenAil: ['gobul'] }, effectText: '체력 +25 / [고뿔] 남은 시간 5분' },
+  'chestnut-porridge': { effect: { hp: 45, weakCap: 3600000 }, effectText: '체력 +45 / [쇠약] 남은 시간이 1시간보다 길면 1시간으로' },
+  'wild-grape-punch': { effect: { mp: 35, buff: { stat: 'agility', amount: 1, hours: 6 } }, effectText: '의지력 +35 / 신속 +1 (6시간)' },
+  'oyster-mushroom-hotpot': { effect: { hp: 35, mp: 15, buff: { stat: 'endurance', amount: 2, hours: H } }, effectText: `체력 +35 / 의지력 +15 / 인내 +2 (${H}시간)` },
+  'nw-carp-clear-soup': { effect: { hp: 35, cureAil: ['hyeongi'] }, effectText: '체력 +35 / [현기] 낫는다' },
+  'nw-mushroom-oil-soup': { effect: { hp: 25, mp: 10, buff: { stat: 'control', amount: 1, hours: H } }, effectText: `체력 +25 / 의지력 +10 / 절제 +1 (${H}시간)` },
+  'nw-namul-rice': { effect: { hp: 25, mp: 15, spirit: 5 }, effectText: '체력 +25 / 의지력 +15 / 영력 +5' },
+  'nw-dandelion-deodeok-tea': { effect: { mp: 25, shortenAil: ['hyeongi', 'gobul'] }, effectText: '의지력 +25 / [현기] · [고뿔] 남은 시간 5분' },
+  'nw-cabbage-potato-soup': { effect: { hp: 30, shortenAil: ['geunyuk'] }, effectText: '체력 +30 / [근육통] 남은 시간 5분' },
+  'nw-fern-spinach-namul': { effect: { hp: 15, mp: 15, buff: { stat: 'comprehension', amount: 1, hours: H } }, effectText: `체력 +15 / 의지력 +15 / 이해 +1 (${H}시간)` },
+  'nw-acorn-bowl': { effect: { hp: 20, mp: 10, shortenAil: ['salgi'] }, effectText: '체력 +20 / 의지력 +10 / [살기] 남은 시간 5분' },
+  'nw-licorice-candy': { effect: { mp: 15, shortenAil: ['hwasang'] }, effectText: '의지력 +15 / [화상] 남은 시간 5분' },
+  'nw-pine-syrup-porridge': { effect: { hp: 25, mp: 20, weakCap: 3600000 }, effectText: '체력 +25 / 의지력 +20 / [쇠약] 남은 시간이 1시간보다 길면 1시간으로' },
+  'nw-mushroom-namul-bowl': { effect: { hp: 40, mp: 25, buff: { stat: 'aggression', amount: 1, hours: 6 } }, effectText: '체력 +40 / 의지력 +25 / 호전 +1 (6시간)' },
+  // ── 전투용(똑같던 둘) ──
+  'nw-straw-doll': { effect: { onlyBattle: true, revive: true, mp: 15 }, effectText: '전투 중 사용: 전투불능 시 1회 부활 대기 / 의지력 +15 (한 전투에 부활 아이템은 1번)' },
+  'nw-five-color-charm-book': { effect: { charms: 1, reveal: 2, oncePerBattle: true, onlyBattle: true }, effectText: '전투 중 사용(한 전투에 1번): 부적 +1 / 상대의 앞으로 2턴을 간파' },
+  // ── 개척용(똑같던 것끼리) ──
+  'cairn-model': { effect: { hunt: { turns: 3, ward: 2 } }, effectText: '개척 중: 개척 행동 턴 +3 / 2턴 동안 요괴가 다가오지 못한다' },
+  'dandelion-tea': { effect: { hunt: { turns: 2, odds: { amount: 8, attempts: 2 } } }, effectText: '개척 중: 개척 행동 턴 +2 / 다음 2번의 채집·수렵 성공률 +8%' },
+  'nw-oil-wick': { effect: { hunt: { turns: 3, freeze: 1 } }, effectText: '개척 중: 개척 행동 턴 +3 / 1턴 동안 동물·영물이 제자리에 멈춘다' },
+  'nw-oyster-pine-grill': { effect: { hunt: { turns: 3, stat: { endurance: 3 } } }, effectText: '개척 중: 개척 행동 턴 +3 / 이번 개척 동안 인내 +3' },
+  'greens-sujebi': { effect: { hunt: { turns: 4, stat: { insight: 2, endurance: 2 } } }, effectText: '개척 중: 개척 행동 턴 +4 / 이번 개척 동안 안목 +2 · 인내 +2' },
+  'nw-five-color-lantern': { effect: { hunt: { turns: 4, bonus: 5 } }, effectText: '개척 중: 개척 행동 턴 +4 / 이번 개척 동안 추가 보상 확률 +5%' },
+  'clover-hwajeon': { effect: { hunt: { double: 1, turns: 1 } }, effectText: '개척 중: 다음 1번의 성공 보상이 2배 / 개척 행동 턴 +1' },
+  'nw-charcoal-smudge': { effect: { hunt: { ward: 4, freeze: 1 } }, effectText: '개척 중: 4턴 동안 요괴가 다가오지 못한다 / 1턴 동안 동물·영물이 제자리에 멈춘다' },
+  'acorn-jelly': { effect: { hunt: { freeze: 2, turns: 1 } }, effectText: '개척 중: 2턴 동안 동물·영물이 제자리에 멈춘다 / 개척 행동 턴 +1' },
+  'nw-brick-shrine': { effect: { hunt: { bonus: 12, ward: 3 } }, effectText: '개척 중: 이번 개척 동안 추가 보상 확률 +12% / 3턴 동안 요괴가 다가오지 못한다' },
+}
+export function retuneItems(items) {
+  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { it.effect = { ...r.effect }; it.effectText = r.effectText } }
+  return items
+}

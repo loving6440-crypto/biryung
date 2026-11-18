@@ -13,7 +13,7 @@ export const SOURCE_PATCHES = [
     file: 'game/huntSites.js',
     edits: [
       ["import { TRAIL_SPECIES, TRAILS } from './huntTrails.js'", "import { TRAIL_SPECIES, TRAILS } from './huntTrails.js'\nimport { remapHuntSites as __remapHunt } from '@story/huntLevels.js'"],
-      ["/* 구형 길 분할 목록은 v79부터 사용하지 않는다.", "__remapHunt(HUNT_SITES, HUNT_PATHS) // vC.06\n\n/* 구형 길 분할 목록은 v79부터 사용하지 않는다."],
+      ["/* 구형 길 분할 목록은 v79부터 사용하지 않는다.", "__remapHunt(HUNT_SITES, HUNT_PATHS, HUNT_SPECIES) // vC.06 · vD.01 재료는 터 두 곳까지\n\n/* 구형 길 분할 목록은 v79부터 사용하지 않는다."],
     ],
   },
   {
@@ -134,6 +134,36 @@ export const SOURCE_PATCHES = [
       ["`‘${MULTI_TAG}’ — 일행에게 초대가 가고, 수락한 사람들이 함께 싸운다.`", "`‘${MULTI_TAG}’ — 도깨비들의 터 일행에게 알림이 가고, [함께 싸운다]를 누른 사람들이 같이 싸운다(세 명까지).`"],
     ],
   },
+  // ── vC.07.6 보스 전투 준비: 본편 보스(패턴이 있는 이야기 상대)도 보스처럼 아이템 3개 · 영능력 2개만 가져간다(bringLimit).
+  //    보관고 보스(boss: true)는 기믹까지 그대로, 이야기 보스는 기믹 없이 가져가기 제한만 건다 ──
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["  (!enemy?.boss || (Array.isArray(member.psychicBring) && member.psychicBring.includes('spirit-barrier')))", "  (!(enemy?.boss || enemy?.bringLimit) || (Array.isArray(member.psychicBring) && member.psychicBring.includes('spirit-barrier')))"],
+      ["  // 언어장벽 (v79.0.7): 1단계 간파는 턴을 쓰지 않는다.", "  if (a === 'psychic' && mb.enemy.bringLimit && !mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic) && !((m.borrowPsychic || 0) > 0 && !(m.psychics || []).includes(act.psychic))) return { error: 'not-brought' }\n  // 언어장벽 (v79.0.7): 1단계 간파는 턴을 쓰지 않는다."],
+      ["    if (mb.enemy.boss) m.bring = { ...m.bring, [item.id]: m.bring[item.id] - 1 }", "    if ((mb.enemy.boss || mb.enemy.bringLimit) && m.bring) m.bring = { ...m.bring, [item.id]: m.bring[item.id] - 1 }"],
+      ["  if (mb.enemy.boss) {\n    if ((m.bring?.[item.id] || 0) < 1) return { error: 'not-brought' }", "  if (mb.enemy.boss || mb.enemy.bringLimit) {\n    if ((m.bring?.[item.id] || 0) < 1) return { error: 'not-brought' }"],
+      ["    boss: !!mb.enemy.boss,\n    rage: mb.rage || 0,", "    boss: !!mb.enemy.boss,\n    bringLimit: !!(mb.enemy.boss || mb.enemy.bringLimit),\n    rage: mb.rage || 0,"],
+      // vC.07.6 빼앗은 영능력 · 일행 전투: 저주 털어내기(cl) · 쓸수록 세지는 것(es) · 부적 되찾기 횟수(chU)가 판에 남고, 의지력 회복은 그 사람의 최대치까지
+      ["  barrierBroken: !!m.barrierBroken,\n})", "  barrierBroken: !!m.barrierBroken,\n  stealUses: m.stealUses || {},\n})"],
+      ["selfId: m.id, amount: act.amount,", "selfId: m.id, mpMax: m.mpMax, amount: act.amount,"],
+      ["  m.bound = r.state.bound\n", "  m.bound = r.state.bound\n  if (act.action === 'psychic' && String(act.psychic).startsWith('steal-')) { m.curse = r.state.curse ?? m.curse; m.stealUses = r.state.stealUses ?? m.stealUses }\n"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/MultiBattle.jsx',
+    edits: [
+      ["(!view.boss || me?.psychicBring?.includes('spirit-barrier'))", "(!view.bringLimit || me?.psychicBring?.includes('spirit-barrier'))"],
+      ["      {view.boss && (\n", "      {view.bringLimit && (\n"],
+      ["          보스 전투 — 가져온 아이템만 쓸 수 있다", "          보스 전투 — 가져온 아이템 · 영능력만 쓸 수 있다"],
+      ["p.default || !view.boss || !Array.isArray(me?.psychicBring)", "p.default || !view.bringLimit || !Array.isArray(me?.psychicBring)"],
+    ],
+  },
+  // ── vD.01 금역 [산 탐사] → [뒷산 탐사] ──
+  { file: 'ui/components/locations/Hike.jsx', edits: [['    <section aria-label="산 탐사">\n      <h2 className="font-serif text-2xl text-gold">산 탐사</h2>', '    <section aria-label="뒷산 탐사">\n      <h2 className="font-serif text-2xl text-gold">뒷산 탐사</h2>']] },
+  { file: 'game/activities.js', edits: [["{ id: 'hike', label: '산 탐사', icon: Mountain }", "{ id: 'hike', label: '뒷산 탐사', icon: Mountain }"]] },
+  // ── vD.01 개척: 성공 덤(부산물)은 칸마다 정한 것(huntLevels.js rebalanceHuntMaterials) ──
+  { file: 'game/huntField.js', edits: [['    const bonus = HUNT_BONUSES[node.kind]', '    const bonus = node.bonus ?? HUNT_BONUSES[node.kind]']] },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

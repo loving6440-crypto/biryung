@@ -7,8 +7,8 @@
   const account = $('#communityAccount');
   const feedback = $('#communityFeedback');
   // vB.01: 지신성은 없앴다. 낮새들의 터 = 타임라인(예전 지신성 자리). 메모 · 댓글 · 대댓글 게시판은 쓰지 않는다.
-  const headings = { social:'낮새들의 터', memos:'낮새들의 터', dm:'밤쥐들의 터' };
-  const explanations = { social:'낮새들이 소식을 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', memos:'낮새들이 소식을 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', dm:'밤의 밀담은 대화 당사자와 홈페이지 총괄 운영자만 열람할 수 있습니다. 운영자가 열람하면 그 사실이 감사 기록에 남습니다. 종단 간 암호화 대화는 아닙니다.' };
+  const headings = { social:'낮새들의 터', memos:'낮새들의 터', dm:'밤쥐들의 터', mail:'우편함' };
+  const explanations = { social:'낮새들이 소식을 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', memos:'낮새들이 소식을 나누는 타임라인입니다. 이름을 눌러 그 사람이 남긴 글을 모아볼 수 있습니다.', mail:'지금까지 받은 서신입니다 — 관리자의 하사, 다른 학생이 보낸 선물, 관리자의 상태 고침. 받을 것은 접속해 있으면 저절로 들어옵니다(최근 90일).', dm:'밤의 밀담은 대화 당사자와 홈페이지 총괄 운영자만 열람할 수 있습니다. 운영자가 열람하면 그 사실이 감사 기록에 남습니다. 종단 간 암호화 대화는 아닙니다.' };
   const errorText = { database_not_configured:'비령 전용 데이터베이스가 연결되지 않았습니다. Render의 DATABASE_URL을 설정하면 가입·게시글·대화가 활성화됩니다.',login_required:'로그인이 필요합니다.',invalid_username:'계정 ID는 영문 소문자·숫자·밑줄 3~24자로 입력해 주세요.',invalid_password:'비밀번호는 8~128자로 입력해 주세요.',invalid_display_name:'표시 이름은 1~40자로 입력해 주세요.',invalid_credentials:'아이디 또는 비밀번호가 올바르지 않습니다.',username_taken:'이미 사용 중인 계정 ID입니다.',invalid_profile:'프로필 입력값을 확인해 주세요.',invalid_post:'글은 1~500자로 작성해 주세요.',invalid_memo:'제목 또는 메모 글자 수를 확인해 주세요.',invalid_comment:'댓글은 1~1,200자로 작성해 주세요.',invalid_dm:'대화는 1~2,000자로 작성해 주세요.',too_many_requests:'요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.',bad_origin:'보안 정책에 의해 차단되었습니다.',user_not_found:'해당 사용자를 찾을 수 없습니다.',not_found:'대상을 찾을 수 없거나 접근 권한이 없습니다.',internal_error:'일시적인 서버 오류가 발생했습니다.' };
   let tab='memos', me=null, authMode='login', loadedMe=false, socialRows=[], memoRows=[], activeMemo=null, activeThread=null, activeOther='', adminView=false, threads=[], dmTimer=null, initialDM=true;
   let busy=false, dmLastId=null, dmOldestId=null, syncedName=false;
@@ -96,7 +96,7 @@
     if(!me){if(SERVER){content.append(empty('서버 계정으로 로그인되어 있지 않습니다. 오른쪽 위에서 로그아웃한 뒤 같은 아이디로 다시 로그인하면 이어집니다.'));return;}renderAuth();return;}
     if(SERVER&&!syncedName){syncedName=true;const nm=window.BiryeongApp?.profile?.()?.name;if(nm&&String(nm).slice(0,40)!==me.display_name){try{me=(await post('profile',{displayName:String(nm).slice(0,40),bio:me.bio||'',avatarSymbol:me.avatar_symbol||'✦',accent:me.accent||'#d4b078'},'PATCH')).user;renderAccount();}catch{/* 이름 맞추기는 다음에 */}}}
     window.BiryeongServer?.poll?.();
-    if(tab==='social'||tab==='memos')await renderSocial();else await renderDm();
+    if(tab==='social'||tab==='memos')await renderSocial();else if(tab==='mail')await renderMail();else await renderDm();
   }
   function renderAccount(){account.replaceChildren();
     if(!me){account.append(h('span','','✦ 비령의 공동체에 참여하려면 계정을 생성하거나 로그인해 주세요.'));return;}
@@ -200,6 +200,20 @@
     }catch(err){content.replaceChildren(empty(err.message),button('← 돌아가기','community-back',()=>renderMemosReset()));}
   }
   function memoCardDetail(memo){const card=h('article','community-card');card.append(authorHeader(memo),h('h3','community-card-title',memo.title),h('p','community-card-body',memo.body));return card;}
+  // vD.01 우편함 — 밀담(밤쥐들의 터)과 따로, 받은 서신(하사 · 선물 · 상태 고침)을 모아 본다
+  async function renderMail(){addIntro(explanations.mail);
+    if(!SERVER){content.append(empty('서버가 연결되어야 우편함을 쓸 수 있습니다.'));return;}
+    const list=h('div','community-mail-list');list.append(empty('우편함을 여는 중입니다.'));content.append(list);
+    try{const r=await Auth.call('bry_mail_list');list.replaceChildren();
+      if(!r.mail||!r.mail.length){list.append(empty('아직 받은 서신이 없습니다. 하사 · 선물 · 관리자의 소식이 여기에 남습니다.'));return;}
+      for(const m of r.mail){const p=m.payload||{},card=h('article','community-card mail-card');card.dataset.mail=String(m.id);
+        const kind=m.gift_from?`${m.gift_from}님의 선물`:p.edit?'관리자 · 상태 고침':m.everyone?'모두에게 온 하사':'관리자의 하사';
+        const head=h('div','mail-head');head.append(h('b','',`✉ ${kind}`),h('time','',formatDate(m.created_at)));
+        card.append(head,h('p','community-card-body',(window.BiryeongServer&&window.BiryeongServer.payloadText)?window.BiryeongServer.payloadText(p):''));
+        if(m.note)card.append(h('p','mail-note',`“${m.note}”`));
+        card.append(h('small','mail-state',m.claimed_at?`받음 · ${formatDate(m.claimed_at)}`:'아직 받지 않음 — 접속해 있으면 곧 들어온다'));list.append(card);}
+    }catch(err){list.replaceChildren(empty(err.message));}
+  }
   async function renderDm(){stopDmTimer();content.replaceChildren();addIntro(explanations.dm);
     if(me.role==='admin')content.append(button(adminView?'← 내 비밀 대화로':'운영자 · 전체 대화 열람','community-secondary',()=>{adminView=!adminView;activeThread=null;renderDm();}));
     const layout=h('div','community-dm-layout'),sidebar=h('div','community-dm-sidebar'),chat=h('div','community-dm-chat');sidebar.append(h('h3','',adminView?'관리자 열람 목록':'나의 1:1 대화 목록'));
@@ -223,7 +237,7 @@
         const send=h('button','','전송');send.type='submit';form.append(input,send);form.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await post(`dm/threads/${activeThread}/messages`,{body:input.value});input.value='';await refreshMessages();});});chat.append(form);
       }else chat.append(h('p','community-warning','운영자 감사 열람 · 읽기 전용 · 열람 시각이 서버에 기록됩니다.'));
       await refreshMessages();
-      if(!adminView)dmTimer=setInterval(()=>{if(dialog.open && tab==='dm'&&activeThread && !document.hidden)refreshMessages().catch(()=>{});},12000);
+      if(!adminView)dmTimer=setInterval(()=>{if(dialog.open && tab==='dm'&&activeThread && !document.hidden)refreshMessages().catch(()=>{});},15000);
     }catch(err){chat.replaceChildren(empty(err.message));}
   }
   async function searchUsers(q,sidebar){const host=sidebar.querySelector('#communityUserResults');if(!host)return;host.replaceChildren();

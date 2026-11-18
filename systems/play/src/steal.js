@@ -22,6 +22,7 @@ const CURSE_FROM = ['wonhon', 'mountain-ghost', 'tree-spirit', 'water-ghost', 'a
 // 칸: mp 의지력 · m 일반 공격 굴림 배율 · n 횟수 · p 방어 태세 무시 · a [스탯, 비율] 덧붙는 피해 · ls 준 피해의 몇 할 회복 · g 의지력 되찾기
 //     h 최대 체력의 몇 할 회복 · gd 막기 자세 · dz 적의 다음 행동을 바꾼다('jab' 약공 · 'guard' 웅크림) · dc 그 확률(%, 보스는 절반)
 //     rv 앞으로 N턴 간파 · cl 내게 걸린 상태 이상을 턴다 · ex 적 체력이 이 비율 아래면 피해 2배 · es 쓸 때마다 피해 +비율(최대 3배)
+// vD.01: 사용자가 직접 정한 13종(허수아비 잡귀 ~ 달걀귀신 · 혼돈) 밖의 56종은 적이 쓸 때의 기믹과 맞물리게 모두 다른 효과로 바꿨다(칸 뜻은 stealDetail 참고).
 //     rb 라운드마다 피해 + · pc 적의 지금 체력의 비율만큼 더 · sh 최대 체력의 비율만큼 내 체력을 바친다 · ch 부적 한 장을 되찾는다
 //     back 잃은 체력의 비율만큼 더 · eq 나와 적의 체력 비율을 평균으로(내가 더 다쳤을 때만)
 const T = {
@@ -37,63 +38,63 @@ const T = {
   'mongdangbi#1': { mp: 25, cl: 1 },
   'yagwanggwi#1': { mp: 15, m: 1, ch: 1, chU: 3 },
   'dalgyal-gwisin#1': { mp: 15, dz: 'guard', dc: 70 },
-  'dungap-jwi#1': { mp: 15, m: 0.45, n: 4, p: 1 },
-  'kim-seobang#1': { mp: 20, m: 1, p: 1, pc: 0.12 },
-  'kim-seobang#2': { mp: 20, m: 2.2 },
+  'dungap-jwi#1': { mp: 15, m: 0.4, n: 2, p: 1, rat: [3, 0.35, 20] },
+  'kim-seobang#1': { mp: 20, m: 0.6, p: 1, pc: 0.18, gbr: 1 },
+  'kim-seobang#2': { mp: 20, m: 0.7, nr: [1, 4] },
   'mangtae-halabeom#1': { mp: 15, m: 1, p: 1, rb: 3 },
-  'mongdal-gwisin#1': { mp: 15, m: 1.2, ls: 0.3 },
-  'dokgak-gwi#1': { mp: 20, m: 0.9, n: 2 },
-  'gaekgwi#1': { mp: 20, h: 0.25 },
-  'jangsanbeom#1': { mp: 20, dz: 'jab', dc: 100, rv: 2 },
-  'jangsanbeom#2': { mp: 20, m: 1.6, p: 1, rv: 3 },
-  'heokkaebi#1': { mp: 15, dz: 'guard', dc: 55 },
-  'daemang#1': { mp: 20, m: 1.6, p: 1, ls: 0.6 },
-  'songaksi#1': { mp: 15, m: 0.8, dz: 'jab', dc: 100 },
-  'imae-mangryang#1': { mp: 20, m: 1.4, ls: 0.3 },
-  'cheonnyeon-jine#1': { mp: 20, m: 0.8, n: 3, p: 1 },
-  'cheonnyeon-jine#2': { mp: 20, m: 0.7, n: 2, p: 1, gd: 1 },
-  'changgwi#1': { mp: 20, m: 1.3, p: 1, ex: 0.3 },
-  'myogwi#1': { mp: 20, m: 1.2, pc: 0.06 },
-  'jeokwi#1': { mp: 20, m: 1.8 },
+  'mongdal-gwisin#1': { mp: 15, m: 0.6, han: [3, 0.4] },
+  'dokgak-gwi#1': { mp: 20, m: 0.8, n: 2, jx: 1.6 },
+  'gaekgwi#1': { mp: 20, swap: 1 },
+  'jangsanbeom#1': { mp: 20, qs: 1, rv: 2 },
+  'jangsanbeom#2': { mp: 20, m: 1, p: 1, rv: 3, kn: 6 },
+  'heokkaebi#1': { mp: 15, rv: 4, fz: 50 },
+  'daemang#1': { mp: 20, m: 1, p: 1, ls: 1 },
+  'songaksi#1': { mp: 15, m: 0.6, wk: 2 },
+  'imae-mangryang#1': { mp: 20, m: 1, oe: 1 },
+  'cheonnyeon-jine#1': { mp: 20, m: 0.5, p: 1, psn: [0.25, 5] },
+  'cheonnyeon-jine#2': { mp: 20, gd: 1, fogg: [3, 1.5] },
+  'changgwi#1': { mp: 20, m: 1, p: 1, hx: 1.5 },
+  'myogwi#1': { mp: 20, m: 0.8, pmax: 0.05 },
+  'jeokwi#1': { mp: 20, m: 1.2, expose: 3 },
   'agwi#1': { mp: 20, m: 1.5, p: 1, ex: 0.4 },
-  'geumdwaeji#1': { mp: 25, m: 2.8 },
-  'geumdwaeji#2': { mp: 0, g: 25, sh: 0.08 },
-  'gildal#1': { mp: 15, gd: 1, dz: 'jab', dc: 50 },
-  'jigwi#1': { mp: 20, m: 2, sh: 0.05 },
-  'gawi-gwi#1': { mp: 20, dz: 'guard', dc: 75 },
-  'udu-mamyeon#1': { mp: 20, m: 1.7, p: 1, ls: 0.2 },
-  'gumiho#1': { mp: 25, m: 1.6, p: 1, g: 18 },
-  'gumiho#2': { mp: 25, h: 0.35, cl: 1 },
-  'yeou-nui#1': { mp: 20, dz: 'jab', dc: 100, rv: 3 },
-  'noho-seung#1': { mp: 25, h: 0.3 },
-  'chokru-gwi#1': { mp: 25, h: 0.2, gd: 1 },
-  'bulgae#1': { mp: 20, m: 0.75, n: 3, p: 1 },
-  'yeoksin#1': { mp: 30, m: 0.7, n: 4, p: 1 },
-  'yeoksin#2': { mp: 25, h: 0.25, cl: 1 },
-  'geuseunsae#1': { mp: 20, gd: 1, dz: 'guard', dc: 60 },
-  'hwama#1': { mp: 20, m: 0.8, n: 3, p: 1 },
+  'geumdwaeji#1': { mp: 25, m: 1, chg: 3 },
+  'geumdwaeji#2': { mp: 0, g: 25, sh: 0.08, spb: 5 },
+  'gildal#1': { mp: 15, dodge: 2 },
+  'jigwi#1': { mp: 20, m: 1.5, sh: 0.05, rage: 2 },
+  'gawi-gwi#1': { mp: 20, sleep: 3 },
+  'udu-mamyeon#1': { mp: 20, m: 1.2, p: 1, bind: 2 },
+  'gumiho#1': { mp: 25, m: 1.2, p: 1, swsp: 1 },
+  'gumiho#2': { mp: 25, h: 0.35, cl: 1, dim: 0.5 },
+  'yeou-nui#1': { mp: 20, rf: 1.2, rv: 2 },
+  'noho-seung#1': { mp: 25, rheal: 0.4 },
+  'chokru-gwi#1': { mp: 25, h: 0.2, gd: 1, lowx: 2 },
+  'bulgae#1': { mp: 20, m: 1, n: 3, p: 1, decay: [1.2, 0.4] },
+  'yeoksin#1': { mp: 30, plague: [0.04, 3] },
+  'yeoksin#2': { mp: 25, h: 0.1, cl: 1, gd: 1 },
+  'geuseunsae#1': { mp: 20, blind: [2, 40] },
+  'hwama#1': { mp: 20, m: 0.5, p: 1, burn: 0.5 },
   'yeongno#1': { mp: 20, m: 1.4, p: 1, es: 0.4 },
-  'yacha-nachal#1': { mp: 25, m: 1, n: 2, p: 1 },
-  'hanbal#1': { mp: 0, m: 1, p: 1, g: 35, sh: 0.12 },
-  'hanbal#2': { mp: 30, m: 1, p: 1, pc: 0.08 },
-  'gangcheol#1': { mp: 25, m: 1.2, p: 1, g: 14 },
-  'mudu-gwi#1': { mp: 25, m: 1.5, p: 1, dz: 'guard', dc: 50 },
-  'gwimok#1': { mp: 20, gd: 1, h: 0.15 },
-  'baekgwi#1': { mp: 25, dz: 'guard', dc: 65, rv: 3 },
+  'yacha-nachal#1': { mp: 25, m: 1, n: 2, gx: 2 },
+  'hanbal#1': { mp: 0, sh: 0.06, g: 15, thirst: 2 },
+  'hanbal#2': { mp: 30, m: 0.6, p: 1, sun: [3, 0.03] },
+  'gangcheol#1': { mp: 25, m: 0.8, p: 1, mpburn: 0.3 },
+  'mudu-gwi#1': { mp: 25, m: 1.3, p: 1, fear: 1 },
+  'gwimok#1': { mp: 20, gd: 1, thorn: 0.8 },
+  'baekgwi#1': { mp: 25, banish: 1, rv: 3 },
   'samdugumi#1': { mp: 30, m: 1, n: 3, p: 1 },
   'samdugumi#2': { mp: 30, m: 1, p: 1, back: 0.5 },
-  'baekgol-janggun#1': { mp: 25, m: 1.3, gd: 1 },
-  'yohwa#1': { mp: 25, m: 1.2, p: 1, dz: 'jab', dc: 100 },
-  'daein#1': { mp: 30, m: 3.2 },
-  'gunggi#1': { mp: 30, m: 0.8, dz: 'guard', dc: 70 },
-  'jihaguk-daejeok#1': { mp: 25, m: 3.2, p: 1, sh: 0.15 },
-  'jihaguk-daejeok#2': { mp: 30, m: 1.6, p: 1, es: 0.5 },
+  'baekgol-janggun#1': { mp: 25, m: 1, gd: 1, wk: 1 },
+  'yohwa#1': { mp: 25, m: 1, p: 1, numb: [2, 30] },
+  'daein#1': { mp: 30, delay: [2, 4] },
+  'gunggi#1': { mp: 30, m: 0.6, infight: 1.5 },
+  'jihaguk-daejeok#1': { mp: 25, m: 1.5, p: 1, sh: 0.15, shx: 3 },
+  'jihaguk-daejeok#2': { mp: 30, m: 0.9, p: 1, hitsup: 4 },
   'cheonma#1': { mp: 30, m: 1.6, p: 1, a: ['max', 0.8] },
-  'doul#1': { mp: 30, m: 1, n: 3 },
+  'doul#1': { mp: 30, m: 0.8, n: 3, frenzy: 30 },
   'geoul-gwi#1': { mp: 30, m: 1, eq: 1 },
   'hondon#1': { mp: 50, cl: 1, dz: 'jab', dc: 100, rvAdd: 5 },
-  'docheol#1': { mp: 35, m: 2.6, p: 1 },
-  'docheol#2': { mp: 35, m: 1.6, p: 1, ls: 0.4, ch: 1 },
+  'docheol#1': { mp: 35, m: 2.2, p: 1, sil: 4 },
+  'docheol#2': { mp: 35, m: 1.2, p: 1, eatch: 0.8 },
 }
 
 // vC.01: 표(빼앗은 영능력 탭)에서 고쳐 받은 이름. 적이 쓰는 영능력의 이름은 그대로 두고, 빼앗아 내 것이 된 판의 이름만 바뀐다.
@@ -134,6 +135,53 @@ export function stealDetail(k) {
   if (k.rv) out.push(`상대의 앞으로 ${k.rv}턴을 간파한다.`)
   if (k.rvAdd) out.push(`상대의 ${k.rvAdd}턴을 추가로 간파한다.`)
   if (k.ch) out.push(`써 버린 부적 한 장을 되찾는다${k.chU ? `(한 싸움에 최대 ${k.chU}회까지)` : '(최대 3장)'}.`)
+  // vD.01 새 칸
+  if (k.chg) out.push(`처음 쓰면 피해 없이 엄니를 갈며 막기 자세를 잡는다. 두 라운드 안에 다시 쓰면 ${k.chg}배로 들이받는다.`)
+  if (k.nr) out.push(`도깨비방망이 뚝딱 — 몇 번 칠지 매번 ${k.nr[0]}~${k.nr[1]}번 사이로 정해진다.`)
+  if (k.hitsup) out.push(`한 싸움에서 쓸 때마다 머리가 하나씩 깨어나 치는 횟수가 늘어난다(1번 → 최대 ${k.hitsup}번).`)
+  if (k.frenzy) out.push(`칠 때마다 ${k.frenzy}% 확률로 한 번 더 친다(최대 6번).`)
+  if (k.decay) out.push(`물 때마다 힘이 빠진다 — 첫 번째 ×${k.decay[0]}에서 마지막 ×${k.decay[1]}까지.`)
+  if (k.jx) out.push(`상대의 다음 행동이 약공이면 피해 ×${k.jx}.`)
+  if (k.gx) out.push(`상대의 다음 행동이 방어 태세면 그 방어를 뚫고, 마지막 일격이 ×${k.gx}.`)
+  if (k.hx) out.push(`상대가 잃은 체력이 많을수록 세진다(최대 ×2.5).`)
+  if (k.oe) out.push('홀수 라운드엔 산의 정으로 ×1.6, 짝수 라운드엔 물의 정으로 ×0.6.')
+  if (k.kn) out.push(`간파해 둔 턴 하나마다 피해 +${k.kn}(최대 +36).`)
+  if (k.pmax) out.push(`상대 최대 체력의 ${pct(k.pmax)}만큼 더 친다(일반 공격 굴림 최대치의 1.5배까지).`)
+  if (k.shx) out.push(`바친 체력의 ${k.shx}배를 더 친다.`)
+  if (k.mpburn) out.push(`남은 의지력의 ${pct(k.mpburn)}를 더 태우고, 태운 만큼의 1.2배를 더 친다.`)
+  if (k.eatch) out.push(`가진 부적을 모두 먹어 치우고, 한 장마다 피해가 ×${k.eatch}씩 커진다.`)
+  if (k.gbr) out.push('상대의 다음 행동이 방어 태세면 메쳐서 그 행동을 없앤다.')
+  if (k.qs) out.push('상대의 다음 두 행동의 순서를 뒤바꾼다.')
+  if (k.fz) out.push(`${k.fz}% 확률로 상대가 멈칫해 다음 행동이 없어진다(보스는 확률 절반).`)
+  if (k.fear) out.push('상대의 다음 행동이 공격이면 겁에 질려 방어 태세로 바뀐다.')
+  if (k.swsp) out.push('앞으로 세 턴 안에 상대의 영능력이 있으면 구슬로 삼켜 약공으로 바꾸고, 의지력 15 · 최대 체력 10%를 되찾는다.')
+  if (k.rat) out.push(`쥐 떼를 풀어 상대 차례마다 ${k.rat[0]}번 문다(일반 공격 굴림의 ${pct(k.rat[1])}). 물릴 때마다 ${k.rat[2]}% 확률로 상대가 움찔해 그 차례를 날린다.`)
+  if (k.han) out.push(`한을 들러붙인다 — 상대가 공격할 때마다(${k.han[0]}번) 일반 공격 굴림의 ${pct(k.han[1])}만큼 상대가 다친다.`)
+  if (k.psn) out.push(`독을 한 겹 쌓는다(최대 ${k.psn[1]}겹). 싸움이 끝날 때까지 상대 차례마다 겹 수 × 일반 공격 굴림의 ${pct(k.psn[0])}.`)
+  if (k.fogg) out.push(`${k.fogg[0]}턴 동안 독안개를 깐다 — 상대가 방어 태세를 잡으면 일반 공격 굴림의 ${k.fogg[1]}배를 들이마신다.`)
+  if (k.wk) out.push(`${k.wk}턴 동안 상대의 강공 · 영능력 · 단체 공격 · 기 모으기가 약공이 된다.`)
+  if (k.expose) out.push(`${k.expose}턴 동안 상대가 방어 태세를 잡지 못한다(그 차례는 아무것도 못 한다).`)
+  if (k.spb) out.push(`상대의 남은 영력 ${k.spb}분의 1을 흩어 없앤다.`)
+  if (k.dodge) out.push(`상대의 약공 ${k.dodge}번을 흘려 낸다.`)
+  if (k.rage) out.push(`${k.rage}턴 동안 상대가 웅크리거나 기를 모으지 않고 강공으로 들이받는다(막기를 잘 쓰면 기회다).`)
+  if (k.sleep) out.push(`상대를 최대 ${k.sleep}턴 잠재운다(보스는 절반). 피해를 받으면 깬다.`)
+  if (k.bind) out.push(`${k.bind}턴 동안 상대의 강공 · 기 모으기가 방어 태세로 바뀐다.`)
+  if (k.rf) out.push(`상대의 다음 강공 · 영능력이 제 몸을 친다(일반 공격 굴림의 ${k.rf}배, 그 차례는 약공).`)
+  if (k.plague) out.push(`역병을 옮겨 ${k.plague[1]}턴 동안 상대 차례마다 상대 지금 체력의 ${pct(k.plague[0])}만큼 갉는다(다시 쓰면 기간이 늘어난다).`)
+  if (k.blind) out.push(`${k.blind[0]}턴 동안 상대의 공격이 ${k.blind[1]}% 확률로 빗나간다(보스는 절반).`)
+  if (k.burn) out.push(`불을 옮겨붙여 상대가 방어 태세를 잡을 때까지 상대 차례마다 일반 공격 굴림의 ${pct(k.burn)}.`)
+  if (k.thirst) out.push(`상대가 다음에 영능력을 쓰면 일반 공격 굴림의 ${k.thirst}배만큼 상대가 다친다.`)
+  if (k.sun) out.push(`${k.sun[0]}턴 동안 상대 차례마다 상대 최대 체력의 ${pct(k.sun[1])}만큼 말린다.`)
+  if (k.thorn) out.push(`상대가 다음에 공격하면 가시에 찔려 일반 공격 굴림의 ${pct(k.thorn)}만큼 다친다.`)
+  if (k.banish) out.push(`상대를 ${k.banish}턴 동안 행렬에 끼워 보내 아무것도 못 하게 한다(보스에게는 듣지 않는다).`)
+  if (k.numb) out.push(`${k.numb[0]}턴 동안 상대의 행동이 ${k.numb[1]}% 확률로 실패한다(보스는 절반).`)
+  if (k.delay) out.push(`발을 들어 올렸다가 ${k.delay[0]}턴 뒤 일반 공격 굴림의 ${k.delay[1]}배로 내리찍는다.`)
+  if (k.infight) out.push(`상대가 다음 차례에 제 몸을 친다(상대 공격력의 ${k.infight}배, 그 차례는 행동 없음).`)
+  if (k.swap) out.push('내가 상대보다 더 다쳤으면 넋을 맞바꾼다 — 내 체력 비율이 상대 쪽으로(최대 +30%), 상대는 내 쪽으로(최대 -15%) 옮겨 간다.')
+  if (k.rheal) out.push(`이번 싸움에서 잃은 체력의 ${pct(k.rheal)}를 되찾는다.`)
+  if (k.lowx) out.push(`체력이 30% 아래일 때 쓰면 회복이 ${k.lowx}배.`)
+  if (k.dim) out.push('한 싸움에서 다시 쓸 때마다 회복이 절반으로 줄어든다(꼬리가 줄어든다).')
+  if (k.ls >= 1) out.push('(준 피해만큼 모두 되찾는다.)')
   return out.join(' ')
 }
 

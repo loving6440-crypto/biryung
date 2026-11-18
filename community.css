@@ -118,3 +118,20 @@
 .pcard-photo img{width:100%;height:100%;object-fit:cover}.pcard-photo span{font-size:34px;color:#e8d3a4}
 .pcard-info{display:flex;flex-direction:column;gap:3px}.pcard-info b{font-size:18px;color:#f1e4c3}.pcard-info small{font-size:11px;color:#a0b2b3}.pcard-title{font-size:12px;color:#d4b078}
 .pcard-fields{display:grid;grid-template-columns:72px 1fr;gap:6px 10px;margin:4px 0 0;font-size:13px}.pcard-fields dt{color:#a0b2b3}.pcard-fields dd{margin:0;color:#efe6ce;white-space:pre-wrap}
+/* vD.01 도깨비들의 터: 화면을 덮지 않는 옆 창(전투와 같이 본다) — 머리를 끌어 옮기고, 모서리로 크기를 바꾸고, 접는다 */
+.party-dialog.party-dock{position:fixed;inset:auto 16px 16px auto;margin:0;width:min(400px,calc(100vw - 24px));height:min(560px,calc(100dvh - 90px));z-index:3000;resize:both;overflow:hidden;min-width:280px;min-height:150px;max-width:calc(100vw - 12px);max-height:calc(100dvh - 12px)}
+.party-dock .community-window-head{cursor:move;user-select:none;touch-action:none;padding:10px 14px}
+.party-dock .community-window-head h2{font-size:17px}
+.party-dock .party-body{flex:1;min-height:0}
+.party-dock .party-log{min-height:120px;max-height:none}
+.party-dock-tools{display:flex;gap:6px;margin-left:auto}
+.party-dock-tools .ghost-btn{font-size:11px;padding:4px 8px;white-space:nowrap}
+.party-dock.is-min{height:auto !important;min-height:0;resize:none}
+.party-dock.is-min .community-tabs,.party-dock.is-min .party-body{display:none}
+@media(max-width:600px){.party-dialog.party-dock{inset:auto 6px 6px 6px;width:auto;height:min(420px,60dvh)}.party-sound{font-size:0 !important}.party-sound::first-letter{font-size:13px}}
+/* vD.01 우편함 */
+.community-mail-list{display:flex;flex-direction:column;gap:10px}
+.mail-card .mail-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#e9cf98}
+.mail-card .mail-head time{font-size:11px;color:#8fa3a6}
+.mail-card .mail-note{margin:6px 0 0;color:#cbbf9f;font-size:13px}
+.mail-card .mail-state{display:block;margin-top:6px;color:#7f9798;font-size:11px}

@@ -97,7 +97,7 @@ const zones = {
     place('dorm', '기숙사', '白', [act('dorm', 'intro', '둘러보기'), act('dorm', 'my-room', '내 기숙사'), act('dorm', 'store', '매점'), act('dorm', 'cafeteria', '급식실')]),
   ] },
   south: { title: '비령산 금역', tabs: [
-    place('gym', '뒷산', '赤', [act('gym', 'intro', '둘러보기'), act('gym', 'battle', '퇴마 실습'), act('gym', 'hike', '산 탐사'), act('gym', 'pioneer', '개척')]),
+    place('gym', '뒷산', '赤', [act('gym', 'intro', '둘러보기'), act('gym', 'battle', '퇴마 실습'), act('gym', 'hike', '뒷산 탐사'), act('gym', 'pioneer', '개척')]),
   ] },
 }
 

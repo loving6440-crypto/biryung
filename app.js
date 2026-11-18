@@ -107,6 +107,44 @@
     setTimeout(() => { el.remove(); if (!toastStack.children.length) { try { toastStack.hidePopover(); } catch (_) { /* 무시 */ } } }, 4800);
   }
 
+  /* ───────── vD.01 띠링 — 소리 파일 없이 두 음(WebAudio). 파티 초대 · 선물 · 밀담은 언제나, 일행 대화의 새 말은 켜 두었을 때만 ───────── */
+  const CHAT_SOUND_KEY = 'biryeong-chat-sound';
+  const chatSoundOn = () => { try { return localStorage.getItem(CHAT_SOUND_KEY) !== 'off'; } catch (_) { return true; } };
+  const setChatSound = (on) => { try { localStorage.setItem(CHAT_SOUND_KEY, on ? 'on' : 'off'); } catch (_) { /* 이번만 */ } };
+  let audioCtx = null, lastDing = 0;
+  const audio = () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (_) { audioCtx = null; } return audioCtx; };
+  document.addEventListener('pointerdown', () => audio(), { once: true, capture: true }); // 브라우저는 한 번 누른 뒤에야 소리를 낸다
+  function ding(kind = 'notice') {
+    if (kind === 'chat' && !chatSoundOn()) return;
+    const now = Date.now(); if (now - lastDing < 1200) return; lastDing = now;
+    const ac = audio(); if (!ac) return;
+    try {
+      const t0 = ac.currentTime;
+      [[1318.5, 0], [1975.5, 0.11]].forEach(([f, dt]) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(0.16, t0 + dt + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.55);
+        o.connect(g).connect(ac.destination); o.start(t0 + dt); o.stop(t0 + dt + 0.6);
+      });
+    } catch (_) { /* 소리를 못 내는 브라우저 */ }
+  }
+
+  /* ───────── vD.01 [현재 상태] 칩에 마우스를 올리면 마우스 바로 위에 무슨 상태인지 · 몇 분 남았는지 ───────── */
+  const condTip = h('div', 'cond-tip'); condTip.setAttribute('role', 'tooltip'); condTip.hidden = true; document.body.append(condTip);
+  function condTipShow(chip, x, y) {
+    const api = window.BiryeongPlay?.api?.();
+    const c = (() => { try { return (api?.conditions?.() ?? []).find((v) => v.id === chip.dataset.cond); } catch (_) { return null; } })();
+    if (!c) { condTip.hidden = true; return; }
+    condTip.replaceChildren(h('b', '', `${c.name}${c.hanja ? `(${c.hanja})` : ''}${c.max > 1 ? ` · ${c.stack}/${c.max}겹` : ''}`), h('span', 'cond-tip-left', `남은 시간 ${c.left}`), h('p', '', c.text || ''), h('p', 'cond-tip-eff', `효과: ${c.effect || '—'}`));
+    condTip.hidden = false;
+    const r = condTip.getBoundingClientRect();
+    condTip.style.left = `${Math.max(6, Math.min(window.innerWidth - r.width - 6, x - r.width / 2))}px`;
+    condTip.style.top = `${Math.max(6, y - r.height - 14)}px`;
+  }
+  document.addEventListener('pointermove', (e) => { const chip = e.target.closest?.('[data-cond]'); if (chip) condTipShow(chip, e.clientX, e.clientY); else if (!condTip.hidden) condTip.hidden = true; });
+  document.addEventListener('focusin', (e) => { const chip = e.target.closest?.('[data-cond]'); if (chip) { const r = chip.getBoundingClientRect(); condTipShow(chip, r.left + r.width / 2, r.top); } });
+  document.addEventListener('focusout', () => { condTip.hidden = true; });
+
   /* ───────── 업적 조건 ───────── */
   const dayKey = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   function streakNow() { // 오늘부터 거꾸로, 하루도 빠지지 않은 날 수
@@ -806,7 +844,7 @@
       if (!conds.length) list.append(h('span', 'status-cond-none', '이상 없음 — 몸이 가뿐하다.'));
       for (const c of conds) {
         const chip = h('span', `status-cond${c.heavy ? ' is-heavy' : ''}${c.id === 'weak' ? ' is-weak' : ''}`);
-        chip.title = `[${c.name}(${c.hanja})] ${c.text}\n효과: ${c.effect}\n남은 시간: ${c.left}`;
+        chip.dataset.cond = c.id; chip.tabIndex = 0; chip.setAttribute('aria-label', `${c.name} — 남은 시간 ${c.left}`); // vD.01 마우스를 올리면 바로 위에 설명(condTip)
         chip.append(h('b', '', c.max > 1 ? `${c.name} ${c.stack}겹` : c.name), h('small', '', c.left));
         list.append(chip);
       }
@@ -1157,7 +1195,7 @@
 
   /* 본편 퀘스트(quest.js)가 쓰는 창구 */
   window.BiryeongApp = {
-    h, btn, para, go, back, route, openPage, setTabs, toast, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
+    h, btn, para, go, back, route, openPage, setTabs, toast, ding, chatSoundOn, setChatSound, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
     get save() { return save; }, get body() { return panelBody; }, get tabs() { return panelTabs; }, get chips() { return panelChips; },
     profile, game, isAdmin: () => Auth.isAdmin(), zones: DATA.zones, heirloomNames: Object.fromEntries(Object.entries(HEIRLOOM).map(([k, v]) => [k, v.name])),
     grantTitle(id) { if (!titleById[id] || save.titles[id]) return false; save.titles[id] = Date.now(); persist(); toast('칭호', `「${titleById[id].name}」을(를) 얻었다.`); checkAchievements(); return true; },

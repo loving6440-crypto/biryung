@@ -23,8 +23,8 @@ const { BESTIARY_ENEMIES: __BE, REC_STATS: __RS } = await imp('battle.js')
 for (const e of __BE) rescaleEnemy(e)
 Object.assign(__RS, TIER_REC)
 const { yogoeList } = await imp('codex.js')
-const { HUNT_SITES, HUNT_PATHS: __HP } = await imp('huntSites.js')
-;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(HUNT_SITES, __HP) // vC.06
+const { HUNT_SITES, HUNT_PATHS: __HP, HUNT_SPECIES: __HS } = await imp('huntSites.js')
+;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(HUNT_SITES, __HP, __HS) // vC.06
 const { TIER_HANJA } = await imp('constants.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 // {{npc:자리|조사}} 는 실행 화면이 사람 이름으로 바꾸는 자리표시다. 도감에는 그 자리의 역할 이름으로 적는다(받침에 맞춰 조사도 고른다).

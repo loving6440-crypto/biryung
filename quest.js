@@ -63,7 +63,7 @@
     if (before !== after) { drawTracker(); if (/^#\/zone\/north/.test(location.hash) || /^#\/admin\/story/.test(location.hash)) App.route(); else later(); }
   }
   // vC.01: 2분마다 · 가려진 탭은 묻지 않는다 · 다시 보이면 곧바로 한 번
-  setInterval(() => { if (!document.hidden) refreshChapters(); }, 120 * 1000);
+  setInterval(() => { if (!document.hidden) refreshChapters(); }, 300 * 1000); // vD.01 공개 장 목록은 드물게 바뀐다 — 5분마다
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshChapters(); });
 
   /* ───────── 인물 얼굴 자리 (vC.01) ─────────
@@ -109,6 +109,8 @@
     if (!mood && /!\s*$/.test(ln.x || '')) mood = 'bang'; // 밝게 끝나는 말
     return (MOOD_FACE[k] || {})[mood] || 'base';
   }
+  // vD.01 얼굴 그림을 작은 칸에 그대로 줄이면 가는 선이 도트처럼 깨진다 — 미리 매끈하게 줄여 둔 72 · 144 크기를 브라우저가 고르게 한다
+  function portraitSrcset(src) { return /assets\/portraits\/[^/]+\.webp$/.test(src) && !/-(72|144)\.webp$/.test(src) ? `${src.replace(/\.webp$/, '-72.webp')} 72w, ${src.replace(/\.webp$/, '-144.webp')} 144w, ${src} 240w` : ''; }
   function portrait(who, shown, ln = null) {
     const k = baseName(who);
     const box = h('div', 'pt-frame'); box.dataset.who = who;
@@ -116,7 +118,7 @@
     let src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[k]);
     if (src && typeof src === 'object') { const f = faceOf(k, ln); box.dataset.face = src[f] ? f : 'base'; src = src[f] || src.base || Object.values(src)[0]; }
     const fallback = () => (k === '비령' ? hanjaSeal() : shown !== '??' && MAIN_CAST.includes(k) ? emptySlot(k) : seal(shown === '??' ? '??' : who));
-    if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; img.src = src; img.addEventListener('error', () => img.replaceWith(fallback())); box.append(img); }
+    if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; const ss = portraitSrcset(src); if (ss) { img.srcset = ss; img.sizes = '(max-width:790px) 50px, 70px'; } img.src = src; img.addEventListener('error', () => img.replaceWith(fallback())); box.append(img); }
     else box.append(fallback());
     return box;
   }

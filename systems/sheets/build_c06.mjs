@@ -29,7 +29,7 @@ const ailments = [
 // ── 아이템 · 제작법: 표 자료(export.mjs)에 레벨을 더한다 ──
 const sheet = JSON.parse(execFileSync(process.execPath, [join(ROOT, 'systems/sheets/export.mjs')], { encoding: 'utf8', maxBuffer: 64 << 20 }))
 const hunt = await imp('huntSites.js')
-;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(hunt.HUNT_SITES, hunt.HUNT_PATHS)
+;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(hunt.HUNT_SITES, hunt.HUNT_PATHS, hunt.HUNT_SPECIES)
 const ML = await imp('materialLevels.js') // 위에서 고친 개척 터를 읽는다
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 const { RECIPES } = await imp('crafting.js'); const { COOK_RECIPES } = await imp('cooking.js')
