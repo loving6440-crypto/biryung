@@ -3,6 +3,7 @@
 //   BiryeongPlay.show('battle/scarecrow') / show(null)   그릴 화면을 고른다(null 이면 아무것도 안 그림 — 시간은 계속 흐른다).
 //   BiryeongPlay.api()            { upgradeStat(key), openInventory(), grant({spirit,money,items,log}), player }
 import './reskin.js'
+import './itemTip.js' // vD.02 아이템 마우스오버 설명
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { bridge } from './bridge.js'

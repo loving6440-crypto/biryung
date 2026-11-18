@@ -68,12 +68,15 @@ import { COOK_RECIPES } from '@vault/game/cooking.js'
 import { HIKE_PATHS } from '@vault/game/hike.js'
 import { NEW_RECIPES, RECIPE_TIERS } from '../../biryeong/reskin.data.js'
 import { AIL_RECIPES } from './ailments.js'
+import { NEW_SPIRIT_RECIPES } from './newSpirits.js'
 const TIER_NOTE = { 1: '1단계 · 바탕', 2: '2단계 · 바탕으로 만든다', 3: '3단계 · 상급 공정' }
 for (const r of [...RECIPES, ...COOK_RECIPES]) if (r.tier == null) r.tier = RECIPE_TIERS[r.id] ?? 2
 const withNote = (r) => ({ ...r, note: `${TIER_NOTE[r.tier]}${r.yield > 1 ? ` · 한 번에 ${r.yield}개` : ''}` })
 RECIPES.push(...NEW_RECIPES.W.map(withNote))
 COOK_RECIPES.push(...NEW_RECIPES.K.map(withNote))
 // vC.06 몸의 이상을 낫게 하는 물건 28가지(ailments.js) — 1단계: 완치 · 시간 줄이기 / 2단계: 완치 + 회복
+// vD.02 새 영물 5종의 전리품으로 만드는 물건
+for (const r of NEW_SPIRIT_RECIPES) RECIPES.push({ ...withNote(r), note: `${withNote(r).note} · 영물의 전리품` })
 for (const r of AIL_RECIPES) { const { place, ...rest } = r; (place === 'K' ? COOK_RECIPES : RECIPES).push({ ...withNote(rest), note: `${withNote(rest).note} · 몸의 이상` }) }
 
 // ── v1.3 본편 제작법 16개 — 처음엔 잠겨 있다(unlock). 퀘스트가 가르쳐 주거나 그 상대를 이기면 열린다(usePlayHost · patches.mjs). ──

@@ -825,3 +825,13 @@ body.is-opening{overflow:hidden}
 .cond-tip b{display:block;color:#f3d79e;font-size:13px}
 .cond-tip .cond-tip-left{display:block;color:#ffb9b5;font-size:11px;margin-top:1px}
 .cond-tip p{margin:4px 0 0}.cond-tip .cond-tip-eff{color:#bfe0e6}
+.status-cond.is-good{border-color:#7fb38a;color:#cfe8c9;background:#163223}
+
+/* vD.02 아이템 마우스오버 설명(play 밖 맨 위 층에 뜬다 — play.css 는 .play-scope 안에만 걸려서 여기 둔다) */
+.item-tip{position:fixed;inset:auto;margin:0;z-index:2147483002;max-width:280px;padding:8px 10px;border:1px solid #c9a961;background:#0a1725f2;color:#ede1c8;font-size:12px;line-height:1.55;box-shadow:3px 3px 0 #030711;pointer-events:none;border-radius:6px;overflow:visible}
+.item-tip b{display:block;color:#f3d79e;font-size:13px}
+.item-tip .item-tip-tags{display:block;color:#9fc6cf;font-size:10px;margin-top:1px}
+.item-tip p{margin:4px 0 0}.item-tip .item-tip-eff{color:#bfe0e6}
+.item-tip[hidden]{display:none}
+.item-tip .item-tip-from{color:#a9b9a0;font-size:11px}
+.item-tip:popover-open{inset:auto}

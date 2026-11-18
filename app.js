@@ -843,7 +843,7 @@
       const list = h('div', 'status-cond-list');
       if (!conds.length) list.append(h('span', 'status-cond-none', '이상 없음 — 몸이 가뿐하다.'));
       for (const c of conds) {
-        const chip = h('span', `status-cond${c.heavy ? ' is-heavy' : ''}${c.id === 'weak' ? ' is-weak' : ''}`);
+        const chip = h('span', `status-cond${c.heavy ? ' is-heavy' : ''}${c.id === 'weak' ? ' is-weak' : ''}${c.good ? ' is-good' : ''}`);
         chip.dataset.cond = c.id; chip.tabIndex = 0; chip.setAttribute('aria-label', `${c.name} — 남은 시간 ${c.left}`); // vD.01 마우스를 올리면 바로 위에 설명(condTip)
         chip.append(h('b', '', c.max > 1 ? `${c.name} ${c.stack}겹` : c.name), h('small', '', c.left));
         list.append(chip);

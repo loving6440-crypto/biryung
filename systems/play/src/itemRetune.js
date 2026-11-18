@@ -15,15 +15,11 @@ export const ITEM_RETUNE = {
   'lake-mushroom-soup': { effect: { hp: 18, mp: 8, shortenAil: ['gyundok'] }, effectText: '체력 +18 / 의지력 +8 / [균독] 남은 시간 5분' },
   'cabbage-soup': { effect: { hp: 25, shortenAil: ['gobul'] }, effectText: '체력 +25 / [고뿔] 남은 시간 5분' },
   'chestnut-porridge': { effect: { hp: 45, weakCap: 3600000 }, effectText: '체력 +45 / [쇠약] 남은 시간이 1시간보다 길면 1시간으로' },
-  'wild-grape-punch': { effect: { mp: 35, buff: { stat: 'agility', amount: 1, hours: 6 } }, effectText: '의지력 +35 / 신속 +1 (6시간)' },
-  'oyster-mushroom-hotpot': { effect: { hp: 35, mp: 15, buff: { stat: 'endurance', amount: 2, hours: H } }, effectText: `체력 +35 / 의지력 +15 / 인내 +2 (${H}시간)` },
   'nw-carp-clear-soup': { effect: { hp: 35, cureAil: ['hyeongi'] }, effectText: '체력 +35 / [현기] 낫는다' },
-  'nw-mushroom-oil-soup': { effect: { hp: 25, mp: 10, buff: { stat: 'control', amount: 1, hours: H } }, effectText: `체력 +25 / 의지력 +10 / 절제 +1 (${H}시간)` },
   'nw-namul-rice': { effect: { hp: 25, mp: 15, spirit: 5 }, effectText: '체력 +25 / 의지력 +15 / 영력 +5' },
   'nw-dandelion-deodeok-tea': { effect: { mp: 25, shortenAil: ['hyeongi', 'gobul'] }, effectText: '의지력 +25 / [현기] · [고뿔] 남은 시간 5분' },
   'nw-cabbage-potato-soup': { effect: { hp: 30, shortenAil: ['geunyuk'] }, effectText: '체력 +30 / [근육통] 남은 시간 5분' },
   'nw-fern-spinach-namul': { effect: { hp: 15, mp: 15, buff: { stat: 'comprehension', amount: 1, hours: H } }, effectText: `체력 +15 / 의지력 +15 / 이해 +1 (${H}시간)` },
-  'nw-acorn-bowl': { effect: { hp: 20, mp: 10, shortenAil: ['salgi'] }, effectText: '체력 +20 / 의지력 +10 / [살기] 남은 시간 5분' },
   'nw-licorice-candy': { effect: { mp: 15, shortenAil: ['hwasang'] }, effectText: '의지력 +15 / [화상] 남은 시간 5분' },
   'nw-pine-syrup-porridge': { effect: { hp: 25, mp: 20, weakCap: 3600000 }, effectText: '체력 +25 / 의지력 +20 / [쇠약] 남은 시간이 1시간보다 길면 1시간으로' },
   'nw-mushroom-namul-bowl': { effect: { hp: 40, mp: 25, buff: { stat: 'aggression', amount: 1, hours: 6 } }, effectText: '체력 +40 / 의지력 +25 / 호전 +1 (6시간)' },
@@ -40,9 +36,26 @@ export const ITEM_RETUNE = {
   'clover-hwajeon': { effect: { hunt: { double: 1, turns: 1 } }, effectText: '개척 중: 다음 1번의 성공 보상이 2배 / 개척 행동 턴 +1' },
   'nw-charcoal-smudge': { effect: { hunt: { ward: 4, freeze: 1 } }, effectText: '개척 중: 4턴 동안 요괴가 다가오지 못한다 / 1턴 동안 동물·영물이 제자리에 멈춘다' },
   'acorn-jelly': { effect: { hunt: { freeze: 2, turns: 1 } }, effectText: '개척 중: 2턴 동안 동물·영물이 제자리에 멈춘다 / 개척 행동 턴 +1' },
+  // ── vD.02 조리실 음식: 대체로 'n분 동안' 기운이 드는 것으로(전투용 몇 가지는 그대로) ──
+  'mushroom-stew': { effect: { hp: 10, timed: { kind: 'hpRegen', v: 2, min: 30 } }, effectText: '체력 +10 / 30분 동안 1분마다 체력 +2 (전투 밖에서)', battle: false },
+  'king-mushroom-stew': { effect: { hp: 15, timed: { kind: 'hpRegen', v: 3, min: 30 } }, effectText: '체력 +15 / 30분 동안 1분마다 체력 +3 (전투 밖에서)', battle: false },
+  'poison-mushroom-stew': { effect: { hpCost: 10, timed: { kind: 'mpRegen', v: 3, min: 30 } }, effectText: '체력 -10 / 30분 동안 1분마다 의지력 +3 (전투 밖에서)', battle: false },
+  'pickled-raspberry': { effect: { timed: { kind: 'winMoney', v: 15, min: 30 } }, effectText: '30분 동안 전투에 이기면 받는 냥 +15% (전투 밖에서)', battle: false },
+  'snakeberry-punch': { effect: { mp: 10, timed: { kind: 'mpRegen', v: 2, min: 40 } }, effectText: '의지력 +10 / 40분 동안 1분마다 의지력 +2 (전투 밖에서)', battle: false },
+  'dangwi-tea': { effect: { mp: 10, timed: { kind: 'hpRegen', v: 4, min: 20 } }, effectText: '의지력 +10 / 20분 동안 1분마다 체력 +4 (전투 밖에서)', battle: false },
+  'songi-rice': { effect: { hp: 20, timed: { kind: 'winMoney', v: 25, min: 60 } }, effectText: '체력 +20 / 60분 동안 전투에 이기면 받는 냥 +25% (전투 밖에서)', battle: false },
+  'carp-soup': { effect: { hp: 15, timed: { kind: 'huntOdds', v: 6, min: 45 } }, effectText: '체력 +15 / 45분 동안 개척 채집·수렵 성공률 +6% (전투 밖에서)', battle: false },
+  'grilled-carp': { effect: { hp: 15, timed: { kind: 'huntBonus', v: 8, min: 60 } }, effectText: '체력 +15 / 60분 동안 개척 추가 보상 확률 +8% (전투 밖에서)', battle: false },
+  'oyster-mushroom-hotpot': { effect: { hp: 20, timed: { kind: 'huntBonus', v: 12, min: 45 } }, effectText: '체력 +20 / 45분 동안 개척 추가 보상 확률 +12% (전투 밖에서)', battle: false },
+  'wild-grape-punch': { effect: { mp: 20, timed: { kind: 'mpRegen', v: 4, min: 30 } }, effectText: '의지력 +20 / 30분 동안 1분마다 의지력 +4 (전투 밖에서)', battle: false },
+  'nw-mushroom-oil-soup': { effect: { hp: 15, timed: { kind: 'huntOdds', v: 4, min: 60 } }, effectText: '체력 +15 / 60분 동안 개척 채집·수렵 성공률 +4% (전투 밖에서)', battle: false },
+  'nw-acorn-bowl': { effect: { hp: 10, timed: { kind: 'winMoney', v: 10, min: 45 } }, effectText: '체력 +10 / 45분 동안 전투에 이기면 받는 냥 +10% (전투 밖에서)', battle: false },
+  // ── vD.02 다음에 받는 공격 피해 줄이기(절반 쪽이 위) ──
+  'nw-mugwort-rope': { effect: { dmgCut: 0.5, oncePerBattle: true, onlyBattle: true }, effectText: '전투 중 사용(한 전투에 1번 · 턴을 쓰지 않는다): 다음에 받는 공격의 피해가 무조건 절반이 된다', tags: ['완성품', '전투 중 사용 가능', '#턴소모無'] },
+  'nw-raccoon-tag': { effect: { dmgCut: 0.667, oncePerBattle: true, onlyBattle: true }, effectText: '전투 중 사용(한 전투에 1번 · 턴을 쓰지 않는다): 다음에 받는 공격의 피해가 무조건 1/3 줄어든다', tags: ['완성품', '전투 중 사용 가능', '#턴소모無'] },
   'nw-brick-shrine': { effect: { hunt: { bonus: 12, ward: 3 } }, effectText: '개척 중: 이번 개척 동안 추가 보상 확률 +12% / 3턴 동안 요괴가 다가오지 못한다' },
 }
 export function retuneItems(items) {
-  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { it.effect = { ...r.effect }; it.effectText = r.effectText } }
+  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
   return items
 }

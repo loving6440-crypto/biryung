@@ -10,7 +10,7 @@ import { cancelCraft, recipeOf, startCraft, buyRecipe as buyRecipeAt } from '@va
 import { cook } from '@vault/game/cooking.js'
 import { markLineSeen } from '@vault/game/npcLines.js'
 import { canAddInventory, claimPending, limitNewGains } from '@vault/game/inventoryCapacity.js'
-import { protectBags, putInBag, takeFromBag } from '@vault/game/bag.js'
+import { protectBags, putInBag, takeFromBag, bagCount, bagRoom, bagContents, BAG_SLOTS } from '@vault/game/bag.js'
 import { STAT_KEYS, STAT_META, STAT_MAX, STAT_UPGRADE_COST_PER_POINT } from '@vault/game/constants.js'
 import { LESSON_WAIT_MINUTES } from '@vault/game/courseInfo.js'
 import { enemyById } from '@vault/game/battle.js'
@@ -32,6 +32,7 @@ import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { noteKill } from './steal.js'
+import { NURSE_STOCK, NURSE_GUARD_MIN } from './ailments.js'
 import { AIL, AILMENTS, addAilment, setAilmentSource, afterBattleAilment, huntAilment, effortAilment, cureAilments, shortenAilments, activeAilments, gotText, ailLabel, leftText, WEAK_INFO } from './ailments.js'
 import { spiritWinsLeft } from './spiritCap.js'
 import { SPIRIT_MAX } from '@vault/game/constants.js'
@@ -78,6 +79,15 @@ function untutor(p) {
   const { tutorialSnap: snap, ...rest } = p
   if (!snap) return p
   return { ...rest, hp: Math.max(1, Math.min(rest.hpMax, Math.ceil(snap.hp ?? rest.hp))), mp: Math.max(0, Math.min(rest.mpMax, Math.floor(snap.mp ?? rest.mp))) }
+}
+
+/** vD.02 두 상태가 체력 · 영력의 소수점만 다른가(내림한 값은 같다) */
+function onlyFraction(a, b) {
+  if (Math.floor(a.hp) !== Math.floor(b.hp) || Math.floor(a.spirit) !== Math.floor(b.spirit)) return false
+  const ka = Object.keys(a), kb = Object.keys(b)
+  if (ka.length !== kb.length) return false
+  for (const k of ka) if (k !== 'hp' && k !== 'spirit' && a[k] !== b[k]) return false
+  return true
 }
 
 export function usePlayHost() {
@@ -135,6 +145,8 @@ export function usePlayHost() {
   }, [schedule])
 
   /** 모든 변경은 여기를 거친다(소지품 칸 수 · 가방 · 영력 상한을 마지막으로 지킨다). */
+  const regenAt = useRef(0) // vD.02 시간 기운(1분마다 회복)의 마지막 때
+  const timedRegenDue = (p, now) => ['hpRegen', 'mpRegen'].some((k) => p.timed?.[k]?.until > now) && now - (regenAt.current || 0) >= 60000
   const commit = useCallback((next) => {
     const prev = playerRef.current
     const safe = syncCodex(clampSpirit(protectBags(prev, limitNewGains(prev, next)))) // 한 번이라도 손에 넣은 아이템은 도감에 남는다
@@ -179,8 +191,19 @@ export function usePlayHost() {
         addLog(`칭호의 기능: 오늘의 첫 접속으로 ${pk.v}냥을 받았다.`)
       }
       const r = tickPlayer(cur, now, Math.max(0, (now - last) / 1000))
+      // vD.02 끊김 줄이기: 자연 회복으로 체력 · 영력의 소수점만 바뀐 초에는 화면 전체를 다시 그리지 않는다(시간은 쌓아 두었다가 눈에 보이게 바뀔 때 한 번에)
+      if (cur === before && !r.logs.length && !r.unlocked?.length && r.player !== cur && onlyFraction(cur, r.player) && !timedRegenDue(cur, now)) return
       last = now
       let np = r.player
+      { // vD.02 음식의 시간 기운: 1분마다 체력 · 의지력이 조금씩(전투 중에는 쉰다)
+        const tv = (k) => { const t = np.timed?.[k]; return t && t.until > now ? Number(t.v) || 0 : 0 }
+        const hr = tv('hpRegen'), mr = tv('mpRegen')
+        if ((hr || mr) && !battleRef.current && now - (regenAt.current || 0) >= 60000) {
+          regenAt.current = now
+          const hp = hr ? Math.min(np.hpMax, (np.hp || 0) + hr) : np.hp, mp = mr ? Math.min(np.mpMax, (np.mp || 0) + mr) : np.mp
+          if (hp !== np.hp || mp !== np.mp) np = { ...np, hp, mp }
+        }
+      }
       if (cur.slowFight && !np.slowFight) { const sid = cur.slowFight.enemyId; np = npcEvent(npcEvent(bumpDaily(bumpWeekly(sid ? questEvent(np, { type: 'kill', id: sid }) : np, 'wins', 1, now), 'wins', 1, now), 'win'), 'kill', sid) } // vC.06 느린 싸움도 승리로 센다
       if (np !== cur) {
         const gain = (np.spirit || 0) - (cur.spirit || 0)
@@ -286,6 +309,20 @@ export function usePlayHost() {
     commit(bumpWeekly({ ...cur, money: cur.money - item.price * n + off, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }, 'shopBuy'))
     addLog(`매점에서 ${item.name} ${n}개를 샀다. (-${item.price * n - off}냥${admin ? ' · 관리자' : off ? ` · 칭호의 기능으로 ${off}냥 덜 냈다` : ''})`)
   }
+  /** vD.02 시간 기운 이름 */
+  const TIMED_LABEL = { hpRegen: (v) => `1분마다 체력 +${v}`, mpRegen: (v) => `1분마다 의지력 +${v}`, huntOdds: (v) => `개척 성공률 +${v}%`, huntBonus: (v) => `개척 추가 보상 확률 +${v}%`, winMoney: (v) => `전투 승리 냥 +${v}%` }
+  /** vD.02 양호실 물품 사기(매점 영업시간과 상관없다) */
+  const nurseBuy = (id, qty = 1) => {
+    const st = NURSE_STOCK.find((x) => x.id === id), item = itemOf(id), cur = playerRef.current
+    const n = Math.max(1, Math.min(99, Math.floor(Number(qty) || 1)))
+    if (!st || !item) return { error: '양호실에서 팔지 않는 물건이다.' }
+    if (!admin && (cur.money || 0) < st.price * n) { addLog('냥이 모자라다.'); return { error: '냥이 모자라다.' } }
+    if (!canAddInventory(cur.inventory, { [id]: n })) { addLog('소지품이 가득 찼다. 정리한 뒤 다시 사 줘.'); return { error: '소지품이 가득 찼다.' } }
+    const off = admin ? st.price * n : Math.floor(st.price * n * perkV('discount') / 100)
+    commit(bumpWeekly({ ...cur, money: (cur.money || 0) - st.price * n + off, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }, 'shopBuy'))
+    addLog(`양호실에서 ${item.name} ${n}개를 샀다. (-${st.price * n - off}냥${off ? (admin ? ' · 관리자' : ` · 칭호의 기능으로 ${off}냥 덜 냈다`) : ''})`)
+    return { ok: true }
+  }
   const buyRecipe = (recipeId) => {
     if (!isStoreOpen()) return
     const r = buyRecipeAt(playerRef.current, recipeId, admin)
@@ -371,7 +408,7 @@ export function usePlayHost() {
   // ───── 텃밭 ─────
   const gardenAction = (action) => {
     const cur = playerRef.current
-    const r = action.type === 'buy' ? buyGardenSeed(cur, action.seedId, 1)
+    const r = action.type === 'buy' ? buyGardenSeed(cur, action.seedId, Math.max(1, Math.min(99, Math.floor(Number(action.n) || 1)))) // vD.02 여러 개
       : action.type === 'plant' ? plantGardenSeed(cur, action.slot, action.seedId, Date.now())
         : action.type === 'harvest' ? harvestGardenPlot(cur, action.slot, Date.now())
           : { error: '알 수 없는 텃밭 행동입니다.' }
@@ -463,16 +500,19 @@ export function usePlayHost() {
     commit({ ...cur, seen: { ...cur.seen, [enemyId]: (cur.seen?.[enemyId] || 0) + 1 } })
     setBattleUsedItems([])
   }
-  const finishBattle = ({ win, fled, enemy }) => {
+  const finishBattle = ({ win, fled, enemy, hp: endHp }) => {
     if (fled) { bump('fled'); addLog(`${enemy.name}과의 전투에서 물러났다. (보상도 손실도 없다)`); return }
     const cur = playerRef.current
     const special = cur.weaponSpecial?.[equipOf(cur).weapon]
     const r = applyBattleResult({ ...cur, _battleNoScanWin: !battleScannedRef.current }, win, enemy.reward)
     let p = r.player
+    // vD.02 내 체력보다 큰 피해로 쓰러지면 마지막 피해가 체력에 들어가지 않던 문제 — 지면 체력 1로 깨어난다
+    if (!win) p = { ...p, hp: Math.max(1, Math.min(p.hp, Number.isFinite(endHp) ? Math.ceil(endHp) : 1)) }
     if (win && enemy?.id) p = questEvent(p, { type: 'kill', id: enemy.id })
     if (win) p = npcEvent(npcEvent(bumpDaily(bumpWeekly(p, 'wins'), 'wins'), 'win'), 'kill', enemy?.id) // vC.06 동아리 활동 · 인물의 부탁: 전투 승리(영력을 받든 안 받든)
     if (win && special === 'pine' && !battleDownedRef.current && battleVitalsRef.current) p = { ...p, hp: Math.min(p.hpMax, battleVitalsRef.current.hp), mp: Math.min(p.mpMax, battleVitalsRef.current.mp) }
     delete p._battleNoScanWin
+    { const t = p.timed?.winMoney; if (win && t && t.until > Date.now() && (r.money ?? r.granted)) { const add = Math.ceil((r.money ?? r.granted) * (Number(t.v) || 0) / 100); if (add) { p = { ...p, money: (p.money || 0) + add }; setTimeout(() => addLog(`음식의 기운: 전투 보상 +${add}냥.`), 0) } } } // vD.02
     if (win && (r.granted || r.money)) { // vB.04: 냥 덤은 이길 때마다, 영력 덤은 영력을 받은 승리(하루 3번)에만
       const m = Math.ceil((r.money ?? r.granted) * perkV('winMoney') / 100), s = Math.ceil(r.granted * perkV('winSpirit') / 100)
       if (m || s) { p = { ...p, money: (p.money || 0) + m, spirit: (p.spirit || 0) + s }; addLog(`칭호의 기능: 전투 보상 ${[m ? `${m}냥` : '', s ? `영력 ${s}` : ''].filter(Boolean).join(' · ')} 추가.`) }
@@ -543,6 +583,19 @@ export function usePlayHost() {
   const bagAction = (a) => {
     if (battleRef.current) return { error: '전투 중에는 가방을 열 수 없다.' }
     const cur = playerRef.current
+    if (a.type === 'putSmart') { // vD.02 여러 가방에 들어가는 만큼 넣고, 칸이 모자라 남는 것은 소지품에 그대로(버려지지 않는다)
+      let p = cur; const got = [], left = []
+      for (const [id, want0] of a.items ?? []) {
+        let want = Math.max(0, Math.min(Math.floor(Number(want0) || 0), p.inventory?.[id] || 0)), done = 0
+        for (let i = 0; i < bagCount(p) && want > 0; i++) { const k = Math.min(want, bagRoom(bagContents(p, i), id)); if (k > 0) { const r = putInBag(p, i, id, k); if (!r.error) { p = r.player; want -= k; done += k } } }
+        if (done) got.push(`${itemOf(id)?.name ?? id} ${done}개`)
+        if (want) left.push(`${itemOf(id)?.name ?? id} ${want}개`)
+      }
+      if (!got.length) { notify(`가방에 칸이 모자란다. (가방 하나에 ${BAG_SLOTS}칸)`); return { error: '가방에 칸이 모자란다.' } }
+      commit(p)
+      addLog(`가방에 ${got.join(', ')}를 넣었다.${left.length ? ` (칸이 모자라 ${left.join(', ')}는 소지품에 남았다)` : ''}`)
+      return { ok: true }
+    }
     const r = a.type === 'put' ? putInBag(cur, a.bag, a.id, a.n) : a.type === 'take' ? takeFromBag(cur, a.bag, a.id, a.n) : { error: '알 수 없는 가방 동작' }
     if (r.error) { notify(r.error); return r }
     commit(r.player)
@@ -551,7 +604,7 @@ export function usePlayHost() {
   }
 
   /** 아이템 쓰기 (C.01 useItem 의 혼자 하는 부분. 다인 전투 분기는 뺐다.) */
-  const useItem = async (id, target) => {
+  const useItem = async (id, target, nWant = 1) => {
     const item = itemOf(id)
     const cur = playerRef.current
     if (!item) return
@@ -562,7 +615,32 @@ export function usePlayHost() {
     })
     if (!ok.ok) { notify(ok.why); return }
     if (isHuntItem(item)) { huntActionRef.current?.({ type: 'item', itemId: id }); return }
-    const e = item.effect
+    // vD.02 지금 쓸 필요가 없으면 쓰지 않는다 · 여러 개를 한 번에(체력 · 의지력 · 영력 같은 쌓이는 효과만, 필요한 만큼만)
+    const e0 = item.effect ?? {}
+    {
+      const ks = Object.keys(e0).filter((k) => !['onlyBattle', 'oncePerBattle'].includes(k))
+      const nowA = Date.now()
+      const ailOn = (a) => (cur.ailments?.[a]?.until || 0) > nowA
+      const hpFull = (cur.hp || 0) >= (cur.hpMax || 0), mpFull = (cur.mp || 0) >= (cur.mpMax || 0)
+      const restoreOnly = ks.length > 0 && ks.every((k) => ['hp', 'mp', 'hpFull', 'mpFull'].includes(k))
+      const needHp = e0.hp || e0.hpFull, needMp = e0.mp || e0.mpFull
+      const noNeed = (restoreOnly && (!needHp || hpFull) && (!needMp || mpFull))
+        || (ks.length > 0 && ks.every((k) => ['cureAil', 'hp', 'mp'].includes(k)) && e0.cureAil && !e0.cureAil.some(ailOn) && (!needHp || hpFull) && (!needMp || mpFull))
+        || (ks.length > 0 && ks.every((k) => ['shortenAil'].includes(k)) && !e0.shortenAil.some(ailOn))
+        || (ks.length === 1 && (e0.cureWeak || e0.weakCap != null) && !((cur.weakUntil || 0) > nowA))
+      if (noNeed && !e0.giveHp && !e0.giveMp) { notify('현재는 사용할 필요가 없습니다.'); return }
+    }
+    let n = 1
+    const STACKABLE = ['hp', 'mp', 'giveHp', 'giveMp', 'spirit', 'sellMoney', 'mpStats', 'hpCost']
+    if (!battleRef.current && nWant > 1 && Object.keys(e0).length && Object.keys(e0).every((k) => STACKABLE.includes(k))) {
+      n = Math.max(1, Math.min(Math.floor(nWant), cur.inventory?.[id] || 0))
+      const only = Object.keys(e0)
+      if (only.every((k) => ['hp', 'mp'].includes(k))) { // 회복만 하는 것은 모자란 만큼만 쓴다
+        const need = Math.max(e0.hp ? Math.ceil(Math.max(0, cur.hpMax - cur.hp) / e0.hp) : 0, e0.mp ? Math.ceil(Math.max(0, cur.mpMax - cur.mp) / e0.mp) : 0)
+        if (need >= 1 && need < n) { n = need; notify(`필요한 만큼 ${n}개만 썼다.`) }
+      }
+    }
+    const e = n > 1 ? Object.fromEntries(Object.entries(e0).map(([k, v]) => [k, typeof v === 'number' ? v * n : k === 'mpStats' ? Array(n).fill(v).flat() : v])) : e0
     const healOnly = Object.keys(e).every((k) => ['hp', 'mp', 'giveHp', 'giveMp'].includes(k))
     if (battleRef.current && afflictRef.current.itemSeal) { notify('주머니를 빼앗겨 지금은 아이템을 쓸 수 없다.'); return }
     if (battleRef.current && afflictRef.current.healBlock && healOnly && (e.hp || e.giveHp)) { notify('돌림병 탓에 지금은 회복 아이템이 듣지 않는다.'); return }
@@ -603,10 +681,19 @@ export function usePlayHost() {
     const mp = e.mpFull ? cur.mpMax : mpGain ? Math.min(cur.mpMax, cur.mp + mpGain) : cur.mp
     if (hp !== cur.hp) parts.push(e.hpFull ? '체력 완전 회복' : `체력 ${hp > cur.hp ? '+' : ''}${Math.round(hp - cur.hp)}`)
     if (mp !== cur.mp) parts.push(e.mpFull ? '의지력 완전 회복' : `의지력 +${Math.round(mp - cur.mp)}`)
-    const inventory = { ...cur.inventory, [id]: cur.inventory[id] - 1 }
+    const inventory = { ...cur.inventory, [id]: cur.inventory[id] - n }
     if (inventory[id] <= 0) delete inventory[id]
     const next = commit({ ...cur, ...(buffs ? { buffs } : {}), inventory, hp, mp, money: e.sellMoney ? (cur.money || 0) + e.sellMoney : cur.money, weakUntil, ...(e.spirit ? { spirit: (cur.spirit || 0) + e.spirit } : {}) })
     if (e.spirit) parts.push(`영력 +${(next.spirit || 0) - (cur.spirit || 0)}`)
+    if (e.timed) { // vD.02 n분 동안의 기운(같은 기운은 센 쪽 · 긴 쪽으로)
+      const c1 = playerRef.current, nowT = Date.now(), k = e.timed.kind
+      const t0 = c1.timed?.[k], live = t0 && t0.until > nowT ? t0 : null
+      const t = { v: Math.max(Number(e.timed.v) || 0, live?.v || 0), until: Math.max(nowT + (Number(e.timed.min) || 0) * 60000, live?.until || 0) }
+      const timed = Object.fromEntries(Object.entries(c1.timed ?? {}).filter(([, x]) => x.until > nowT))
+      commit({ ...c1, timed: { ...timed, [k]: t } })
+      parts.push(`${e.timed.min}분 동안 ${TIMED_LABEL[k]?.(t.v) ?? k}`)
+      if (k === 'hpRegen' || k === 'mpRegen') regenAt.current = Date.now()
+    }
     if (e.revive) { setReviveOn(true); parts.push('전투불능 시 1회 부활 대기') }
     if (e.boost) { setBoostOn(true); parts.push('나의 다음 행동 피해 2배 (1턴)') }
     if (e.cureAil || e.shortenAil) { // vC.06 몸의 이상을 낫게 하는 물건
@@ -616,15 +703,21 @@ export function usePlayHost() {
       commit(sh.player)
       if (e.cureAil) parts.push(cr.cured.length ? `${cr.cured.map(ailLabel).join(' · ')} 나았다` : `${e.cureAil.map(ailLabel).join(' · ')}에 걸려 있지 않았다`)
       if (e.shortenAil) parts.push(sh.hit.length ? `${sh.hit.map(ailLabel).join(' · ')} 남은 시간 5분` : `${e.shortenAil.map(ailLabel).join(' · ')}에 걸려 있지 않았다`)
+      if (e.ailGuard) { // vD.02 양호실 물품: 20분 동안 다시 걸리지 않는다
+        const c1 = playerRef.current, now1 = Date.now()
+        const g = Object.fromEntries(Object.entries(c1.ailGuard ?? {}).filter(([, t]) => t > now1))
+        for (const a of e.ailGuard) g[a] = now1 + NURSE_GUARD_MIN * 60000
+        commit({ ...c1, ailGuard: g }); parts.push(`${e.ailGuard.map(ailLabel).join(' · ')}에 ${NURSE_GUARD_MIN}분 동안 걸리지 않는다`)
+      }
     }
     if (e.cureWeak) parts.push('[쇠약] 즉시 회복')
     else if (e.weakCap != null) parts.push('[쇠약] 남은 시간이 1시간으로 줄었다')
     if (e.sellMoney) parts.push(`${e.sellMoney}냥 획득`)
-    if (battleRef.current && (touchesBattleState(e) || e.giveCleanse)) setSoloItemFx({ seq: Date.now() + Math.random(), name: item.name, effect: { enemyHit: e.enemyHit, drainSpirit: e.drainSpirit, reveal: e.reveal, charms: e.charms, cleanse: e.cleanse || e.giveCleanse } })
+    if (battleRef.current && (touchesBattleState(e) || e.giveCleanse)) setSoloItemFx({ seq: Date.now() + Math.random(), name: item.name, effect: { enemyHit: e.enemyHit, drainSpirit: e.drainSpirit, reveal: e.reveal, charms: e.charms, cleanse: e.cleanse || e.giveCleanse, dmgCut: e.dmgCut } })
     if (battleRef.current) setBattleUsedItems((arr) => (arr.includes(id) ? arr : [...arr, id]))
     bump('itemsUsed')
     if (roll(perkV('itemSave'))) { const c = playerRef.current; commit({ ...c, inventory: { ...c.inventory, [id]: (c.inventory?.[id] || 0) + 1 } }); addLog(`칭호의 기능: ${item.name}을(를) 아껴 썼다. (줄지 않음)`) }
-    addLog(`${item.name}을(를) 사용했다. (${parts.length ? parts.join(' · ') : item.effectText})`)
+    addLog(`${item.name}${n > 1 ? ` ${n}개` : ''}을(를) 사용했다. (${parts.length ? parts.join(' · ') : item.effectText})`)
   }
 
   // ───── 탐사(본관 · 별관 · 뒷산 · 사당) — 초록동색과 같은 처리. 퀘스트만 뺐다. ─────
@@ -736,6 +829,7 @@ export function usePlayHost() {
   const storySize = (key) => STORY_FOES[key]?.size ?? (STORY_FOES[key]?.pattern ? 3 : 1)
   /** vC.07.3 일행 전투: 도깨비들의 터 일행끼리 추가전투 · 실습 상대와 함께 싸운다(StoryParty 의 파티 방식을 그대로 쓴다) */
   const roomFight = (enemyId, join = null) => {
+    if (!join && globalThis.BiryeongParty && globalThis.BiryeongParty.isLeader === false) { notify('일행 전투는 파티장만 열 수 있다.'); return } // vD.02
     if (battleRef.current || playerRef.current.sleeping || playerRef.current.training || playerRef.current.slowFight) { notify('지금은 싸울 수 없다. (잠 · 수련 · 느린 싸움 · 다른 전투 중)'); return false }
     const room = globalThis.BiryeongParty?.room
     if (!room?.id) { notify('일행이 없다. [접속자 확인하기]에서 초대해 일행을 만든다.'); return false }
@@ -938,7 +1032,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     clubEnsure: (clubId) => { const cur = playerRef.current; const nx = ensureClubWeek(cur, clubId, effStats, openTierNow()); if (nx !== cur) commit(nx) },
     clubClaim: (clubId, kind, id) => { const r = claimClub(playerRef.current, clubId, kind, id); if (r.error) { notify(r.error); return false } commit(r.player); addLog(r.log); persist(); return true },
     // vC.06 [현재 상태] 칸: 몸의 이상 + 쇠약
-    conditions: () => { const cur = playerRef.current, now = Date.now(); const list = activeAilments(cur, now).map((a) => ({ id: a.id, name: a.def.name, hanja: a.def.hanja, stack: a.stack, max: a.def.max, heavy: a.def.heavy, left: leftText(a.left), effect: a.def.effect, text: a.def.text })); const w = Math.max(cur?.weakUntil || 0, cur?.curseUntil || 0); if (w > now) list.unshift({ id: 'weak', name: WEAK_INFO.name, hanja: WEAK_INFO.hanja, stack: 1, max: 1, heavy: true, left: leftText(w - now), effect: WEAK_INFO.effect, text: WEAK_INFO.text }); return list },
+    conditions: () => { const cur = playerRef.current, now = Date.now(); const list = activeAilments(cur, now).map((a) => ({ id: a.id, name: a.def.name, hanja: a.def.hanja, stack: a.stack, max: a.def.max, heavy: a.def.heavy, left: leftText(a.left), effect: a.def.effect, text: a.def.text })); const w = Math.max(cur?.weakUntil || 0, cur?.curseUntil || 0); if (w > now) list.unshift({ id: 'weak', name: WEAK_INFO.name, hanja: WEAK_INFO.hanja, stack: 1, max: 1, heavy: true, left: leftText(w - now), effect: WEAK_INFO.effect, text: WEAK_INFO.text }); for (const [k, t] of Object.entries(cur?.timed ?? {})) if (t.until > now) list.push({ id: `timed-${k}`, good: true, name: '음식의 기운', hanja: '', stack: 1, max: 1, heavy: false, left: leftText(t.until - now), effect: TIMED_LABEL[k]?.(t.v) ?? k, text: '음식을 먹고 기운이 돈다.' }); return list }, // vD.02 음식의 시간 기운도 보인다
     // vB.01: 시간이 드는 행동(느린 싸움 · 수업 대기 · 휴식 · 잠 · 수련 · 제작) 중인가 — 바깥(app.js)이 페이지를 떠나기 전에 묻는다
     busy: () => busyLabel(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
@@ -959,7 +1053,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     handlers: {
       beginTraining, endTraining, beginSleep, endSleep, beginRest, endRest, upgradeStat,
       lessonActions, setSkin2048, setSkinRunner, lessonOf: (id) => lessonOf(playerRef.current, id),
-      buyItem, buyRecipe, sellToStore, craftItem, endCraft, cookItem, benchCraftAct, knownCraftAct,
+      buyItem, nurseBuy, buyRecipe, sellToStore, craftItem, endCraft, cookItem, benchCraftAct, knownCraftAct,
       enhance, specialEnhance, tokenExchange, removeSpecial, gardenAction, huntAction, finishHuntBattle, finishBattle,
       investigate, investigateShrine, visitSpot, lockerMove, lockerOpen, exploreAct, holjjak, applyClub, fetchClubMembers, adminGive,
       meetNpc, lineSeen, giveNpc, equip, unequip, discardItem, claimInventoryPending, bagAction, useItem,

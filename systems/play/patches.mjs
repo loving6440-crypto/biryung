@@ -164,6 +164,144 @@ export const SOURCE_PATCHES = [
   { file: 'game/activities.js', edits: [["{ id: 'hike', label: '산 탐사', icon: Mountain }", "{ id: 'hike', label: '뒷산 탐사', icon: Mountain }"]] },
   // ── vD.01 개척: 성공 덤(부산물)은 칸마다 정한 것(huntLevels.js rebalanceHuntMaterials) ──
   { file: 'game/huntField.js', edits: [['    const bonus = HUNT_BONUSES[node.kind]', '    const bonus = node.bonus ?? HUNT_BONUSES[node.kind]']] },
+  // ── vD.02 텃밭 씨앗을 한 번에 여러 개(1~99) ──
+  {
+    file: 'ui/components/locations/Garden.jsx',
+    edits: [
+      ["const CROP_COLORS = ['#b77568',", "/** vD.02 씨앗 여러 개 사기: 수를 고르고 [구매] */\nfunction SeedBuy({ id, money, onBuy }) {\n  const [n, setN] = useState(1)\n  const max = Math.max(1, Math.min(99, Math.floor((money || 0) / SEED_PRICE)))\n  const q = Math.max(1, Math.min(99, n))\n  return (<div className=\"flex shrink-0 items-center gap-1\" data-seed-buy={id}>\n    <button type=\"button\" className=\"flat-chip !px-1.5 !py-0.5 text-xs\" aria-label=\"하나 덜\" onClick={() => setN((v) => Math.max(1, v - 1))}>−</button>\n    <input type=\"number\" min={1} max={99} value={q} onChange={(e) => setN(Math.max(1, Math.min(99, Math.floor(Number(e.target.value) || 1))))} className=\"w-11 rounded border border-edge/30 bg-transparent px-1 py-0.5 text-center text-xs text-paper\" aria-label=\"살 개수\" data-seed-qty={id} />\n    <button type=\"button\" className=\"flat-chip !px-1.5 !py-0.5 text-xs\" aria-label=\"하나 더\" onClick={() => setN((v) => Math.min(99, v + 1))}>+</button>\n    <button type=\"button\" className=\"flat-chip !px-1.5 !py-0.5 text-[11px]\" onClick={() => setN(max)} title=\"가진 냥으로 살 수 있는 만큼\">최대</button>\n    <button type=\"button\" className=\"flat-btn !py-1 text-xs disabled:opacity-40\" disabled={(money || 0) < SEED_PRICE * q} onClick={() => onBuy(q)} data-buy-seed={id}>구매 · {SEED_PRICE * q}냥</button>\n  </div>)\n}\nconst CROP_COLORS = ['#b77568',"],
+      ["{GARDEN_CROPS.map(crop => <div key={crop.id} className=\"flex items-center gap-2", "{GARDEN_CROPS.map(crop => <div key={crop.id} className=\"flex flex-wrap items-center gap-2"],
+      ["{GARDEN_EXTRA_SEEDS.map(seed => <div key={seed.id} className=\"flex items-center gap-2", "{GARDEN_EXTRA_SEEDS.map(seed => <div key={seed.id} className=\"flex flex-wrap items-center gap-2"],
+      ["<button type=\"button\" className=\"flat-btn shrink-0 !py-1 text-xs disabled:opacity-40\" disabled={player.money < SEED_PRICE} onClick={() => action('buy', {seedId:crop.seedId})} data-buy-seed={crop.seedId}>구매</button>", "<SeedBuy id={crop.seedId} money={player.money} onBuy={(n) => action('buy', { seedId: crop.seedId, n })} />"],
+      ["<button type=\"button\" className=\"flat-btn shrink-0 !py-1 text-xs disabled:opacity-40\" disabled={player.money < SEED_PRICE} onClick={() => action('buy', {seedId:seed.id})} data-buy-seed={seed.id}>구매</button>", "<SeedBuy id={seed.id} money={player.money} onBuy={(n) => action('buy', { seedId: seed.id, n })} />"],
+    ],
+  },
+  // ── vD.02 양호실 물품은 매점 진열대에 올리지 않는다(양호실에서만 판다) ──
+  { file: 'game/items.js', edits: [["export const STORE_ITEMS = ITEMS.filter((i) => i.price != null && i.storeOnly !== 'garden')", "export const STORE_ITEMS = ITEMS.filter((i) => i.price != null && i.storeOnly !== 'garden' && i.storeOnly !== 'infirmary')"]] },
+  // ── vD.02 아이템 태그 검색: [[태그]] 를 검색어에 담아 여러 개를 함께 고른다(모두 가진 것만) · 효과로 알아서 붙는 태그 ──
+  {
+    file: 'game/itemSearch.js',
+    edits: [
+      ["/** 검색어가 비었으면 항상 참. */\nexport function itemMatches(item, query) {\n  const q = norm(query)",
+       `/** vD.02 태그: 원래 태그 + 효과로 알아서 붙는 태그 */
+const E_TAGS = [
+  ['#체력 회복', (e) => e.hp > 0 || e.hpFull || e.giveHp], ['#의지력 회복', (e) => e.mp > 0 || e.mpFull || e.giveMp || e.mpStats],
+  ['#기운(버프)', (e) => e.buff || e.buffs || e.buffAll || e.randomBuff || e.timed], ['#몸의 이상', (e) => e.cureAil || e.shortenAil || e.ailGuard],
+  ['#쇠약', (e) => e.cureWeak || e.weakCap != null], ['#영력', (e) => e.spirit], ['#피해 줄이기', (e) => e.dmgCut], ['#공격', (e) => e.enemyHit || e.boost],
+  ['#부활', (e) => e.revive], ['#간파', (e) => e.reveal], ['#부적', (e) => e.charms],
+]
+export function itemTags(item) {
+  const out = new Set(item?.tags ?? [])
+  const e = item?.effect ?? {}
+  for (const [t, f] of E_TAGS) if (f(e)) out.add(t)
+  if (e.hunt) out.add('#개척')
+  if (item?.battle) out.add('#전투')
+  if (item?.kind === 'material') out.add('재료')
+  if (item?.kind === 'gear' || item?.slot) out.add('#장비')
+  if (['food', 'drink'].includes(item?.kind) || item?.cook) out.add('#음식')
+  if (item?.storeOnly === 'infirmary') out.add('#양호실')
+  return [...out]
+}
+/** 고를 수 있는 태그(자주 쓰는 순) */
+export const SEARCH_TAGS = ['#체력 회복', '#의지력 회복', '#기운(버프)', '#몸의 이상', '#쇠약', '#영력', '#전투', '#턴소모無', '#턴소모有', '#공격', '#피해 줄이기', '#부활', '#간파', '#부적', '#개척', '#음식', '#양호실', '#장비', '재료', '완성품', '본편', '전리품', '일행', '장신구', '무구', '특수 강화 패']
+export const splitTagQuery = (query) => { const tags = []; const text = String(query ?? '').replace(/\\[\\[([^\\]]+)\\]\\]/g, (_, t) => { tags.push(t); return ' ' }).trim(); return { text, tags } }
+export const joinTagQuery = (text, tags) => [String(text ?? '').trim(), ...tags.map((t) => \`[[\${t}]]\`)].filter(Boolean).join(' ')
+/** 검색어가 비었으면 항상 참. */
+export function itemMatches(item, query0) {
+  const { text, tags } = splitTagQuery(query0)
+  if (tags.length) { if (!item) return false; const have = itemTags(item); if (!tags.every((t) => have.includes(t))) return false }
+  const query = text
+  const q = norm(query)`],
+    ],
+  },
+  {
+    file: 'ui/components/ItemSearchBox.jsx',
+    edits: [
+      ["import { Search, X } from 'lucide-react'", "import { Search, X } from 'lucide-react'\nimport { useState } from 'react'\nimport { SEARCH_TAGS, splitTagQuery, joinTagQuery } from '../../game/itemSearch'"],
+      ["export default function ItemSearchBox({ value, onChange, label = '아이템 검색', count, total, className = '' }) {\n  return <div className={`flex items-center gap-2 ${className}`}>",
+       "export default function ItemSearchBox({ value, onChange, label = '아이템 검색', count, total, className = '' }) {\n  // vD.02 태그 고르기(여러 개 · 모두 가진 것만)\n  const [open, setOpen] = useState(false)\n  const { text, tags } = splitTagQuery(value)\n  const setText = (t) => onChange(joinTagQuery(t, tags))\n  const flip = (t) => onChange(joinTagQuery(text, tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]))\n  return <div className={className}><div className=\"flex items-center gap-2\">"],
+      ["<input type=\"search\" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}", "<input type=\"search\" aria-label={label} value={text} onChange={(e) => setText(e.target.value)}"],
+      ["{value && <button type=\"button\" aria-label=\"검색어 지우기\" onClick={() => onChange('')} className=\"shrink-0 text-paper/50 hover:text-paper\"><X size={14} aria-hidden /></button>}\n    </label>",
+       "{value && <button type=\"button\" aria-label=\"검색어 지우기\" onClick={() => onChange('')} className=\"shrink-0 text-paper/50 hover:text-paper\"><X size={14} aria-hidden /></button>}\n    </label>\n    <button type=\"button\" aria-expanded={open} aria-label=\"태그로 찾기\" data-tag-toggle onClick={() => setOpen((v) => !v)} className={`flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs ring-1 ${tags.length ? 'text-gold ring-gold/50' : 'text-paper/70 ring-edge/20'}`}># 태그{tags.length ? ` ${tags.length}` : ''} ▾</button>"],
+      ["    {value && total != null && <span className=\"shrink-0 text-[11px] tabular-nums text-paper/55\" aria-live=\"polite\">{count}/{total}</span>}\n  </div>",
+       "    {value && total != null && <span className=\"shrink-0 text-[11px] tabular-nums text-paper/55\" aria-live=\"polite\">{count}/{total}</span>}\n  </div>\n  {open && <div className=\"mt-1.5 flex flex-wrap gap-1 rounded-lg bg-shade/40 p-2 ring-1 ring-edge/15\" role=\"group\" aria-label=\"태그 고르기\" data-tag-list>{SEARCH_TAGS.map((t) => <button key={t} type=\"button\" aria-pressed={tags.includes(t)} data-tag={t} onClick={() => flip(t)} className={`rounded-full px-2 py-0.5 text-[11px] ring-1 ${tags.includes(t) ? 'bg-gold-fill/25 text-gold ring-gold/50' : 'text-paper/70 ring-edge/20 hover:text-paper'}`}>{t}</button>)}{tags.length > 0 && <button type=\"button\" onClick={() => onChange(text)} className=\"rounded-full px-2 py-0.5 text-[11px] text-crimson ring-1 ring-crimson/40\">태그 모두 풀기</button>}</div>}\n  </div>"],
+    ],
+  },
+  // 도감(재료 및 아이템) · 제작법 보기에도 검색 + 태그
+  {
+    file: 'ui/components/CodexModal.jsx',
+    edits: [
+      ["import ItemIcon from './ItemIcon'", "import ItemIcon from './ItemIcon'\nimport ItemSearchBox from './ItemSearchBox'\nimport { itemMatches } from '../../game/itemSearch'\nimport { itemOf as __itemOf } from '../../game/items'"],
+      ["  const list = codexEntries(chapter, player, admin)\n  const groups = [...new Set(list.map((e) => e.group).filter(Boolean))]",
+       "  const [cq, setCq] = useState('') // vD.02 재료 및 아이템 검색 · 태그\n  const all = codexEntries(chapter, player, admin)\n  const list = chapter === 'items' && cq ? all.filter((e) => itemMatches(__itemOf(e.id) ?? { name: e.name ?? '' }, cq)) : all\n  const groups = [...new Set(list.map((e) => e.group).filter(Boolean))]"],
+      ["      {groups.length ? (\n        groups.map((g) => (", "      {chapter === 'items' && <ItemSearchBox className=\"mt-2\" label=\"도감 아이템 검색\" value={cq} onChange={setCq} count={list.length} total={all.length} />}\n      {groups.length ? (\n        groups.map((g) => ("],
+    ],
+  },
+  {
+    file: 'ui/components/RecipeBook.jsx',
+    edits: [
+      ["import { countOf, itemOf } from '../../game/items'", "import { countOf, itemOf } from '../../game/items'\nimport ItemSearchBox from './ItemSearchBox'\nimport { itemMatches } from '../../game/itemSearch'"],
+      ["    .filter(({ r }) => !onlyCan || free || canMake(r))", "    .filter(({ r }) => !onlyCan || free || canMake(r))\n    .filter(({ r }) => !rq || itemMatches(itemOf(r.result), rq)) // vD.02 제작법 검색 · 태그"],
+      ["export default function RecipeBook({ listed, player, canMake, onLoad, free = false, emptyText = '등록된 제작법이 없다.' }) {", "export default function RecipeBook({ listed, player, canMake, onLoad, free = false, emptyText = '등록된 제작법이 없다.' }) {\n  const [rq, setRq] = useState('')"],
+      ["    <div data-recipe-book>\n", "    <div data-recipe-book>\n      <ItemSearchBox className=\"mb-2\" label=\"제작법 검색\" value={rq} onChange={setRq} />\n"],
+    ],
+  },
+  // ── vD.02 소지품: 마우스오버는 itemTip.js 가 맡는다(이 창의 것은 화면 밖 스타일이라 안 보였다) · 버튼 폭 고정 · 가방에 똑똑하게 넣기(남는 건 소지품에) · 여러 개 골라 가방에 ──
+  {
+    file: 'ui/components/InventoryModal.jsx',
+    edits: [
+      ["const STACK_KEYS = new Set(['hp', 'mp', 'giveHp', 'giveMp', 'spirit', 'sellMoney', 'mpStats', 'trainUnder10', 'hpCost'])", "const STACK_KEYS = new Set(['hp', 'mp', 'giveHp', 'giveMp', 'spirit', 'sellMoney', 'mpStats', 'hpCost'])"],
+      ["    {hover && !popupOpen && createPortal(", "    {false && hover && !popupOpen && createPortal("],
+      ["  const [hover, setHover] = useState(null)", "  const [hover, setHover] = useState(null)\n  const [bagPickMode, setBagPickMode] = useState(false) // vD.02 가방에 넣을 것 여러 개 고르기\n  const [bagSel, setBagSel] = useState({})"],
+      ["                    onClick={() => {\n                      setErr('')\n                      setTargeting(false)\n                      setSel(item.id)",
+       "                    data-bag-picked={bagPickMode && bagSel[item.id] ? '1' : undefined}\n                    onClick={() => {\n                      if (bagPickMode) { if (item.id === BAG_ID || item.tags?.includes('중요한 아이템')) return; setBagSel((m) => { const n = { ...m }; if (n[item.id]) delete n[item.id]; else n[item.id] = countOf(player, item.id); return n }); return }\n                      setErr('')\n                      setTargeting(false)\n                      setSel(item.id)"],
+      ["{owned.length > 0 && <ItemSearchBox className=\"mt-2\" label=\"소지품 검색\" value={query} onChange={setQuery} count={stacks.length} total={allStacks.length} />}",
+       "{owned.length > 0 && <ItemSearchBox className=\"mt-2\" label=\"소지품 검색\" value={query} onChange={setQuery} count={stacks.length} total={allStacks.length} />}\n          {bags > 0 && onBag && !inBattle && owned.length > 0 && <div className=\"mt-2 flex flex-wrap items-center gap-2 text-xs\" data-bag-pick-bar>\n            {!bagPickMode ? <button type=\"button\" className=\"flat-btn !py-1 text-xs\" data-bag-pick-start onClick={() => { closeAll(); setBagSel({}); setBagPickMode(true) }}>가방에 넣을 것 골라 넣기</button> : <>\n              <span className=\"text-gold\">넣을 것을 눌러 고른다 — {Object.keys(bagSel).length}종 골랐다</span>\n              <button type=\"button\" className=\"flat-btn !py-1 text-xs disabled:opacity-40\" disabled={!Object.keys(bagSel).length} data-bag-pick-go onClick={() => { const r = bagDo({ type: 'putSmart', items: Object.entries(bagSel) }); if (!r?.error) { setBagSel({}); setBagPickMode(false) } }}>고른 것 모두 가방에</button>\n              <button type=\"button\" className=\"flat-btn-ghost !py-1 text-xs\" onClick={() => { setBagSel({}); setBagPickMode(false) }}>그만 고르기</button>\n            </>}\n          </div>}"],
+      ["onClick={() => { const n = Math.min(pn, discardQty); const i = bagFor(picked.id, n); if (i < 0) return setErr(`가방에 칸이 모자란다. (가방 하나에 ${BAG_SLOTS}칸)`); if (!bagDo({ type: 'put', bag: i, id: picked.id, n })?.error) closeAll() }} className=\"flat-btn min-w-[5.5rem] !py-1 text-xs\">",
+       "onClick={() => { const n = Math.min(pn, discardQty); if (!bagDo({ type: 'putSmart', items: [[picked.id, n]] })?.error) closeAll() }} className=\"flat-btn w-[6.5rem] shrink-0 justify-center !py-1 text-xs\">"],
+      ["data-bag-put-all title=\"고른 묶음을 통째로 넣는다\" onClick={() => { const n = pn; const i = bagFor(picked.id, n); if (i < 0) return setErr(`가방에 칸이 모자란다. (가방 하나에 ${BAG_SLOTS}칸)`); if (!bagDo({ type: 'put', bag: i, id: picked.id, n })?.error) closeAll() }} className=\"flat-btn min-w-[5.5rem] !py-1 text-xs\">\n                    전부 넣기",
+       "data-bag-put-all title=\"이 아이템을 가진 만큼 모두 넣는다(칸이 모자라면 남는 것은 소지품에)\" onClick={() => { const n = countOf(player, picked.id); if (!bagDo({ type: 'putSmart', items: [[picked.id, n]] })?.error) closeAll() }} className=\"flat-btn w-[6.5rem] shrink-0 justify-center !py-1 text-xs\">\n                    모두 넣기"],
+      ["                    className=\"flat-btn min-w-[5.5rem] !py-1 text-xs disabled:opacity-40\"\n                    data-use-qty={useN}", "                    className=\"flat-btn w-[6.5rem] shrink-0 justify-center !py-1 text-xs disabled:opacity-40\"\n                    data-use-qty={useN}"],
+      ["{chewyTarget ? '건네기' : useN > 1 ? `${useN}개 사용` : '사용'}", "{chewyTarget ? '건네기' : useN > 1 ? `사용 ×${useN}` : '사용'}"],
+    ],
+  },
+  // ── vD.02 다음에 받는 공격 피해 줄이기(dmgCut: 0.5 = 절반 · 0.667 = 1/3 덜) — 단독 · 다인 전투 모두 ──
+  {
+    file: 'game/battleItems.js',
+    edits: [
+      ["export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse']", "export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse', 'dmgCut']"],
+      ["  if (effect.cleanse) {\n    Object.assign(s, cleansed())", "  if (effect.dmgCut) {\n    s.dmgCut = effect.dmgCut\n    parts.push(`다음에 받는 공격의 피해가 ${effect.dmgCut <= 0.5 ? '절반으로' : '1/3 줄어든다'}`)\n  }\n  if (effect.cleanse) {\n    Object.assign(s, cleansed())"],
+    ],
+  },
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["    if (ctx.reduction > 0 && dmg > 0) dmg -= Math.floor(dmg * Math.min(1, ctx.reduction))\n", "    if (ctx.reduction > 0 && dmg > 0) dmg -= Math.floor(dmg * Math.min(1, ctx.reduction))\n    if (s.dmgCut > 0 && s.dmgCut < 1 && dmg > 0) { const before = dmg; dmg = Math.floor(dmg * s.dmgCut); ev.push({ kind: 'warn', text: `받을 피해가 ${s.dmgCut <= 0.5 ? '절반으로' : '1/3 줄어'} — ${before} → ${dmg}` }); s.dmgCut = 0 } // vD.02\n"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }", "  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }\n  if (e.dmgCut) { m.dmgCut = e.dmgCut; parts.push(`다음에 받는 공격의 피해가 ${e.dmgCut <= 0.5 ? '절반으로' : '1/3 줄어든다'}`) } // vD.02"],
+      ["  stealUses: m.stealUses || {},\n})", "  stealUses: m.stealUses || {},\n  dmgCut: m.dmgCut || 0,\n})"],
+      ["    t.survived = r.state.survived ?? t.survived // 명부 쇠사슬\n", "    t.survived = r.state.survived ?? t.survived // 명부 쇠사슬\n    t.dmgCut = r.state.dmgCut || 0 // vD.02 피해 줄이기는 한 번 맞으면 끝\n"],
+    ],
+  },
+  // ── vD.02 음식의 시간 기운(timed): 개척 성공률 · 추가 보상 확률이 n분 동안 오른다 ──
+  {
+    file: 'game/huntField.js',
+    edits: [
+      ["  const buff = s?.oddsBuff?.left > 0 ? s.oddsBuff.amount : 0\n  const extra = gear.odds + buff\n  return { ...odds, success: clamp(odds.success + extra, 0, 100), bonus: clamp(odds.bonus + gear.bonus + (s?.bonusUp || 0), 0, 100), extra }",
+       "  const buff = s?.oddsBuff?.left > 0 ? s.oddsBuff.amount : 0\n  const __tv = (k) => { const t = player?.timed?.[k]; return t && t.until > Date.now() ? Number(t.v) || 0 : 0 }\n  const extra = gear.odds + buff + __tv('huntOdds')\n  return { ...odds, success: clamp(odds.success + extra, 0, 100), bonus: clamp(odds.bonus + gear.bonus + (s?.bonusUp || 0) + __tv('huntBonus'), 0, 100), extra }"],
+    ],
+  },
+  // ── vD.02 느린 싸움: 체력 · 의지력은 상대 영력만큼, 기다림은 영력×2에 가장 가까운 5의 배수(분) ──
+  {
+    file: 'game/progress.js',
+    edits: [
+      ['export const SLOW_FIGHT_COST_PER_SPIRIT = 2', 'export const SLOW_FIGHT_COST_PER_SPIRIT = 1'],
+      ['export const slowFightMinutes = (enemy) => Math.max(1, Math.round(enemy.spirit * SLOW_FIGHT_WAIT_PER_SPIRIT))', 'export const slowFightMinutes = (enemy) => Math.max(5, Math.round((enemy.spirit * 2) / 5) * 5)'],
+    ],
+  },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',
@@ -334,8 +472,8 @@ export const SOURCE_PATCHES = [
   {
     file: 'game/items.js',
     edits: [
-      ["import { V79_SHEET_DATA } from './v79SheetData.js'", "import { V79_SHEET_DATA } from './v79SheetData.js'\nimport { STORY_ITEMS as __STORY_ITEMS, NEW_ITEMS as __NEW_ITEMS } from '@biryeong/reskin.data.js'\nimport { AIL_ITEMS as __AIL_ITEMS } from '@story/ailments.js'"],
-      ['export const ITEMS = RAW_ITEMS.map((original) => {', 'export const ITEMS = [...RAW_ITEMS, ...__STORY_ITEMS, ...__NEW_ITEMS, ...__AIL_ITEMS].map((original) => {'],
+      ["import { V79_SHEET_DATA } from './v79SheetData.js'", "import { V79_SHEET_DATA } from './v79SheetData.js'\nimport { STORY_ITEMS as __STORY_ITEMS, NEW_ITEMS as __NEW_ITEMS } from '@biryeong/reskin.data.js'\nimport { AIL_ITEMS as __AIL_ITEMS } from '@story/ailments.js'\nimport { NEW_SPIRIT_ITEMS as __SPIRIT_ITEMS } from '@story/newSpirits.js'"],
+      ['export const ITEMS = RAW_ITEMS.map((original) => {', 'export const ITEMS = [...RAW_ITEMS, ...__STORY_ITEMS, ...__NEW_ITEMS, ...__AIL_ITEMS, ...__SPIRIT_ITEMS].map((original) => {'],
     ],
   },
   // ── v1.3 본편 제작법은 처음엔 잠겨 있다: 연 것(globalThis.__BRY_OPEN — usePlayHost 가 채운다)만 제작 칸 · 제작법 목록에 든다 ──

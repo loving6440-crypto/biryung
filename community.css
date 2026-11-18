@@ -135,3 +135,8 @@
 .mail-card .mail-head time{font-size:11px;color:#8fa3a6}
 .mail-card .mail-note{margin:6px 0 0;color:#cbbf9f;font-size:13px}
 .mail-card .mail-state{display:block;margin-top:6px;color:#7f9798;font-size:11px}
+/* vD.02 알림 카드는 맨 위 층 · 일행 대화 옆 창(오른쪽 아래)과 겹치지 않게 오른쪽 위 */
+.invite-stack{inset:72px 14px auto auto;margin:0;padding:0;border:0;background:transparent;overflow:visible;z-index:2147483001}
+.invite-stack:not(:popover-open){display:none}
+.invite-stack:popover-open{display:flex}
+.party-leader-tag{margin-left:4px;padding:0 5px;border:1px solid #d4b07899;border-radius:8px;color:#f3d79e;font-size:10px;font-weight:normal}

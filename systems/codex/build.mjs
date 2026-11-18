@@ -39,7 +39,7 @@ const npcText = (t) => t.replace(/\{\{npc:(\w+)\|?([^}]*)\}\}/g, (_, slot, josa)
 const swap = (t) => npcText(R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? '')))
 
 // ── 아이템: 표(엑셀) 자료와 같은 것을 쓴다 ──
-const __AILPX = Object.fromEntries((await import(join(ROOT, 'systems/play/src/ailments.js'))).AIL_ITEMS.map((i) => [i.id, i.pixel]))
+const __AILPX = Object.fromEntries([...(await import(join(ROOT, 'systems/play/src/ailments.js'))).AIL_ITEMS, ...(await import(join(ROOT, 'systems/play/src/newSpirits.js'))).NEW_SPIRIT_ITEMS].map((i) => [i.id, i.pixel])) // vD.02 새 영물 물건도
 const sheet = JSON.parse(execFileSync(process.execPath, [join(ROOT, 'systems/sheets/export.mjs')], { encoding: 'utf8', maxBuffer: 64 << 20 }))
 const items = sheet.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, effect: npcText(String(i.effect ?? '')), desc: npcText(String(i.lore ?? '')), use: npcText(String(i.use ?? '')), from: i.sourceSimple, px: R.ITEM_PIXELS[i.id] ?? __AILPX[i.id] ?? null }))
 const nameOf = Object.fromEntries(items.map((i) => [i.id, i.name]))

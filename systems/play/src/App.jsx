@@ -14,6 +14,7 @@ import Armory from '@vault/ui/components/locations/Armory.jsx'
 import Garden from '@vault/ui/components/locations/Garden.jsx'
 import Dormitory from '@vault/ui/components/locations/Dormitory.jsx'
 import Infirmary from '@vault/ui/components/locations/Infirmary.jsx'
+import NurseShop from './NurseShop.jsx'
 import InventoryModal from '@vault/ui/components/InventoryModal.jsx'
 import MainHall from '@vault/ui/components/locations/MainHall.jsx'
 import Annex from '@vault/ui/components/locations/Annex.jsx'
@@ -104,7 +105,8 @@ export default function App() {
   // vC.07.4 「다인 전투」 상대(적정 2 · 3명): 도깨비들의 터 일행(둘 이상)이 있으면 [겨루기]로 일행 전투를 연다.
   const room = useRoom()
   const roomOk = !!room && (room.members?.length || 0) >= 2
-  const battleProps = { ...baseBattleProps, multi: { canParty: roomOk && !host.storyFight, isLeader: true, lobby: null, onStart: (id) => host.roomFight(id) } }
+  const leaderOk = !room || (room.leader ?? room.members?.[0]?.u) === globalThis.BiryeongParty?.me?.() // vD.02 전투 돌입은 파티장만
+  const battleProps = { ...baseBattleProps, multi: { canParty: roomOk && leaderOk && !host.storyFight, isLeader: leaderOk, lobby: null, onStart: (id) => host.roomFight(id) } }
   const [openCourse, setOpenCourse] = useState(null) // 본관 [수업]에서 연 과목(주소는 그대로 둔다)
 
   // pioneer/<터> : 아직 개척 중이 아니면 그 터로 바로 들어간다.
@@ -133,6 +135,7 @@ export default function App() {
         else if (loc === 'gym' && act === 'battle') screen = <BattleHall battleProps={battleProps} onFinish={H.finishBattle} admin={admin} />
         else if (loc === 'gym') screen = <Gym key={act} view={act} player={player} admin={admin} onMeet={H.meetNpc} onEnhance={H.enhance} onSpecialEnhance={H.specialEnhance} onRemoveSpecial={H.removeSpecial} onTokenExchange={H.tokenExchange} onAdminGive={H.adminGive} onGardenAction={H.gardenAction} online={false} onHuntAction={H.huntAction} onVisit={H.visitSpot} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} {...battleProps} stats={effStats} onFinish={H.finishBattle} />
         else if (loc === 'shrine') screen = <Shrine key={act} view={act} player={player} onMeet={H.meetNpc} onLineSeen={H.lineSeen} onGiveNpc={H.giveNpc} onExploreAct={H.exploreAct} onEnter={enter} onInvestigate={H.investigateShrine} onVisit={H.visitSpot} />
+        else if (loc === 'infirmary' && act === 'shop') screen = <NurseShop player={player} admin={admin} onBuy={H.nurseBuy} /> // vD.02
         else if (loc === 'infirmary') screen = <Infirmary view={act} player={player} onStartRest={H.beginRest} onStopRest={H.endRest} />
         else if (loc === 'dorm' && act === 'store') screen = <Store player={player} onBuy={H.buyItem} onSell={H.sellToStore} onBuyRecipe={H.buyRecipe} onMeet={H.meetNpc} onLineSeen={H.lineSeen} admin={admin} onGiveNpc={H.giveNpc} />
         else if (loc === 'dorm' && act === 'cafeteria') screen = <Cafeteria online={!!globalThis.__BRY_CAFE?.online()} onSubmitted={() => {}} />
@@ -187,7 +190,7 @@ export default function App() {
       {/* 소지품 창은 어느 페이지에서나 떠야 하므로(실행 화면 칸이 감춰져 있어도) 바깥의 #playPortal 에 그린다. */}
       {host.invOpen && createPortal(
         <InventoryModal player={player} inBattle={host.battleActive} reviveOn={host.reviveOn} boostOn={host.boostOn} usedItems={host.battleUsedItems}
-          onUse={(id, target, n = 1) => { const times = host.battleActive ? 1 : Math.max(1, Math.floor(n) || 1); return (async () => { for (let i = 0; i < times; i++) await H.useItem(id, target) })() }}
+          onUse={(id, target, n = 1) => H.useItem(id, target, host.battleActive ? 1 : Math.max(1, Math.floor(n) || 1))} /* vD.02 여러 개는 한 번에(효과를 곱한다) */
           onDiscard={H.discardItem} onEquip={H.equip} onUnequip={H.unequip} onClaimPending={H.claimInventoryPending} onBag={H.bagAction}
           onClose={() => host.setInvOpen(false)} online={false} />
       , document.getElementById('playPortal') ?? document.body)}

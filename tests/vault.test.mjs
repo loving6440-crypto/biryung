@@ -327,7 +327,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
-  assert17.equal(C.items.length, 457) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
+  assert17.equal(C.items.length, 477) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
   // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
   for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
@@ -535,7 +535,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(q.includes("'EXTRA_TIER'") && q.includes('extraTier:'))
   const T = await import('../systems/play/src/tierScale.js')
   const e = T.rescaleEnemy({ tier: 10, hp: 1000, atk: 100, act: 60, spirit: 60, reward: 120 })
-  assert.ok(e.hp < 1000 && e.reward === 120); assert.equal(T.rescaleEnemy(e).hp, e.hp) // 두 번 불러도 한 번만 · 보상은 그대로
+  assert.ok(e.hp < 1000 && e.reward === 160); assert.equal(T.rescaleEnemy(e).hp, e.hp) // 두 번 불러도 한 번만 · vD.02 보상은 단계 표(TIER_REWARD)
   // 5 · 6 얼굴
   assert.ok(q.includes("const MAIN_CAST = ['윤진서', '연호수', '△△', '비', '서창현']") && q.includes("'秘靈'") && q.includes("'pt-seal is-plain'"))
   assert.ok(!/\[\.\.\.shown\]\[0\]/.test(q), '엑스트라 얼굴에 글자를 넣지 않는다')
@@ -554,7 +554,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.01)'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[12])'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -663,9 +663,9 @@ test('vC.07.3: 일행 전투 — 도깨비들의 터 일행끼리 추가전투 �
 
 test('vC.07.4: 「다인 전투」 상대(적정 2 · 3명)의 [겨루기]가 일행이 있으면 열린다', () => {
   const app = readFileSync(join(ROOT, 'systems/play/src/App.jsx'), 'utf8')
-  assert.ok(!app.includes('multi={null}') && app.includes('canParty: roomOk && !host.storyFight') && app.includes('lobby: null'))
+  assert.ok(!app.includes('multi={null}') && app.includes('canParty: roomOk && leaderOk && !host.storyFight') && app.includes('lobby: null'))
   const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
-  assert.ok(sp.includes('hpMul(n) / hpMul(base)'))
+  assert.ok(sp.includes('hpMul(n) / hpMul(base)') && sp.includes('const hpMul = (n) => (n <= 1 ? 1 : PARTY_HP)')) // vD.02 2명도 3인 기준
 })
 
 test('vC.07.5: 관리자 — 학생의 스탯 · 체력/의지력/영력 · 쇠약 · 몸의 이상 · 영능력 고치기, 영능력 하사', () => {
@@ -717,4 +717,28 @@ test('vD.01: 단체전 소지품(턴소모는 내 차례만) · 죽음을 들은
   assert.equal(new Set(vals).size, vals.length, '빼앗은 영능력 효과가 모두 다르다')
   const { ITEM_RETUNE } = await import(join(ROOT, 'systems/play/src/itemRetune.js'))
   assert.ok(Object.keys(ITEM_RETUNE).length >= 30)
+})
+
+test('vD.02: 단계 보상은 언제나 위가 많다 · 느린 싸움 · 2명도 3인 기준 · 터마다 영물 하나 · 양호실 물품 · 음식의 시간 기운 · 파티장', async () => {
+  const T = await import('../systems/play/src/tierScale.js')
+  for (let t = 1; t < 10; t++) assert.ok(Math.max(...T.TIER_REWARD[t]) < Math.min(...T.TIER_REWARD[t + 1]), `${t}단계 보상 < ${t + 1}단계`)
+  const pat = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
+  assert.ok(pat.includes('Math.max(5, Math.round((enemy.spirit * 2) / 5) * 5)') && pat.includes("'export const SLOW_FIGHT_COST_PER_SPIRIT = 1'"))
+  const S = await import('../systems/play/src/newSpirits.js')
+  const sp = Object.values(S.SITE_SPIRIT).map(([s]) => s)
+  assert.equal(new Set(sp).size, sp.length, '영물이 모두 다르다')
+  assert.equal(S.NEW_SPIRIT_RECIPES.length, 5)
+  for (const r of S.NEW_SPIRIT_RECIPES) assert.ok(S.NEW_SPIRIT_ITEMS.some((i) => i.id === r.result) && S.NEW_SPIRIT_ITEMS.some((i) => i.id === r.inputs[0][0]))
+  const A = await import('../systems/play/src/ailments.js')
+  assert.equal(A.NURSE_STOCK.length, 11)
+  assert.ok(A.NURSE_STOCK.find((x) => x.id === 'nutrient').price >= 500)
+  const { ITEM_RETUNE } = await import('../systems/play/src/itemRetune.js')
+  assert.ok(Object.values(ITEM_RETUNE).filter((r) => r.effect?.timed).length >= 10)
+  assert.ok(ITEM_RETUNE['nw-mugwort-rope'].effect.dmgCut === 0.5 && ITEM_RETUNE['nw-raccoon-tag'].effect.dmgCut > 0.5)
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes('현재는 사용할 필요가 없습니다.') && host.includes('onlyFraction(cur, r.player)'))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes("'leader', r.members->0->>'u'") && sql.includes('not_leader'))
+  const party = readFileSync(join(ROOT, 'party.js'), 'utf8')
+  assert.ok(party.includes('party-leader-tag') && party.includes('get isLeader()'))
 })

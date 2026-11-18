@@ -13,6 +13,7 @@
 // 순서: 개척 터 단추는 수월한 스탯(관련 스탯 평균)이 낮은 순서로 늘어선다.
 
 import { HUNT_EXTRA } from '../../biryeong/reskin.data.js'
+import { assignSiteSpirits } from './newSpirits.js'
 
 const PTS = [[0, 0], [19, 19], [29.5, 25], [39.5, 30], [46, 36], [50, 43], [60, 50], [100, 80]]
 /** 관련 스탯 평균(만렙 50 기준) → 만렙 40 기준 */
@@ -81,6 +82,7 @@ export function remapHuntSites(HUNT_SITES, HUNT_PATHS, HUNT_SPECIES = null) {
       .sort((a, b) => (HUNT_SITES[a.id] ? siteS(HUNT_SITES[a.id]) : 1e9) - (HUNT_SITES[b.id] ? siteS(HUNT_SITES[b.id]) : 1e9) || a._i - b._i)
       .map(({ _i, ...s }) => s)
   }
+  if (HUNT_SPECIES) assignSiteSpirits(HUNT_SITES, HUNT_SPECIES) // vD.02 터마다 영물 하나, 모두 다르게
   if (HUNT_SPECIES) rebalanceHuntMaterials(HUNT_SITES, HUNT_SPECIES)
   return HUNT_SITES
 }

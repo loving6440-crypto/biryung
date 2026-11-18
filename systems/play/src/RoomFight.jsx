@@ -8,12 +8,14 @@ export default function RoomFight({ enemy, disabled }) {
   useEffect(() => { const t = setInterval(() => setRoom(roomNow()), 3000); return () => clearInterval(t) }, [])
   if (!room) return null
   const others = room.members.length - 1
+  const lead = room.leader ?? room.members?.[0]?.u, mine = globalThis.BiryeongParty?.me?.()
+  const leader = !lead || !mine || lead === mine // vD.02 전투 돌입은 파티장만
   return (
     <>
-      <button type="button" data-room-fight={enemy.id} disabled={disabled} onClick={() => bridge.api?.roomFight?.(enemy.id)} className="flat-btn mt-2 justify-center !border-[#8fbaff88] text-[#cfe0ff]">
+      <button type="button" data-room-fight={enemy.id} disabled={disabled || !leader} onClick={() => bridge.api?.roomFight?.(enemy.id)} className="flat-btn mt-2 justify-center !border-[#8fbaff88] text-[#cfe0ff] disabled:opacity-45">
         일행과 함께 겨루기
       </button>
-      <p className="mt-1 text-[10px] text-paper/50">도깨비들의 터 일행 {others}명에게 알림이 간다. 세 명까지 · 체력은 모인 사람 수에 맞춘다.</p>
+      <p className="mt-1 text-[10px] text-paper/50">{leader ? `도깨비들의 터 일행 ${others}명에게 알림이 간다. 세 명까지.` : `전투 돌입은 파티장(${room.members.find((x) => x.u === lead)?.name ?? lead})만 할 수 있다. 파티장이 열면 알림이 온다.`}</p>
     </>
   )
 }

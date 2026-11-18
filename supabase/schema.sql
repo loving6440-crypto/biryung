@@ -1507,9 +1507,74 @@ begin
     where g.target is not null or c.claimed_at is not null));
 end $$;
 
+-- ════════ vD.02 일행: 파티장(맨 앞 사람)만 더 초대하고 전투를 연다 · 세 명까지 ════════
+create or replace function biryeong_private.room_json(r biryeong_private.rooms) returns jsonb language sql stable as $$
+  select jsonb_build_object('id', r.id, 'kind', r.kind, 'status', r.status, 'members', r.members, 'everyone', r.everyone, 'created_at', r.created_at, 'ended_at', r.ended_at,
+    'leader', r.members->0->>'u') $$;
+
+create or replace function public.bry_invite(p_token text, p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t biryeong_private.accounts; r biryeong_private.rooms;
+begin
+  select * into t from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found or t.id = a.id then raise exception 'not_found'; end if;
+  perform throttle_do('invite:' || a.id, 12, 600);
+  r := my_room(a);
+  if r.id is not null and r.members->0->>'u' <> a.username then raise exception 'not_leader'; end if;
+  if r.id is not null and jsonb_array_length(r.members) >= 3 then raise exception 'party_full'; end if;
+  if r.id is not null and r.members @> jsonb_build_array(jsonb_build_object('u', t.username)) then raise exception 'already_member'; end if;
+  update invites set status = 'expired' where from_id = a.id and to_id = t.id and status = 'pending';
+  insert into invites (from_id, to_id) values (a.id, t.id);
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.bry_invite_answer(p_token text, p_id bigint, p_accept boolean) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); i biryeong_private.invites; f biryeong_private.accounts; r biryeong_private.rooms; me jsonb;
+begin
+  select * into i from invites where id = p_id and to_id = a.id for update;
+  if not found or i.status <> 'pending' or i.created_at < now() - interval '10 minutes' then raise exception 'not_found'; end if;
+  if not p_accept then update invites set status = 'declined' where id = i.id; return jsonb_build_object('ok', true); end if;
+  select * into f from accounts where id = i.from_id;
+  me := jsonb_build_object('u', a.username, 'name', a.display_name);
+  r := my_room(f);
+  if r.id is not null and r.members->0->>'u' <> f.username then update invites set status = 'expired' where id = i.id; raise exception 'not_leader'; end if;
+  if r.id is not null and jsonb_array_length(r.members) >= 3 and not (r.members @> jsonb_build_array(jsonb_build_object('u', a.username))) then update invites set status = 'expired' where id = i.id; raise exception 'party_full'; end if;
+  update invites set status = 'accepted' where id = i.id;
+  if r.id is null then
+    insert into rooms (kind, members, everyone) values ('invite', jsonb_build_array(jsonb_build_object('u', f.username, 'name', f.display_name)), jsonb_build_array(jsonb_build_object('u', f.username, 'name', f.display_name))) returning * into r;
+    perform room_open_notice(r.id, false);
+  end if;
+  perform public.bry_room_leave(p_token, x.id) from rooms x where x.status = 'open' and x.id <> r.id and x.kind = 'invite' and x.members @> jsonb_build_array(jsonb_build_object('u', a.username));
+  if not (r.members @> jsonb_build_array(jsonb_build_object('u', a.username))) then
+    update rooms set members = members || jsonb_build_array(me),
+      everyone = case when everyone @> jsonb_build_array(jsonb_build_object('u', a.username)) then everyone else everyone || jsonb_build_array(me) end where id = r.id;
+    insert into room_msgs (room_id, body) values (r.id, format('[%s 님이 일행에 들어왔습니다.]', a.display_name));
+  end if;
+  return jsonb_build_object('ok', true, 'room', r.id);
+end $$;
+
+-- 일행 전투(stage 'room:<일행>')는 파티장만 연다
+create or replace function public.bry_party_create(p_token text, p_stage text, p_foe text, p_member jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); n bigint; r biryeong_private.rooms;
+begin
+  if coalesce(p_stage, '') = '' or length(p_stage) > 40 or coalesce(p_foe, '') = '' or octet_length(coalesce(p_member::text, '')) > 6000 then raise exception 'invalid_value'; end if;
+  if p_stage like 'room:%' then
+    select * into r from rooms where id = nullif(substr(p_stage, 6), '')::bigint and status = 'open';
+    if not found or not (r.members @> jsonb_build_array(jsonb_build_object('u', a.username))) then raise exception 'not_found'; end if;
+    if r.members->0->>'u' <> a.username then raise exception 'not_leader'; end if;
+  end if;
+  perform throttle_do('party:' || a.id, 20, 600);
+  update parties set status = 'closed', updated_at = now() where host = a.id and status = 'open';
+  insert into parties (stage, foe, host, members) values (p_stage, p_foe, a.id, jsonb_build_array(jsonb_build_object('u', a.username, 'name', coalesce(p_member->>'name', a.display_name), 'm', p_member)))
+    returning id into n;
+  return jsonb_build_object('id', n);
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.01', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.02', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

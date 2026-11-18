@@ -26,3 +26,6 @@ h1, h2, h3, h4 { letter-spacing: 0; }
 button:has(> svg[data-item-kind]) > .truncate, div:has(> svg[data-item-kind]) > .truncate, li:has(> svg[data-item-kind]) .truncate {
   white-space: normal; overflow: visible; text-overflow: clip; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.22;
 }
+/* vD.02 아이템 마우스오버 설명(마우스 바로 위) */
+/* vD.02 가방에 넣을 것으로 고른 칸 */
+.play-scope [data-bag-picked="1"]{outline:2px solid #e9cf98;outline-offset:-2px;background:rgba(233,207,152,.16)}

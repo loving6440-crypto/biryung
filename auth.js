@@ -27,7 +27,7 @@
     invalid_username: '아이디는 2~16자(한글 · 영문 · 숫자 · _)로 적어 주세요.', invalid_password: '비밀번호는 4자 이상으로 적어 주세요.', username_taken: '이미 명부에 있는 아이디입니다.',
     invalid_credentials: '아이디 또는 비밀번호가 맞지 않습니다.', user_not_found: '해당 계정을 찾을 수 없습니다.', too_many_requests: '요청이 너무 많습니다. 잠시 뒤 다시 해 주세요.',
     invalid_profile: '프로필 입력값을 확인해 주세요.', invalid_post: '글은 1~500자로 적어 주세요.', invalid_memo: '제목(1~100자)과 메모(1~3,000자)를 확인해 주세요.', invalid_comment: '댓글은 1~1,200자로 적어 주세요.',
-    invalid_dm: '대화는 1~2,000자로 적어 주세요.', not_found: '대상을 찾을 수 없거나 볼 수 없습니다.', not_self: '자기 계정에는 할 수 없습니다.', party_full: '파티가 이미 가득 찼습니다(3명).', invalid_value: '입력값을 확인해 주세요.', save_too_large: '기록이 너무 커서 서버에 올리지 못했습니다(프로필 사진을 줄여 주세요).',
+    invalid_dm: '대화는 1~2,000자로 적어 주세요.', not_found: '대상을 찾을 수 없거나 볼 수 없습니다.', not_self: '자기 계정에는 할 수 없습니다.', party_full: '일행이 이미 가득 찼습니다(3명까지).', not_leader: '파티장만 할 수 있습니다(더 초대하기 · 전투 열기).', invalid_value: '입력값을 확인해 주세요.', save_too_large: '기록이 너무 커서 서버에 올리지 못했습니다(프로필 사진을 줄여 주세요).',
   };
   const errorText = (code) => ERR[code] || `서버 오류 (${code})`;
   async function rpc(name, args, opt = {}) {

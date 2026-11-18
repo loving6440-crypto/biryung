@@ -81,7 +81,8 @@ const result = await esbuild.build({
 }
 
 // ── 2. 스타일: Tailwind 컴파일 → .play-scope 안에 가두기 ──
-const sources = [...walk(VAULT), ...walk(join(HERE, 'src'))].filter((p) => /\.(m?js|jsx)$/.test(p))
+// vD.02 patches.mjs 로 끼운 화면 조각의 클래스도 훑는다(빠져 있어서 flex-col-reverse · h-40 같은 것이 CSS 에 없었다 — 개척 기록이 옆으로 쌓이던 까닭)
+const sources = [...walk(VAULT), ...walk(join(HERE, 'src')), join(HERE, 'patches.mjs')].filter((p) => /\.(m?js|jsx)$/.test(p))
 const candidates = new Set()
 for (const p of sources) for (const m of readFileSync(p, 'utf8').matchAll(/[^\s"'`{}<>;=]+/g)) { candidates.add(m[0]); candidates.add(m[0].replace(/^[(,]+|[),.]+$/g, '')) } // z-[70] 처럼 대괄호로 끝나는 것도 그대로 둔다
 const twDir = findPkg('tailwindcss')

@@ -81,6 +81,7 @@ export function ailmentStatBonus(player, now = Date.now()) {
 export function addAilment(player, id, now = Date.now(), stack = 1) {
   const def = AIL[id]
   if (!def || !player) return player
+  if ((player.ailGuard?.[id] || 0) > now) return player // vD.02 양호실 물품: 낫고 나서 잠시 다시 걸리지 않는다
   const cur = player.ailments?.[id]
   const live = cur && cur.until > now
   const next = { until: now + def.minutes * MIN, stack: clampStack(def, (live ? cur.stack || 1 : 0) + stack) }
@@ -196,11 +197,33 @@ const effText = (e) => [
 ].filter(Boolean).join(' · ')
 /** 아이템 표(items.js 의 ITEMS 뒤에 붙는다 — patches.mjs) */
 const PIX = {"ail-snake-pill": {"t": "pill", "p": "green"}, "ail-snake-tang": {"t": "stew", "p": "dgreen"}, "ail-wound-salve": {"t": "jar", "p": "green"}, "ail-wound-wrap": {"t": "patch", "p": "cream"}, "ail-burn-gel": {"t": "drop", "p": "lime"}, "ail-burn-tea": {"t": "cup", "p": "yellow"}, "ail-cold-pack": {"t": "pouch", "p": "tan"}, "ail-warm-soup": {"t": "bowl", "p": "brown"}, "ail-cough-pill": {"t": "pill", "p": "white"}, "ail-cough-tea": {"t": "cup", "p": "red"}, "ail-dizzy-tea": {"t": "cup", "p": "jade"}, "ail-dizzy-candy": {"t": "candy", "p": "gold"}, "ail-purge-charm": {"t": "talisman", "p": "red"}, "ail-purge-cord": {"t": "knot", "p": "crimson"}, "ail-itch-wash": {"t": "bottle", "p": "green"}, "ail-itch-balm": {"t": "jar", "p": "jade"}, "ail-fungus-ash": {"t": "powder", "p": "black"}, "ail-fungus-porridge": {"t": "porridge", "p": "rice"}, "ail-moxa": {"t": "smoke", "p": "gray"}, "ail-dangwi-soup": {"t": "stew", "p": "brown"}, "ail-two-loofah": {"t": "jar", "p": "lime"}, "ail-two-steam": {"t": "pouch", "p": "ember"}, "ail-two-omija": {"t": "cup", "p": "pink"}, "ail-short-needle": {"t": "stake", "p": "gray"}, "ail-short-bind": {"t": "cloth", "p": "white"}, "ail-short-towel": {"t": "cloth", "p": "sky"}, "ail-short-warmer": {"t": "pot", "p": "ember"}, "ail-short-burn": {"t": "flame", "p": "orange"}}
-export const AIL_ITEMS = RAW.map((r) => ({
+export const AIL_ITEMS_CRAFT = RAW.map((r) => ({
   pixel: PIX[r.id], id: r.id, kind: 'craft', name: r.name, price: null, desc: r.desc, tags: ['완성품', '#몸의 이상'], effectText: `${effText(r.effect)} (전투 밖에서)`,
   effect: { ...(r.effect.cure ? { cureAil: r.effect.cure } : {}), ...(r.effect.shorten ? { shortenAil: r.effect.shorten } : {}), ...(r.effect.hp ? { hp: r.effect.hp } : {}), ...(r.effect.mp ? { mp: r.effect.mp } : {}) },
   battle: false, party: false,
 }))
+// ── vD.02 양호실에서 파는 물품: 몸의 이상 하나를 낫게 하고, 그 이상에 20분 동안 다시 걸리지 않는다(제작품과 다른 점) ──
+export const NURSE_GUARD_MIN = 20
+const NURSE_RAW = [
+  ['nurse-antivenom', '해독 앰플', 'sadok', 40, '작은 유리 앰플에 든 해독제. 양호 선생님이 금역 실습 철마다 상자째 들여 놓는다.', { t: 'bottle', p: 'green' }],
+  ['nurse-gauze', '멸균 거즈 세트', 'yeolsang', 35, '소독약 묻힌 거즈와 반창고 한 벌. 찢어진 자리를 덮고 꾹 누르면 된다.', { t: 'patch', p: 'white' }],
+  ['nurse-burn-band', '화상 밴드', 'hwasang', 30, '물기 머금은 젤이 발린 밴드. 덴 자리에 붙이면 열이 금세 빠진다.', { t: 'patch', p: 'sky' }],
+  ['nurse-hotpack', '핫팩', 'hangi', 25, '흔들면 따뜻해지는 주머니. 품에 넣어 두면 찬 기운이 스르르 녹는다.', { t: 'pouch', p: 'ember' }],
+  ['nurse-cold-medicine', '종합 감기약', 'gobul', 35, '하얀 알약 두 알. 먹고 한숨 자면 콧물이 멎는다고 봉투에 적혀 있다.', { t: 'pill', p: 'white' }],
+  ['nurse-glucose', '포도당 캔디', 'hyeongi', 25, '네모난 하얀 사탕. 핑 도는 머리에는 단것이 먼저라는 양호실의 지론.', { t: 'candy', p: 'white' }],
+  ['nurse-salt-pouch', '정화 소금 봉투', 'salgi', 40, '양호실 서랍 맨 아래 칸의 굵은 소금 봉투. 이 학교 양호실에는 이런 것도 있다.', { t: 'pouch', p: 'white' }],
+  ['nurse-itch-cream', '가려움 연고', 'otdok', 30, '박하 향이 나는 하얀 연고. 바르는 순간 가려움이 시원함으로 바뀐다.', { t: 'jar', p: 'sky' }],
+  ['nurse-charcoal-tab', '활성탄 정제', 'gyundok', 40, '까만 알약. 속에 든 포자를 붙잡아 내보낸다. 혀가 잠깐 까매진다.', { t: 'pill', p: 'black' }],
+  ['nurse-pain-patch', '파스', 'geunyuk', 30, '화한 냄새가 방 안에 퍼지는 파스. 뭉친 근육 위에 붙인다.', { t: 'patch', p: 'cream' }],
+]
+export const NURSE_ITEMS = NURSE_RAW.map(([id, name, ail, price, desc, pixel]) => ({
+  pixel, id, kind: 'consumable', name, price, storeOnly: 'infirmary', desc, tags: ['#몸의 이상', '#양호실'],
+  effectText: `${ailLabel(ail)} 완치 · ${NURSE_GUARD_MIN}분 동안 ${ailLabel(ail)}에 다시 걸리지 않는다 (전투 밖에서)`,
+  effect: { cureAil: [ail], ailGuard: [ail] }, battle: false, party: false,
+}))
+/** 양호실 진열대: 몸의 이상 10종의 기본 물품 + 쇠약 전용 영양제(비싸다) */
+export const NURSE_STOCK = [...NURSE_ITEMS.map((i) => ({ id: i.id, price: i.price })), { id: 'nutrient', price: 600 }]
+export const AIL_ITEMS = [...AIL_ITEMS_CRAFT, ...NURSE_ITEMS]
 /** 제작법(공작소 W · 조리실 K). 완치 · 시간 줄이기는 1단계, 완치 + 회복(1~2단계 완성품을 하나 더 넣는다)은 2단계 */
 export const AIL_RECIPES = RAW.map((r) => ({
   place: r.place, id: `ail-r-${r.id.slice(4)}`, result: r.id, inputs: r.inputs,

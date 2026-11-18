@@ -59,7 +59,8 @@ const cutCost = (m) => (['fan', 'staff'].includes(m?.fx) ? 4 : 8)
 
 /** 3인 상대 만들기 */
 // vC.07.3 체력은 실제로 함께 싸우는 사람 수(NPC 포함)에 맞춘다: 1명 1배 · 2명 1.8배 · 3명 2.6배
-const hpMul = (n) => (n <= 1 ? 1 : n === 2 ? 1.8 : PARTY_HP)
+// vD.02 2명이 싸워도 줄이지 않는다 — 3인 기준 그대로
+const hpMul = (n) => (n <= 1 ? 1 : PARTY_HP)
 // vC.07.6 보스: 보관고 보스(boss)는 기믹까지 그대로, 본편 보스(패턴이 있는 이야기 상대)는 가져가기 제한(bringLimit)만 건다
 function partyEnemy(enemy, size = 3, n = 3, limit = false) {
   // 「다인 전투」 상대(partySize 2 · 3)는 이미 그 인원 기준의 체력이라, 모인 사람 수와의 비율만큼만 고친다(적게 모이면 조금 줄고, 많이 모이면 조금 는다)
@@ -413,6 +414,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
   }
   const hostFlee = () => { const mb = mbRef.current; if (!mb) return; dropMember(mb, me.id); if (!mb.over) { mb.over = 'lose'; mb.phase = 'over'; mb.turn = null } publish() }
 
+  const partySig = useRef('') // vD.02 마지막으로 그린 파티 정보(바뀐 것이 없으면 setParty 하지 않는다)
   const viewSeq = useRef(null) // 마지막으로 받은 판 번호(같으면 서버가 화면을 다시 보내지 않는다)
   const viewRef = useRef(null); viewRef.current = view
   const poke = useRef(false) // 일행: 방금 행동을 보냈다 — 다음 판을 곧바로 받아 본다
@@ -428,7 +430,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
       if (Date.now() - last < gap) return
       last = Date.now(); busy = true; poke.current = false
       let g; try { g = await call('bry_party_get', { p_id: partyRef.current, p_seq: viewSeq.current }) } catch (e) { busy = false; setMsg('파티가 사라졌다.'); setMode('choose'); partyRef.current = null; return } finally { busy = false }
-      setParty(g)
+      { const sig = `${g.seq}|${g.status}|${(g.members || []).map((m) => m.u ?? m.id ?? m.name).join(',')}|${g.is_host ? 1 : 0}`; if (sig !== partySig.current) { partySig.current = sig; setParty(g) } } // vD.02 그대로면 다시 그리지 않는다
       if (g.seq !== lastSeq.current.seq) lastSeq.current = { seq: g.seq, at: Date.now() }
       if (mode === 'lobby' && g.status === 'closed') { setMsg('방장이 파티를 해산했다.'); partyRef.current = null; setParty(null); setMode('choose'); return }
       if (mode === 'lobby' && g.status === 'battle' && !g.is_host) setMode('guest')

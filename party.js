@@ -65,7 +65,10 @@
         if (u.me) li.append(h('span', 'online-me', '나'));
         else {
           const acts = h('div', 'online-acts');
-          acts.append(btn('ghost-btn', '초대', () => invite(u)), btn('ghost-btn', '선물', () => openGift(u)));
+          const lead = room ? (room.leader ?? room.members?.[0]?.u) : null, full = room && room.members.length >= 3, inRoom = room && room.members.some((x) => x.u === u.username);
+          const inv = btn('ghost-btn', inRoom ? '일행' : '초대', () => invite(u));
+          if (inRoom || (room && lead !== me()) || full) { inv.disabled = true; inv.title = inRoom ? '이미 같은 일행이다' : full ? '일행은 세 명까지다' : '더 초대하기는 파티장만 할 수 있다'; } // vD.02
+          acts.append(inv, btn('ghost-btn', '선물', () => openGift(u)));
           li.append(acts);
         }
         list.append(li);
@@ -146,6 +149,12 @@
   let room = null, seenKey = () => `biryeong-room-seen:${me()}`, lastSeen = 0, answered = new Set();
   try { lastSeen = Number(localStorage.getItem(seenKey())) || 0; } catch (_) { /* 처음 */ }
   const inviteBox = h('div', 'invite-stack'); inviteBox.setAttribute('aria-live', 'polite'); document.body.append(inviteBox);
+  // vD.02 초대 · 선물 같은 알림 카드는 맨 위 층(popover)에 — 일행 대화 옆 창이나 열린 창에 가리지 않는다
+  try { inviteBox.setAttribute('popover', 'manual'); } catch (_) { /* 오래된 브라우저 */ }
+  const raiseInvites = () => {
+    try { if (!inviteBox.children.length) { if (inviteBox.matches(':popover-open')) inviteBox.hidePopover(); return; } if (inviteBox.matches(':popover-open')) inviteBox.hidePopover(); inviteBox.showPopover(); } catch (_) { /* popover 없음 */ }
+  };
+  new MutationObserver(raiseInvites).observe(inviteBox, { childList: true });
   function showInvite(inv) {
     if (answered.has(inv.id) || inviteBox.querySelector(`[data-invite="${inv.id}"]`)) return;
     const card = h('div', 'invite-card'); card.dataset.invite = inv.id;
@@ -181,13 +190,13 @@
       // vD.01 밀담: 접속 확인이 안 읽은 밀담 수까지 준다 — 늘었으면 띠링 + 알림(언제나)
       const dm = Number(r.dm) || 0;
       document.querySelectorAll('[data-community="dm"],[data-community-tab="dm"]').forEach((b) => { if (dm > 0) b.dataset.unread = String(dm); else delete b.dataset.unread; });
-      if (dm > lastDm && !(document.getElementById('communityDialog')?.open && document.querySelector('[data-community-tab="dm"][aria-selected="true"]'))) { App.ding?.('dm'); toast('밤쥐들의 터', `새 밀담이 왔다. (안 읽은 대화 ${dm})`); }
+      if (dm > lastDm && (document.hidden || !(document.getElementById('communityDialog')?.open && document.querySelector('[data-community-tab="dm"][aria-selected="true"]')))) { App.ding?.('dm'); toast('밤쥐들의 터', `새 밀담이 왔다. (안 읽은 대화 ${dm})`); }
       lastDm = dm;
       const was = room?.id;
       room = r.room || null;
       const unread = room?.unread || 0;
       // vD.01 일행 대화의 새 말: 숫자는 언제나, 띠링은 [알림 소리]가 켜져 있을 때만
-      if (unread > lastUnread && !(party.d.open && partyTab === 'room')) App.ding?.('chat');
+      if (unread > lastUnread && (document.hidden || !(party.d.open && partyTab === 'room' && !party.d.classList.contains('is-min')))) App.ding?.('chat'); // vD.02 탭을 내려 둬도 울린다
       lastUnread = unread;
       paintButtons(unread);
       if (was && !room && party.d.open && partyTab === 'room') renderParty();
@@ -199,7 +208,7 @@
     document.querySelectorAll('[data-party-open]').forEach((b) => { if (unread > 0 && !(party.d.open && partyTab === 'room')) b.dataset.unread = String(unread); else delete b.dataset.unread; });
     const head = $('#partyHeadBtn'); if (head) head.hidden = !inRoom;
   }
-  if (live()) { setTimeout(presence, 1500); setInterval(() => { if (!document.hidden) presence(); }, 25000); /* vD.01 이 한 번으로 초대 · 우편 · 밀담 · 일행 대화 알림을 모두 받는다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
+  if (live()) { setTimeout(presence, 1500); setInterval(() => presence(), 25000); /* vD.02 탭을 내려 둬도 알림(띠링)을 받는다 — 브라우저가 가려진 탭은 1분에 한 번쯤으로 늦춘다 */ /* vD.01 이 한 번으로 초대 · 우편 · 밀담 · 일행 대화 알림을 모두 받는다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
   // 본편 파티 전투가 둘 이상 모였다(StoryParty)
   window.addEventListener('biryeong:party-room', async (e) => { if (!live() || !e.detail?.party) return; try { await call('bry_room_battle', { p_party: e.detail.party }); await presence(); if (wantBattleChat && room) { wantBattleChat = false; openParty('room'); } } catch (_) { /* 없으면 그만 */ } });
   // vD.01 파티 전투가 열리면 일행 대화를 옆에 띄운다(전투와 같이 본다)
@@ -245,7 +254,7 @@
   }
   function msgLine(m) {
     const li = h('li', `party-msg${m.u ? '' : ' is-notice'}${m.u && m.u === me() ? ' is-me' : ''}`);
-    if (m.u) li.append(h('b', '', m.name || m.u), h('span', '', m.body), h('time', '', kst(m.at)));
+    if (m.u) { const nm = h('b', '', m.name || m.u); const lead = room?.leader ?? room?.members?.[0]?.u; if (lead && m.u === lead) nm.append(h('small', 'party-leader-tag', ' 파티장')); li.append(nm, h('span', '', m.body), h('time', '', kst(m.at))); } // vD.02 파티장 표시
     else li.append(h('span', '', m.body));
     return li;
   }
@@ -260,7 +269,8 @@
       return;
     }
     const head = h('div', 'party-room-head');
-    head.append(h('span', '', `${room.kind === 'battle' ? '전투 일행' : '일행'} · ${room.members.map((x) => x.name || x.u).join(', ')}`), btn('ghost-btn party-leave', '일행에서 나가기', async () => {
+    const lead = room.leader ?? room.members?.[0]?.u;
+    head.append(h('span', '', `${room.kind === 'battle' ? '전투 일행' : '일행'} (${room.members.length}/3) · ${room.members.map((x) => `${x.name || x.u}${x.u === lead ? '(파티장)' : ''}`).join(', ')}${lead === me() ? '' : ' — 더 초대하기 · 전투 열기는 파티장만'}`), btn('ghost-btn party-leave', '일행에서 나가기', async () => {
       if (!window.confirm('일행에서 나갈까? 혼자 남으면 일행이 끝나고, 대화는 모두가 읽을 수 있게 된다.')) return;
       try { await call('bry_room_leave', { p_room: room.id }); room = null; await presence(); renderParty(); } catch (e) { toast('도깨비들의 터', errText(e)); }
     }));
@@ -332,5 +342,5 @@
   document.addEventListener('click', (e) => {
     const b = e.target.closest?.('[data-party-open]'); if (b) { e.preventDefault(); openParty(); return; }
   });
-  window.BiryeongParty = { openParty, openOnline, presence, get room() { return room; } };
+  window.BiryeongParty = { openParty, openOnline, presence, get room() { return room; }, me, get isLeader() { return !room || (room.leader ?? room.members?.[0]?.u) === me(); } };
 })();

@@ -91,7 +91,7 @@ const zones = {
   east: { title: '강학당', tabs: [
     place('mainHall', '본관', '靑', [act('mainHall', 'intro', '둘러보기'), act('mainHall', 'class', '수업'), act('mainHall', 'explore', '본관 탐사')]),
     place('annex', '별관', '靑', [act('annex', 'intro', '둘러보기'), act('annex', 'explore', '별관 탐사')]),
-    { ...place('infirmary', '양호실', '癒', [act('infirmary', 'intro', '둘러보기'), act('infirmary', 'rest', '휴식 · 상담')]), hidden: true }, // 본관 탐사(2층 양호실)로 들어간다
+    { ...place('infirmary', '양호실', '癒', [act('infirmary', 'intro', '둘러보기'), act('infirmary', 'rest', '휴식 · 상담'), act('infirmary', 'shop', '양호실 물품')]), hidden: true }, // 본관 탐사(2층 양호실)로 들어간다
   ] },
   west: { title: '생활관', tabs: [
     place('dorm', '기숙사', '白', [act('dorm', 'intro', '둘러보기'), act('dorm', 'my-room', '내 기숙사'), act('dorm', 'store', '매점'), act('dorm', 'cafeteria', '급식실')]),

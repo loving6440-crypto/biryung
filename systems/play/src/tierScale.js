@@ -47,8 +47,26 @@ export const ENEMY_SCALE = {
 // 표에 없는 적(나중에 더해진 적)은 그 단계 보통 적의 배율을 쓴다.
 export const TIER_SCALE = {1: 1, 2: 1, 3: 1.03, 4: 0.83, 5: 0.79, 6: 0.64, 7: 0.57, 8: 0.52, 9: 0.54, 10: 0.53}
 
+// vD.02 단계가 높으면 보상(영력 · 냥)이 언제나 더 많다 — 원래 표는 9단계 강한 적(요화 152)이 10단계 보통 적(도올 140)보다 많이 줬다.
+//   단계마다 [보통, 강한 적(원래 보통의 1.3배쯤이던 것), 보스] — 어느 단계의 가장 큰 값도 다음 단계의 가장 작은 값보다 작다.
+export const TIER_REWARD = {
+  1: [10, 14, 16], 2: [18, 22, 24], 3: [26, 31, 34], 4: [36, 42, 45], 5: [48, 59, 64],
+  6: [70, 81, 86], 7: [92, 102, 107], 8: [112, 123, 129], 9: [134, 147, 154], 10: [160, 175, 185],
+}
+const ORIG_BASE = { 1: 10, 2: 18, 3: 26, 4: 36, 5: 46, 6: 70, 7: 92, 8: 108, 9: 116, 10: 140 }
+export function tierReward(e, reward0) {
+  const row = TIER_REWARD[e.tier]
+  if (!row) return reward0
+  if (e.boss) return row[2]
+  return reward0 >= (ORIG_BASE[e.tier] ?? reward0) * 1.2 ? row[1] : row[0]
+}
+// vD.02 2~4단계가 너무 쉽다 — 체력을 더 올리고(보스는 조금만) 공격력도 살짝 [체력, 공격력 · 행동력]
+//   (4단계가 5 · 6단계보다 단단해지지 않게 5 · 6단계도 체력을 조금 함께 올린다)
+export const TIER_HARDER = { 2: [1.35, 1.1], 3: [1.3, 1.08], 4: [1.25, 1.05], 5: [1.2, 1.03], 6: [1.15, 1] }
+export const TIER_HARDER_BOSS = { 2: [1.15, 1], 3: [1.15, 1], 4: [1.12, 1], 5: [1.08, 1], 6: [1.05, 1] }
+
 const DONE = Symbol.for('biryeong.tierScale')
-/** 적 한 마리를 그 자리에서 고친다(두 번 불러도 한 번만). 보상(영력 · 냥)은 원래 표의 값 그대로 둔다 — 쉬워진 만큼 덜 주지 않는다. */
+/** 적 한 마리를 그 자리에서 고친다(두 번 불러도 한 번만). 보상(영력 · 냥)은 vD.02부터 단계 표(TIER_REWARD)를 따른다 — 쉬워진 만큼 덜 주지 않는다. */
 export function rescaleEnemy(e) {
   if (!e?.tier || e[DONE]) return e
   const s = ENEMY_SCALE[e.id] ?? (TIER_SCALE[e.tier] != null ? [TIER_SCALE[e.tier], TIER_SCALE[e.tier]] : null)
@@ -56,8 +74,9 @@ export function rescaleEnemy(e) {
   Object.defineProperty(e, DONE, { value: true, enumerable: false })
   const r = (v, f) => Math.max(1, Math.round(v * f))
   const reward = e.reward ?? e.spirit * 2
-  e.hp = r(e.hp, s[0]); e.atk = r(e.atk, s[1]); e.act = r(e.act, s[1]); e.spirit = r(e.spirit, s[1])
-  e.reward = reward
+  const hd = (e.boss ? TIER_HARDER_BOSS : TIER_HARDER)[e.tier] ?? [1, 1]
+  e.hp = r(e.hp, s[0] * hd[0]); e.atk = r(e.atk, s[1] * hd[1]); e.act = r(e.act, s[1] * hd[1]); e.spirit = r(e.spirit, s[1])
+  e.reward = tierReward(e, reward)
   if (e.grows?.atkPerStage) e.grows = { ...e.grows, atkPerStage: r(e.grows.atkPerStage, s[1]) }
   e.rec = TIER_REC[e.tier]
   return e
