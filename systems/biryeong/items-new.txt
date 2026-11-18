@@ -17,7 +17,7 @@ nw-chestnut-honey|chestnut-syrup|밤엿물|bottle|brown||{}|{}|밤에 설탕을 
 nw-deodeok-decoction|herb-decoction|더덕 달임물|pot|soy||{}|{}|더덕과 감초를 청화물에 달인 쌉쌀한 물.
 nw-omija-syrup|wild-grape-juice|오미자청|glass|crimson||{}|{}|오미자를 설탕에 재운 청. 다섯 가지 맛이 한꺼번에 난다.
 nw-blanched-spinach|blanched-greens|시금치 데침|herb|white||{}|{}|청화물에 살짝 데친 시금치.
-nw-oil-wick|ghostfire-lantern|기름 심지 횃불|torch|orange|개척 중: 개척 행동 턴 +3|{"hunt":{"turns":3}}|{}|콩기름을 먹인 무명천을 감은 횃불. 산길에서 오래 탄다.
+nw-oil-wick|ghostfire-lantern|기름 심지 횃불|torch|orange|개척 중: 개척 행동 턴 +3|{"hunt":{"turns":3}}|{}|콩기름을 먹인 무명천을 감은 횃불. 개척 터를 밤새 돌아다녀도 꺼지지 않는다.
 nw-knot-bracelet|feather-norigae|매듭 팔찌|bracelet|jade|착용 시 절제 +1 · 인내 +1|{}|{"bonus":{"control":1,"endurance":1}}|오색실과 노끈으로 엮은 팔찌. 매듭 하나가 손목뼈에 꼭 맞는다.
 nw-mugwort-charm|green-charm|쑥물 부적|talisman|lime|전투 중: 의지력 +20|{"mp":20,"onlyBattle":true}|{}|쑥 즙을 먹인 한지에 부적을 그렸다. 펼치면 숨이 깊어진다.
 nw-straw-doll|spirit-disposable|액받이 헝겊인형|doll|tan|전투 중: 전투불능 시 1회 체력 1로 부활 대기(한 전투에 부활 아이템은 1번)|{"revive":true,"onlyBattle":true}|{}|털실과 자투리 천에 못을 박아 만든 인형. 대신 맞아 줄 몫을 하나 품고 있다.

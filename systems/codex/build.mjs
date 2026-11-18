@@ -22,9 +22,13 @@ const { rescaleEnemy, TIER_REC } = await import(join(ROOT, 'systems/play/src/tie
 const { BESTIARY_ENEMIES: __BE, REC_STATS: __RS } = await imp('battle.js')
 for (const e of __BE) rescaleEnemy(e)
 Object.assign(__RS, TIER_REC)
-const { yogoeList } = await imp('codex.js')
 const { HUNT_SITES, HUNT_PATHS: __HP, HUNT_SPECIES: __HS } = await imp('huntSites.js')
 ;(await import(join(ROOT, 'systems/play/src/huntLevels.js'))).remapHuntSites(HUNT_SITES, __HP, __HS) // vC.06
+// vD.02.6 터 이름을 바꾼 뒤에 도감 목록을 읽는다(codex.js 는 읽힐 때 개척 요괴의 터 이름을 적어 둔다)
+const { yogoeList: __yogoe } = await imp('codex.js')
+// vD.02.6 추가전투는 둘레길이 아니라 뒷산 퇴마 실습장에서 한다
+const placeFix = (w) => String(w ?? '').replace('둘레길 · 추가전투', '뒷산 · 퇴마 실습장 · 추가전투').replace('뒷산 · 전투 실습', '뒷산 · 퇴마 실습장')
+const yogoeList = () => __yogoe().map((x) => ({ ...x, where: placeFix(x.where), group: placeFix(x.group) }))
 const { TIER_HANJA } = await imp('constants.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 // {{npc:자리|조사}} 는 실행 화면이 사람 이름으로 바꾸는 자리표시다. 도감에는 그 자리의 역할 이름으로 적는다(받침에 맞춰 조사도 고른다).

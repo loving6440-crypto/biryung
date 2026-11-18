@@ -32,12 +32,24 @@ export const remapSpirit = (level) => Math.max(1, Math.round(remapS(level / 6) *
 // 새 이름 · 설명. (산길 5~20 은 theme 이 이름이 되고, 설명은 그대로 둔다 — 설명 속 '산길 N' 만 새 이름으로 바꾼다)
 export const SITE_TEXT = {
   'left-trail-1': { name: '뱀딸기 오솔길', note: '산문 바로 뒤로 이어지는 첫 오솔길. 뱀딸기와 버섯이 길섶에 깔려 있고, 돌기둥 사이로 뱀이 똬리를 튼다. 덤불 너머 너구리가 빙빙 돈다.' },
-  'left-trail-2': { name: '민들레 들길', note: '햇볕 잘 드는 들길. 민들레와 토끼풀이 흐드러지고, 사슴과 비둘기가 풀밭을 오간다. 그늘진 끝자락에 왕버섯이 하나 숨어 있다.' },
+  'left-trail-2': { name: '민들레 들길', note: '햇볕 잘 드는 들길. 민들레와 토끼풀이 흐드러지고, 고라니와 멧비둘기가 풀밭을 오간다. 그늘진 끝자락에 왕버섯이 하나 숨어 있다.' },
   'left-trail-3': { name: '진달래 샘터길', note: '옛 우물 두 개가 남은 비탈. 진달래와 고사리가 우거졌고 토끼가 덤불 사이를 쏘다닌다. 오른쪽 위 끝에 산삼이 있다.' },
   'left-trail-4': { name: '솟대 소나무길', note: '솟대가 줄지어 선 소나무 길. 멧돼지가 위쪽을 헤집고, 여우가 오른쪽 덤불을 S자로 오간다. 버드나무 그늘에 네잎클로버가 난다.' },
   'left-lake': { name: '호수', note: '산 중턱의 고요한 호수. 잉어가 물가를 따라 헤엄치고, 물가 제단과 이끼 낀 바위에서 물건이 나온다. 샘물은 언제 떠도 맑다.' },
   'left-cemetery': { name: '묘소', note: '석등과 돌탑이 줄지어 선 옛 묘역. 한가운데 석관과 비석이 있고, 쥐 떼가 무덤 사이를 길게 돈다. 해가 지면 혼령나비가 떠오른다.' },
   'left-cave': { name: '동굴', note: '산허리에 뚫린 깊은 굴. 수정 기둥과 종유석 사이로 박쥐가 위아래로 날고, 동물 뼈가 흩어져 있다. 맨 안쪽 별 제단은 아무도 손대지 않았다.' },
+  // vD.02.6 산길 5~20: vD.01 재료 다시 나누기로 칸이 바뀌어 맞지 않게 된 설명을 지금 칸에 맞춰 다시 썼다(이름은 그대로)
+  'left-trail-5': { name: '도토리 숲길', note: '참나무와 밤나무 사이로 다람쥐가 뛰어다니는 얕은 숲. 자갈더미가 군데군데 길을 막고, 쓰러진 고목 밑에서는 가끔 갈라진 붓이 나온다. 솟대 소나무길 다음으로 들르기 좋다.' },
+  'left-trail-9': { name: '약초꾼 오솔길', note: '약초꾼이 다니던 좁은 길. 당귀 · 도라지 · 더덕이 고루 나고, 버려진 숯가마 곁 개울에 수달이 산다. 산삼 동자가 숨어 산다는 이야기가 있다.' },
+  'left-trail-11': { name: '벼락 맞은 언덕', note: '언덕 한가운데 벼락 맞은 대추나무가 서 있고, 머루 넝쿨 사이로 작은 마애불이 줄지어 섰다. 마애불에서는 연마석과 가끔 봉인석이, 대추나무에서는 네 번에 한 번꼴로 벽조목이 나온다.' },
+  'left-trail-13': { name: '마애불 바위길', note: '바위에 새긴 부처가 내려다보는 길. 얼어붙은 폭포에서 수정이, 절터 석탑에서 아주 드물게 곡옥이 나온다. 이끼 낀 바위 틈에 당귀가 자라고, 매가 하늘을 돈다.' },
+  'left-trail-14': { name: '송이 솔숲', note: '키 큰 소나무가 빽빽한 숲. 송이가 지천이고 잣나무가 섞여 있다. 길가 장명등에는 도깨비불이 깃들고, 늑대 두 마리가 숲을 돈다.' },
+  'left-trail-15': { name: '봉수대 능선', note: '능선을 따라 송이가 나는 솔밭이 이어지고, 양 끝에 봉수대가 있다. 봉수대 재 속에서 별빛이 나올 때가 있다. 동물 유해 곁을 늑대가 돈다.' },
+  'left-trail-16': { name: '늑대 울음 골짜기', note: '밤마다 늑대 울음이 메아리치지만 정작 늑대는 보이지 않는 얼어붙은 골짜기. 얼음꽃이 바닥을 덮었고 종유석에서 주사가 나온다. 반달가슴곰 세 마리가 골짜기를 돈다.' },
+  'left-trail-17': { name: '운무 폭포', note: '안개가 걷히지 않는 폭포 아래. 얼음꽃이 물보라에 얼어 피고, 물길 바위 틈에는 지네가 숨는다. 이끼 낀 석문이 길을 막고, 물가에 잉어와 곰이 한 마리씩 있다.' },
+  'left-trail-18': { name: '곰바위 너덜길', note: '굴러 내린 바위가 깔린 너덜길. 바위마다 금줄 친 당산나무가 버티고 서서 오색실과 부적 조각을 내준다. 바위 틈에 솜다리가 피고, 산양 두 마리가 비탈을 탄다.' },
+  'left-trail-19': { name: '얼음꽃 능선', note: '서리 낀 바위가 이어진 높은 능선. 이름과 달리 얼음꽃은 진작 다 꺾여 나갔고 솜다리만 흐드러졌다. 칡덩굴이 바위를 휘감았고, 산양 두 마리가 절벽을 탄다.' },
+  'left-trail-20': { name: '구름 위 산마루', note: '뒷산 꼭대기. 구름 위로 솟대가 줄지어 섰고 그믐꽃이 지천으로 핀다. 들쥐가 솟대 밑을 들락거린다. 천년 거북이 산다는 이야기가 있다.' },
 }
 const DONE = Symbol.for('biryeong.huntLevels')
 
@@ -94,7 +106,7 @@ export function remapHuntSites(HUNT_SITES, HUNT_PATHS, HUNT_SPECIES = null) {
 // · 성공 덤(부산물)은 모든 터에 똑같이 붙던 고운 나뭇조각 · 자갈돌 · 덫 부스러기 대신, 그 칸의 재료 1개를 더 준다.
 //   고운 나뭇조각 · 덫 부스러기는 낮은 터 두 곳씩의 칸(쓰러진 고목 · 버려진 덫)에서 나온다.
 export const HUNT_EXTRA_SPECIES = {
-  fallenLog: { name: '쓰러진 고목', kind: 'plant', rewards: [{ item: 'fine-woodchip', dice: 2 }] },
+  fallenLog: { name: '쓰러진 고목', kind: 'plant', rewards: [{ item: 'fine-woodchip', dice: 2 }, { item: 'split-brush', chance: 0.2, amount: 1 }] }, // vD.02.4 갈라진 붓: 덤불 → 쓰러진 고목
   oldTrap: { name: '버려진 덫', kind: 'obstacle', rewards: [{ item: 'trap-scraps', dice: 2 }] },
 }
 const PLACE_EXTRA = [['left-trail-1', 'fallenLog'], ['left-trail-5', 'fallenLog'], ['left-trail-2', 'oldTrap'], ['left-trail-4', 'oldTrap']]
@@ -166,7 +178,8 @@ export function rebalanceHuntMaterials(HUNT_SITES, SPECIES) {
       const base = n.rewards ?? sp.rewards
       const rewards = base.map((r) => { const h = homes[r.item] ?? []; return h.length === 2 && h[1] === site.id ? bump(r) : r })
       if (rewards.some((r, i) => r !== base[i]) || n.rewards) n.rewards = rewards
-      const it = mainItem(sp); if (it && ['plant', 'obstacle', 'animal'].includes(n.kind)) n.bonus = { item: it, amount: 1 }
+      // vD.02.4 장애물 칸의 덤은 다시 자갈돌 1d2(확률 = 내 산출값 − 장애물 레벨, 보관고 HUNT_BONUSES) — 식물 · 동물만 그 칸의 재료 1개
+      const it = mainItem(sp); if (it && ['plant', 'animal'].includes(n.kind)) n.bonus = { item: it, amount: 1 }
     }
   }
   return homes

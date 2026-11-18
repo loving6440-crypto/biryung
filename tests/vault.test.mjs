@@ -432,7 +432,7 @@ t198('v1.9.8: 획득처가 없는 것은 본편 전용 아이템뿐 · 개척 �
   const none = w.BIRYEONG_CODEX.items.filter((i) => /^아직/.test(i.from)).map((i) => i.id)
   assert198.ok(none.every((id) => id.startsWith('st-')), `본편 전용이 아닌데 획득처가 없다: ${none.filter((id) => !id.startsWith('st-'))}`)
   const R = await import('../systems/biryeong/reskin.data.js')
-  assert198.ok(R.HUNT_EXTRA.length === 6 && R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
+  assert198.ok(R.HUNT_EXTRA.length === 5 && R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
 })
 
 // ───────── vB.01 ─────────
@@ -779,4 +779,20 @@ test('vD.02.4: △△(신 이름) 조사 · 본편 전투는 모두 3인', () =>
   assert.ok(q.includes("josaFill(josaFill(String(text ?? ''), 'OO', playerName()), '△△', godName())"))
   const sb = readFileSync(join(ROOT, 'systems/play/src/storyBoss.js'), 'utf8')
   assert.ok(!/sachal:[^\n]*size: 1/.test(sb))
+})
+
+test('vD.02.4: 장애물 덤은 다시 자갈돌(내 산출값 − 레벨) · 갈라진 붓은 쓰러진 고목에서', async () => {
+  const hl = readFileSync(join(ROOT, 'systems/play/src/huntLevels.js'), 'utf8')
+  assert.ok(hl.includes("['plant', 'animal'].includes(n.kind)) n.bonus") && hl.includes("{ item: 'split-brush', chance: 0.2, amount: 1 }] }, // vD.02.4"))
+  assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/hunt-extra.txt'), 'utf8').includes('bush|split-brush'))
+})
+
+test('vD.02.6: 보이는 글에 옛 개척 터 이름 · 없는 곳이 없다', () => {
+  const codex = readFileSync(join(ROOT, 'codex-data.js'), 'utf8')
+  assert.ok(!/산길[ -]?\d/.test(codex) && !codex.includes('개척 산길') && !codex.includes('둘레길 · 추가전투'))
+  const edits = readFileSync(join(ROOT, 'systems/biryeong/item-edits.txt'), 'utf8')
+  assert.ok(edits.includes('cairn-model|desc|') && edits.includes('clover|desc|'))
+  assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/items-new.txt'), 'utf8').includes('산길에서 오래 탄다'))
+  const hl = readFileSync(join(ROOT, 'systems/play/src/huntLevels.js'), 'utf8')
+  assert.ok(hl.includes("'left-trail-19': { name: '얼음꽃 능선'") && !hl.includes('솟대 소나무길를'))
 })

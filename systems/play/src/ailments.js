@@ -17,22 +17,22 @@ export const AILMENTS = [
     from: '짐승 요괴의 발톱 · 이빨 (둔갑쥐 떼 · 장산범 · 금돼지 · 구미호 · 노호승 · 불개 · 도올 · 도철)' },
   { id: 'hwasang', name: '화상', hanja: '火傷', heavy: false, max: 1, minutes: 20, round: 4,
     text: '불에 덴 자리가 화끈거린다.', effect: '라운드가 끝날 때마다 체력 −4',
-    from: '불을 다루는 요괴 (등롱 여우불 · 야광귀 · 화마 · 지귀 · 무쇠 장승 · 한발 · 요화), 개척 동굴의 도깨비불 터' },
+    from: '불을 다루는 요괴 (등롱 여우불 · 야광귀 · 화마 · 지귀 · 무쇠 장승 · 한발 · 요화)' },
   { id: 'hangi', name: '한기', hanja: '寒氣', heavy: false, max: 1, minutes: 40, stat: { agility: -3, endurance: -2 },
     text: '뼛속까지 찬 기운이 스며 몸이 굳는다.', effect: '신속 −3 · 인내 −2',
-    from: '개척 「호수」 · 샘터길의 물가, 물 · 서리 기운의 요괴 (창귀 · 영노 · 거울귀)' },
+    from: '개척 「호수」 · 「진달래 샘터길」의 물가, 산마루 · 능선의 찬 바람, 물 · 서리 기운의 요괴 (창귀 · 영노 · 거울귀)' },
   { id: 'gobul', name: '고뿔', hanja: '感氣', heavy: true, max: 1, minutes: 90, stat: { endurance: -3, comprehension: -3 },
     text: '콧물이 흐르고 머리가 멍하다.', effect: '인내 −3 · 이해 −3',
-    from: '[한기]가 든 채로 물가 개척을 하거나 전투에 지면 고뿔로 번진다. 개척 「호수」에서 물에 빠질 때' },
+    from: '[한기]가 든 채로 물가 개척을 하거나 전투에 지면 고뿔로 번진다. 개척 「호수」 · 「진달래 샘터길」에서 물에 빠질 때' },
   { id: 'hyeongi', name: '현기', hanja: '眩氣', heavy: false, max: 1, minutes: 30, stat: { insight: -3, control: -2 },
     text: '눈앞이 빙빙 돌아 초점이 맞지 않는다.', effect: '안목 −3 · 절제 −2',
-    from: '홀리는 요괴 (허깨비 · 이매망량 · 가위귀 · 여우누이 · 그슨새 · 혼돈 · 사범장의 그림자), 개척 「동굴」 · 높은 산마루' },
+    from: '홀리는 요괴 (허깨비 · 이매망량 · 가위귀 · 여우누이 · 그슨새 · 혼돈 · 사범장의 그림자), 개척 「동굴」 · 높은 산마루와 능선' },
   { id: 'salgi', name: '살기', hanja: '煞氣', heavy: true, max: 1, minutes: 60, stat: { insight: -2, aggression: -2, endurance: -2, control: -2, agility: -2, comprehension: -2 },
     text: '죽은 것의 기운이 몸에 들러붙었다.', effect: '모든 육조 스탯 −2',
     from: '원귀 · 망령 (단지 원귀 · 달걀귀신 · 몽달귀신 · 객귀 떼 · 손각시 · 묘귀 · 촉루귀 · 무두귀 · 백귀행렬 · 백골장군), 개척 「묘소」' },
   { id: 'otdok', name: '옻독', hanja: '漆毒', heavy: false, max: 5, minutes: 60, round: 1, stat: { control: -1 },
     text: '풀독이 올라 살갗이 벌겋게 가렵다.', effect: '절제 −1 · 라운드가 끝날 때마다 체력 −1 × 겹 (최대 5겹)',
-    from: '개척 숲길 · 들길에서 풀숲을 헤치다가 (채집할 때 가끔)' },
+    from: '그 밖의 개척 터(오솔길 · 숲길 · 들길 · 계곡 · 고개 …)에서 풀숲을 헤치다가 (채집 · 수렵할 때 가끔)' },
   { id: 'gyundok', name: '균독', hanja: '菌毒', heavy: true, max: 1, minutes: 60, round: 2, stat: { comprehension: -3 },
     text: '곰팡이 포자를 들이마셔 속이 메스껍다.', effect: '이해 −3 · 라운드가 끝날 때마다 체력 −2',
     from: '역병 · 썩은 기운의 요괴 (저퀴 · 아귀 떼 · 역신 · 귀목 · 궁기), 개척 「동굴」 · 「묘소」의 습한 곳' },
@@ -126,7 +126,7 @@ export function chanceText(id) {
   const fromEnemy = Object.values(ENEMY_AILMENT).includes(id)
   const bits = []
   if (fromEnemy) bits.push(`그 상대와 싸운 뒤: 지면 ${pct(battleAilChance(id, true, 0))} · 체력 4할 밑 ${pct(battleAilChance(id, false, 0.3))} · 7할 밑 ${pct(battleAilChance(id, false, 0.5))} · 그 위 ${pct(battleAilChance(id, false, 1))}`)
-  const sites = [['호수 · 샘터', 'lake'], ['동굴', 'cave'], ['묘소', 'tomb'], ['산마루', 'summit'], ['숲길 · 들길', 'trail']]
+  const sites = [['호수 · 진달래 샘터길', 'lake'], ['동굴', 'cave'], ['묘소', 'tomb'], ['산마루 · 능선', 'summit'], ['그 밖의 터', 'trail']]
   for (const [label, key] of sites) { const hit = siteAilment({ id: key }).find(([x]) => x === id); if (hit) bits.push(`개척 ${label}: 채집 · 수렵 한 번에 ${hit[1]}%`) }
   if (id === 'gobul') bits.push('[한기] 든 채로 지면 30% · 호수에서 [한기] 든 채로 채집하면 +6%')
   if (id === 'geunyuk') bits.push('수련을 마칠 때 12% · 개척 행동을 끝까지 다 썼을 때 12%')

@@ -5,3 +5,8 @@ hawk-cheollik|desc|매 깃털을 어깨에 덧댄 철릭. 입으면 등이 저�
 red-fox-charm|effectText|전투 중: 파티 상태에서만 사용 가능하다. 자신이 아닌 다른 파티원이 가진 영능력을 단 1회 빌려 쓸 수 있다. 의지력은 똑같이 소모한다.
 red-fox-charm|effect|{"borrowPsychic":1,"onlyBattle":true,"oncePerBattle":true}
 red-fox-charm|party|true
+# vD.02.6 개척 터 개편(vC.06 · vD.01) 뒤 맞지 않던 해설
+cairn-model|desc|뱀딸기 오솔길과 묘소의 돌탑을 흉내 내 쌓아 본 작은 탑. 마지막 돌을 올릴 때 숨을 참게 된다.
+clover|desc|솟대 소나무길 버드나무 그늘의 토끼풀 덤불에서 용케 찾아낸 네잎클로버. 눌러 말리면 오래간다.
+frost-flower|desc|얼어붙은 골짜기와 폭포 물보라에 핀 서리 꽃. 손에 닿으면 금세 녹아내려 옮길 때에도 얼음팩을 지참해야 한다.
+songi|desc|높은 솔숲과 능선의 소나무 뿌리 곁에서만 난다. 향이 그윽한 것이 아주 맛있어보인다.

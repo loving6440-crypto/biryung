@@ -2,7 +2,7 @@
 # 개척 대상(종)|아이템|확률(0~1, 채집 · 수렵에 성공했을 때)|개수
 # ── 재료 ──
 stoneTower|broken-inkstick|0.2|1
-bush|split-brush|0.2|1
+# vD.02.4 갈라진 붓(split-brush)은 덤불 → 쓰러진 고목으로 옮겼다(huntLevels.js HUNT_EXTRA_SPECIES)
 stonePillar|pencil|0.15|1
 dove|friendship-letter|0.3|1
 azalea|cherry-branch|0.2|1

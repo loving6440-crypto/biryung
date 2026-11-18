@@ -461,6 +461,8 @@ export function itemMatches(item, query0) {
       ["                      disabled={(player.stats?.[stat] ?? 0) >= 10 || player.hp <= 30}", "                      disabled={useN >= 99 ? player.hp <= 90 : (player.stats?.[stat] ?? 0) >= 10 || player.hp <= 30}"],
     ],
   },
+  // ── vD.02.4 개척: 장애물 칸 덤이 자갈돌임을 보여 준다
+  { file: 'ui/components/locations/HuntField.jsx', edits: [["{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%</>}", "{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%{node.kind === 'obstacle' && !node.bonus ? ' (자갈돌)' : ''}</>}"]] },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

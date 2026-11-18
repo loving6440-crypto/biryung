@@ -69,17 +69,21 @@ for (const r of recipes) {
   if (foe) add(r.result, `${r.place} 제작 (${r.tier}단계 · 이야기 전투 「${foe.name}」을(를) 물리치면 제작법이 열린다)`, `${r.place} 제작 — 본편 이야기 전투를 마치면 제작법이 열린다`)
 }
 const KIND = { plant: '채집', animal: '수렵', obstacle: '채굴 · 조사', spirit: '영물', ghost: '요괴' }
-const where = {} // 종 → 터 이름들
+// vD.02.6 칸마다 실제로 붙은 보상(vD.01 재료 다시 나누기로 칸마다 다를 수 있다) · 영물은 터마다 여럿
+const span = (set) => { const a = [...set]; return a.length > 3 ? `${a[0]} 등 ${a.length}곳` : a.join(' · ') }
+const nodeSrc = {} // 종|아이템 → { sp, item, sites }
 for (const s of Object.values(hunt.HUNT_SITES)) {
-  for (const n of s.nodes) (where[n.species] ??= new Set()).add(s.name)
-  if (s.spirit) for (const rw of s.spirit.rewards ?? []) add(rw.item, `개척 영물 「${s.spirit.name}」`, `개척 — ${s.name}`)
+  for (const n of s.nodes) {
+    const sp = hunt.HUNT_SPECIES[n.species]; if (!sp) continue
+    for (const rw of n.rewards ?? sp.rewards ?? []) { const k = `${n.species}|${rw.item}`; (nodeSrc[k] ??= { sp, item: rw.item, sites: new Set() }).sites.add(s.name) }
+  }
+  for (const sp of s.spirits ?? (s.spirit ? [s.spirit] : [])) for (const rw of sp.rewards ?? []) add(rw.item, `개척 영물 「${sp.name}」`, `개척 — ${s.name}`)
   if (s.ghost) for (const rw of s.ghost.rewardItems ?? []) add(rw.item, `개척 중 만난 요괴 「${s.ghost.name}」 처치`, `개척 — ${s.name}`)
 }
-const span = (set) => { const a = [...set]; return a.length > 3 ? `${a[0]} 등 ${a.length}곳` : a.join(' · ') }
-for (const x of R.HUNT_EXTRA ?? []) { const sp = hunt.HUNT_SPECIES[x.species]; if (sp && !sp.rewards.some((r) => r.item === x.item)) sp.rewards.push({ item: x.item, chance: x.chance, amount: x.amount }) } // v1.9.8 개척 덤
-for (const [sid, sp] of Object.entries(hunt.HUNT_SPECIES)) for (const rw of sp.rewards ?? []) if (where[sid]) add(rw.item, `개척 ${KIND[sp.kind] ?? '획득'} — ${sp.name} (${span(where[sid])})`, `개척 ${KIND[sp.kind] ?? '획득'} — ${span(where[sid])}`)
+for (const { sp, item, sites } of Object.values(nodeSrc)) add(item, `개척 ${KIND[sp.kind] ?? '획득'} — ${sp.name} (${span(sites)})`, `개척 ${KIND[sp.kind] ?? '획득'} — ${span(sites)}`)
+if (hunt.HUNT_BONUSES?.obstacle) add(hunt.HUNT_BONUSES.obstacle.item, '개척 장애물 덤 — 모든 개척 터의 장애물(확률 = 내 산출값 − 장애물 레벨)', '개척 장애물 덤 — 모든 터') // vD.02.4
 for (const c of garden.GARDEN_CROPS ?? []) add(c.id, '텃밭(비닐하우스) 수확')
-const FILES = { 'explore.js': '본관 탐사', 'annex.js': '별관 탐사', 'hike.js': '산 탐사', 'shrineExplore.js': '사당 탐사', 'exploreActions.js': '탐사 중 행동(기다리기 · 도깨비 놀이 · 보관함)', 'travelEvents.js': '이동 중 사건', 'huntTrails.js': '개척 산길', 'armory.js': '무구보관소', 'progress.js': '전투 · 진행 보상', 'character.js': '처음부터 지급', 'bag.js': '처음부터 지급', 'locker.js': '물품보관함', 'clubs.js': '동아리 활동', 'meals.js': '급식실', 'store.js': '매점' }
+const FILES = { 'explore.js': '본관 탐사', 'annex.js': '별관 탐사', 'hike.js': '산 탐사', 'shrineExplore.js': '사당 탐사', 'exploreActions.js': '탐사 중 행동(기다리기 · 도깨비 놀이 · 보관함)', 'travelEvents.js': '이동 중 사건', 'armory.js': '무구보관소', 'progress.js': '전투 · 진행 보상', 'character.js': '처음부터 지급', 'bag.js': '처음부터 지급', 'locker.js': '물품보관함', 'clubs.js': '동아리 활동', 'meals.js': '급식실', 'store.js': '매점' }
 const texts = Object.fromEntries(readdirSync(G).filter((f) => FILES[f]).map((f) => [f, readFileSync(join(G, f), 'utf8')]))
 for (const i of ITEMS) for (const [f, t] of Object.entries(texts)) if (t.includes(`'${i.id}'`)) add(i.id, FILES[f])
 for (const i of ITEMS) {
