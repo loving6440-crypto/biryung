@@ -463,6 +463,8 @@ export function itemMatches(item, query0) {
   },
   // ── vD.02.4 개척: 장애물 칸 덤이 자갈돌임을 보여 준다
   { file: 'ui/components/locations/HuntField.jsx', edits: [["{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%</>}", "{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%{node.kind === 'obstacle' && !node.bonus ? ' (자갈돌)' : ''}</>}"]] },
+  // ── vD.03 피해 늘리기 아이템(초보용 고독 · 지네 독단지 · 봉인 고독함)의 기록에 그 아이템 이름을 쓴다 ──
+  { file: 'game/mbattle.js', edits: [["text:`${m.name}의 초보용 고독! 적이", "text:`${m.name}의 ${item?.name || '고독'}! 적이"]] },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

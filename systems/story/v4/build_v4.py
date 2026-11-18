@@ -5,7 +5,7 @@
 
 나오는 것
   story-data.js                 프롤로그(튜토리얼) + 권 · 장 목록 + 상대 · 바깥 지역 · 유품 · 칭호. 홈페이지에 들어간다.
-  story-chapters/ch1.json, ch2.json, ch3.json   1 · 2 · 3장. 홈페이지에 넣지 않고 따로 둔다 — 관리자 [스토리 관리]에서 올리고 공개한다.
+  story-chapters/ch1.json … ch4.json   1 · 2 · 3 · 4장. 홈페이지에 넣지 않고 따로 둔다 — 관리자 [스토리 관리]에서 올리고 공개한다.
 
 원고 읽는 법(시트의 약속)
   · 캐릭터 칸이 빈 줄: 지문(글자 그대로 나온다). 단, 바로 앞 화자의 말이 이어지는 줄은 그 화자의 대사다(NARR 에 없는 줄).
@@ -32,7 +32,7 @@ for i, r in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
     if not any([char, text, trig, act]): continue
     rows.append(dict(row=i, ch=cur['ch'], scene=cur['scene'], char=str(char or '').strip(), text=str(text or '').strip(), trig=str(trig or '').strip(), act=str(act or '').strip()))
 
-CH_NO = {'프롤로그': 0, '1장': 1, '2장': 2, '3장': 3}
+CH_NO = {'프롤로그': 0, '1장': 1, '2장': 2, '3장': 3, '4장': 4}
 SCENE_META = {  # 장면: (id, 곳, 때, 배경)
     '최초 최후의 신탁': ('P-1', '전국 · 모든 화면', '2035년 12월 31일 23시', 'night'),
     '입소식': ('P-2', '강학당 · 별관 1층 강당', '2036년 3월 1일', 'east'),
@@ -56,6 +56,12 @@ SCENE_META = {  # 장면: (id, 곳, 때, 배경)
     '너의 이름은': ('3-3', '비령산 · 사찰 법당', '같은 날', 'south'),
     '오너라': ('3-4', '비령산 · 사찰 둘레길', '같은 날 · 해질녘', 'south'),
     '비령': ('3-5', '비령산 · 사찰 앞', '같은 날 · 밤', 'south'),
+    # vD.03 4장 「신탁 오류」
+    '제물': ('4-1', '생활관 · 급식실 → 매점', '2036년 6월 1일 · 아침', 'west'),
+    '신탁 오류': ('4-2', '강학당 · 본관 지하 1층', '같은 날 · 오전', 'east'),
+    '소원이라는 것': ('4-3', '생활관 · 기숙사 → 비령산', '같은 날 · 저녁', 'west'),
+    '시간의 찌꺼기': ('4-4', '생활관 · 기숙사', '같은 날 · 23시', 'west-night'),
+    '쇳덩이 감시자': ('4-5', '강학당 · 본관 지하 1층 → 기숙사', '같은 날 · 자정 무렵', 'east-night'),
 }
 
 # 화자 칸이 빈 줄 가운데 지문인 줄(나머지는 앞 화자의 말이 이어진다)
@@ -63,20 +69,30 @@ NARR = {6, 7, 8, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 25, 26, 32, 34, 37, 38,
         119, 120, 121, 123, 125, 129, 130, 136, 144, 149, 154, 156, 157, 158, 163, 164, 172, 181, 182, 191, 192, 193, 198, 199, 208, 210, 217, 218, 221, 222, 223, 234, 236, 237, 238,
         241, 249, 258, 262, 266, 268, 270, 272, 276, 277, 284, 291, 292, 293, 294, 295, 296, 302, 306, 310, 318, 319, 332, 335, 336, 337, 346, 349, 352, 362, 363, 371, 384, 385, 386, 387, 399, 400,
         # 3장
-        412, 413, 414, 418, 419, 421, 424, 426, 434, 440, 444, 445, 452, 464, 473, 483, 487, 488, 500, 506, 525, 536, 537, 546, 547}
+        412, 413, 414, 418, 419, 421, 424, 426, 434, 440, 444, 445, 452, 464, 473, 483, 487, 488, 500, 506, 525, 536, 537, 546, 547,
+        # 4장
+        550, 551, 552, 563, 574, 577, 589, 598, 599, 600, 610, 615, 616, 617, 623, 624, 625, 626, 633, 634, 635, 636, 638, 641, 647, 648, 650, 653, 657, 660, 676,
+        678, 697, 699, 710, 713, 714, 725, 735, 736, 737, 738, 739, 741, 749, 771, 773, 781, 782, 783, 791, 793, 802, 810, 813}
 SKIP_ROWS = set(range(453, 460))   # 3장: 시트에 같은 대사 묶음(서창현 「장경각 아래에…」 ~ 연호수 「여기 말이 되는 일이…」)이 두 번 들어 있다 — 뒤의 것은 뺀다
 SPEAKER_SET = {460: '연호수'}       # 위를 빼서 앞 화자가 바뀐 줄
 SPEAKER_FIX = {'선생': '결계학 선생', '귀환자 쉼터': '귀환자 쉼터 담당자', '윤호수': '연호수', '—': ''}  # 시트의 화자 칸 → 화면에 나오는 이름
-BATTLE_RULE_ROWS = {146, 377, 378, 379, 463, 527}   # 전투 설명 줄 — 대사로 흘리지 않고 전투 단계의 안내 · 전투 시작 카드로
+BATTLE_RULE_ROWS = {146, 377, 378, 379, 463, 527, 752}   # 전투 설명 줄 — 대사로 흘리지 않고 전투 단계의 안내 · 전투 시작 카드로
 OPENING_ROWS = {2, 3, 4, 5, 7}            # 가입 직후 오프닝(opening.js)이 먼저 보여 주는 줄 — 프롤로그를 처음 볼 때는 건너뛴다(다시 보기에는 나온다)
-CHAPTER_END = {184: 1, 402: 2, 549: 3}            # 「n장─… 종료.」 → 장 마침 표제(글자 줄이 아니라 화면 연출)
+CHAPTER_END = {184: 1, 402: 2, 549: 3, 812: 4}            # 「n장─… 종료.」 → 장 마침 표제(글자 줄이 아니라 화면 연출)
 TEXT_FIX = {319: ('서울에 사는', '강릉에 사는'),  # 바깥 지역 서울 → 강릉(강릉 시내)
             146: ('사감 선생(한도윤)을', '사감 선생의 이름을'),
             480: ('(△△.', '△△.'),          # 3장: 짝 없는 여는 괄호
             518: ('③④ ', '(③④) '),          # 3장: 조건 표시의 괄호가 빠짐
             463: ('파티의 평균 정신오염에 따라', '정신오염(이 사찰에서 고른 것들)에 따라'),
+            576: ('필요합니다. 비령 학생', '필요합니다. 학생'),   # 4장: 시트에서 화자 칸이 대사 칸에 붙어 들어감
+            588: ('③ ', '(③) '), 800: ('③ ', '(③) '),          # 4장: 조건 표시의 괄호가 빠짐
+            643: ('(행동 반영) ', ''),                          # 4장: 연출 메모
             527: ('3레벨 보스 수준의 적. 난이도가 상당히 어렵다. 아이템/영능력 일부를 사용해야 클리어가 가능하다.', '3단계 보스 수준의 상대. 아이템과 영능력을 함께 써야 이길 수 있다.')}
-ACT_FIX = {469: ('무당을 꽉', '무구를 꽉')}   # 3장 행동지문 오타  # 전투 안내에 정답(이름)을 적지 않는다
+ACT_FIX = {469: ('무당을 꽉', '무구를 꽉')}
+# 전투 설명 줄을 통째로 바꾼다(시트의 설명은 연출 메모를 겸한다 — 화면에는 실제 규칙을 적는다)
+RULE_SET = {752: '23시 17분의 예언을 지키려는 예측이 형상화된 것. [신탁] 첫 차례에 시곗바늘을 23시 17분으로 뛰어넘긴다 — 그 뒤로 공격력이 2배가 된다. [절대 신탁] 세 라운드마다 23시 17분으로 되감아, 그 라운드에 받은 피해를 모두 되돌린다.'}
+GRADE_ROWS = {635: [1]}   # 4장: 1학년에게만 나오는 줄(시트 행동지문 칸의 메모)
+MASK_FACE = {'비'}        # 4장: 「비의 모습이 등장했다」는 지문 · 명령이 나오기 전까지 얼굴을 단색 인장으로 가린다   # 3장 행동지문 오타  # 전투 안내에 정답(이름)을 적지 않는다
 
 # ── 연출: 줄 번호 → 효과(글자로는 안 나온다) ──
 #  stage:<그림>  장면 그림(오프닝과 같은 도트 무대) · bg:<배경> 배경 바꾸기 · shake · flash · red / red2 단말기 붉은 빛 · ink 먹물 · bell 방울 한 번 · crack 화면 갈라짐
@@ -95,6 +111,11 @@ FX = {
     276: ['dim'], 292: ['bg:city', 'dim'], 293: ['distort'], 294: ['radio'], 296: ['paper', 'cold'], 301: ['radio'], 306: ['bg:village'], 310: ['bg:village', 'cold'], 316: ['bg:village-forest'],
     326: ['cold'], 328: ['rope', 'shake'], 335: ['bg:village-night', 'distort'], 336: ['red2'], 337: ['shake', 'distort'], 338: ['distort'], 340: ['cold'],
     352: ['bg:city-night', 'dim'], 362: ['bg:village-dawn'], 367: ['vote'], 380: ['distort'], 382: ['shake'], 384: ['shake', 'red'], 387: ['bg:city', 'warm'], 399: ['warm'], 400: ['dim'], 401: ['corner'],
+    # 4장
+    563: ['bg:west'], 575: ['red'], 576: ['red'], 580: ['cold'], 598: ['bg:east'], 616: ['bg:east-night', 'cold'], 625: ['distort'], 633: ['bg:east'], 637: ['red2'], 638: ['red', 'shake'],
+    641: ['bg:east-night'], 643: ['red2'], 644: ['red2'], 645: ['red2'], 647: ['cold'], 648: ['dim'], 649: ['distort'], 678: ['bg:west'], 699: ['bg:south'], 709: ['bg:south'], 725: ['warm'],
+    737: ['bg:west-night', 'red2'], 741: ['shake', 'distort'], 745: ['red2'], 746: ['distort'], 747: ['distort'], 750: ['red2', 'flash'], 771: ['dim'], 772: ['bg:east-night'], 782: ['shake'], 784: ['red'],
+    792: ['cold'], 802: ['bg:west-night', 'dim'],
 }
 
 # ── 트리거 → 단계(어디에서 w · 할 일 n · 안내 a · 곳 p) ──
@@ -132,26 +153,41 @@ TRIG = {
     '뒷산 - 중앙길 - 사찰로 이동': dict(w='gym/hike', n=[V('gym:center:climb:temple')], a='뒷산 중앙길의 사찰로 간다', p='비령산 금역 › 뒷산 › 중앙길 › 산 오르기 › 사찰'),
     '뒷산 - 중앙길 - 둘레길': dict(w='gym/hike', n=[V('gym:center:loop:outside')], a='뒷산 중앙길의 둘레길로 간다', p='비령산 금역 › 뒷산 › 중앙길 › 둘레길 › 교외'),
     '메인 스토리 전투 종료': None, '메인스토리 전투 종료': None,
+    # vD.03 4장
+    '생활관 - 매점으로 이동': dict(w='dorm/store', a='생활관 매점으로 간다', p='생활관 › 기숙사 › 매점'),
+    '강학당 - 본관 - 1층 - 로비로 이동': dict(w='mainHall/explore', n=[V('mainHall:f1:lobby')], a='본관 1층 로비로 간다', p='강학당 › 본관 탐사 › 1층 › 로비'),
+    '강학당 - 본관 - 지하 1층 - 거대한 문': dict(w='mainHall/explore', n=[V('mainHall:b1:escape')], a='본관 지하 1층의 거대한 문으로 간다', p='강학당 › 본관 탐사 › 지하 1층 › 거대한 문'),
+    '주사 3개와 봉인석 1개, 부적 조각 4개를 소지품에 지참한 채로 강학당 - 본관 - 지하 1층 - 거대한 문': dict(w='mainHall/explore', n=['bring:cinnabar×3', 'bring:sealing-stone', 'bring:charm-scrap×4', V('mainHall:b1:escape')], here=1,
+        a='주사 3개 · 봉인석 1개 · 부적 조각 4개를 지니고 거대한 문으로 간다 — 의식에 쓰여 소지품에서 빠진다', p='강학당 › 본관 탐사 › 지하 1층 › 거대한 문'),
+    '강학당 - 본관 - 수업으로 이동': dict(w='mainHall/class', a='본관 수업으로 간다', p='강학당 › 본관 › 수업'),
+    '비령산 - 오른길 - 청화호수': dict(w='gym/hike', n=[V('gym:right:lake')], a='뒷산 오른길의 청화호수로 간다', p='비령산 금역 › 뒷산 › 오른길 › 청화호수'),
+    '비령산 - 중앙길 - 사찰': dict(w='gym/hike', n=[V('gym:center:climb:temple')], a='뒷산 중앙길의 사찰로 간다', p='비령산 금역 › 뒷산 › 중앙길 › 산 오르기 › 사찰'),
+    '생활관 - 내 기숙사': dict(w='dorm/my-room', a='생활관의 내 기숙사로 돌아간다', p='생활관 › 기숙사 › 내 기숙사'),
     '공작소에서 [소형 돌제단], [일회용 수호령]을 제작': dict(w='any', n=['make:small-altar', 'make:spirit-disposable'], a='공작소에서 「소형 돌제단」 · 「일회용 수호령」을 만든다', p='강학당 › 별관 탐사 › 2층 › 공작소'),
 }
 # 같은 트리거 글이 여러 장에 나올 때: 행 번호로 따로 정한다(3장의 두 전투)
 ROW_TRIG = {
     463: dict(w='gym/hike', n=['battle:waiting'], a='「기다리는 것」과 싸운다', p='비령산 금역 › 뒷산 › 중앙길 › 산 오르기 › 사찰'),
     527: dict(w='gym/hike', n=['battle:sachal'], a='「사찰귀」를 물리친다', p='비령산 금역 › 뒷산 › 중앙길 › 둘레길'),
+    752: dict(w='dorm/my-room', n=['battle:error'], a='「오류(誤謬)」를 물리친다 — 23시 17분 전에', p='생활관 › 기숙사 › 내 기숙사'),
 }
 GIVE = {'1-2': {'st-bell302': 1}}
 GIVE_FIRST = {'3-2': {'st-prayers': 1}}   # 그 장면의 첫 단계를 마칠 때(전투 전에) 받는 것 — 쪽지 탑의 기도 쪽지  # 장면을 마칠 때 받는 것(윤진서가 지나간 자리에 남은 방울)
 
 # ── 선택 ──
-CHOICE_ID = {9: 'C0-1', 55: 'C0-2', 92: 'C1-1', 152: 'C1-2', 245: 'C2-1', 287: 'C2-2', 367: 'C2-3', 423: 'C3-1', 448: 'C3-2', 515: 'C3-3', 540: 'C3-4'}
+CHOICE_ID = {9: 'C0-1', 55: 'C0-2', 92: 'C1-1', 152: 'C1-2', 245: 'C2-1', 287: 'C2-2', 367: 'C2-3', 423: 'C3-1', 448: 'C3-2', 515: 'C3-3', 540: 'C3-4',
+             585: 'C4-1', 667: 'C4-2', 729: 'C4-3', 778: 'C4-4', 797: 'C4-5', 808: 'C4-6'}
 CHOICE_Q = {9: '마지막으로 받았던 것', 55: '연호수가 단말기를 밟았다', 152: '선생님을 부축할까', 245: '돌아온 사람은 어디까지 진짜인가', 287: '누구와 함께 돌아갈까',
-            423: '쪽지에 무엇을 빌까', 448: '무엇이 보이나요', 515: '신을 어떻게 생각해요', 540: '제 말을 믿어 주실 수 있겠어요'}
+            423: '쪽지에 무엇을 빌까', 448: '무엇이 보이나요', 515: '신을 어떻게 생각해요', 540: '제 말을 믿어 주실 수 있겠어요',
+            585: '비령이 지목한 제물은 윤진서다', 667: '그 쇳덩이는 그대들의 삶에 꼭 있어야 하는가', 797: '비령은 결국 무엇인가', 808: '손등에 이름을 적어 줄까'}
 # 이름을 지어 주는 줄(선택이 아니라 글자를 적는다) — 이후 △△ 자리는 이 이름으로 바뀐다
 NAME_ROWS = {479: dict(id='P_신이름', key='god', q='이름을 지어 주자', x='같은 순간 다른 학생들도 저마다 다른 이름을 부른다. 이것은 당신만의 호칭이 될 것이다.', d='무명')}
 VOTE = {'C2-3'}   # 모두의 의견을 모으는 선택(관리자 [스토리 관리]에서 집계 · 투표자를 본다) — 모든 선택이 서버에 올라가지만 이것은 '투표'로 표시된다
 CIRC = '①②③④⑤⑥⑦⑧⑨⑩'
 def parse_choice(text):
     q, rest = (text.split(' — ', 1) + [''])[:2] if ' — ' in text else ('', text)
+    m = re.match(r'^([^①②③④⑤⑥⑦⑧⑨⑩]+?)[─—]\s*(?=[①②③④⑤⑥⑦⑧⑨⑩])', rest)   # 4장: 「물음─ ① …」
+    if m: q, rest = (q or m[1].strip()), rest[m.end():]
     if not rest: rest = text
     opts = [o.strip() for o in re.split(r'[①②③④⑤⑥⑦⑧⑨⑩]', rest) if o.strip()]
     return q.strip(), opts
@@ -177,6 +213,7 @@ for r in rows:
     if r['trig']: sc['_trig'].append((len(sc['lines']), r['trig'], r['row']))
     text = r['text']
     if r['row'] in TEXT_FIX: text = text.replace(*TEXT_FIX[r['row']])
+    if r['row'] in RULE_SET: text = RULE_SET[r['row']]
     if r['row'] in BATTLE_RULE_ROWS:   # 전투 설명은 단계 안내로
         sc.setdefault('_rules', {})[r['row']] = re.sub(r'^\([①②③]+\)\s*', '', text)
         continue
@@ -209,7 +246,7 @@ for r in rows:
         else:
             who = None; unk = False
             if char:
-                m = re.match(r'^\?\?로 표기\((.+)\)$', char)
+                m = re.match(r'^(?:\?\?로 표기|\?\?\?)\((.+)\)$', char)
                 if m: who, unk = m[1], True
                 else: who = SPEAKER_FIX.get(char, char)
                 speaker = (who, unk) if who else None
@@ -223,6 +260,8 @@ for r in rows:
                 ln.update({'t': t, 'x': text})
                 if t in ('say', 'news'): ln['w'] = w
                 if unk: ln['unk'] = 1
+                if ch >= 4 and w in MASK_FACE: ln['mask'] = 1
+    if r['row'] in GRADE_ROWS: ln['c'] = (ln.get('c') or []) + [{'grade': GRADE_ROWS[r['row']]}]
     if act_text: ln['a'] = act_text
     if fx: ln['fx'] = fx
     if r['row'] in OPENING_ROWS: ln['op'] = 1
@@ -266,6 +305,7 @@ FOES = {
     'dangsan': (2, 2, '당산신', '마을의 셈을 맞추는 늙은 신.'),
     'waiting': (3, 1, '기다리는 것', '신을 기다리던 마음이 너무 오래 기다린 끝에 스스로 신이 되었다.'),
     'sachal': (3, 2, '사찰귀', '버려진 사찰에 흘러든 악귀. 비령조차 늦게 알아챘다.'),
+    'error': (4, 2, '오류(誤謬)', '23시 17분의 예언을 지키려는 예측이 형상화된 것.'),
 }
 REGIONS = {
     'gangneung': {'name': '강릉', 'sub': '강릉 시내', 'spots': [
@@ -307,7 +347,8 @@ CHAPTERS = [{'n': 0, 'vol': 1, 'title': '프롤로그', 'tutorial': 1}] + [
 TITLES = [['st-ch0', '입소생', '본편 프롤로그를 지나 비령산 학당에 들어온 이.', 2, 6],
           ['st-ch1', '불리지 않은 이름', '본편 1장 「불리지 않은 이름」을 지나온 이.', 2, 8],
           ['st-ch2', '저 이승의 장례식', '본편 2장 「저 이승의 장례식」을 지나온 이.', 3, 10],
-          ['st-ch3', '신이 없는 사당', '본편 3장 「신이 없는 사당」을 지나온 이.', 3, 12]]
+          ['st-ch3', '신이 없는 사당', '본편 3장 「신이 없는 사당」을 지나온 이.', 3, 12],
+          ['st-ch4', '신탁 오류', '본편 4장 「신탁 오류」를 지나온 이 — 제1권 《신공강림》의 끝.', 3, 14]]
 
 recipe_result = {l.split('|')[0]: l.split('|')[3] for l in open(os.path.join(ROOT, 'systems/biryeong/story-recipes.txt'), encoding='utf8') if l.strip() and not l.startswith('#')}
 meta = {
@@ -331,8 +372,8 @@ text = head + 'window.BIRYEONG_QUESTS = ' + json.dumps(data, ensure_ascii=False,
 if re.search(r'초록동색|창록', text): sys.exit('옛 이름이 들어갔다')
 open(os.path.join(ROOT, 'story-data.js'), 'w', encoding='utf8').write(text)
 os.makedirs(os.path.join(ROOT, 'story-chapters'), exist_ok=True)
-for ch in (1, 2, 3):
+for ch in (1, 2, 3, 4):
     part = {'format': 'biryeong-chapter', 'version': 'v4', 'ch': ch, 'title': next(c['title'] for c in CHAPTERS if c['n'] == ch), 'scenes': [scenes[s] for s in order if scenes[s]['ch'] == ch]}
     open(os.path.join(ROOT, 'story-chapters', f'ch{ch}.json'), 'w', encoding='utf8').write(json.dumps(part, ensure_ascii=False, indent=1))
-print('장면', {c: [s for s in order if scenes[s]['ch'] == c] for c in (0, 1, 2, 3)})
+print('장면', {c: [s for s in order if scenes[s]['ch'] == c] for c in (0, 1, 2, 3, 4)})
 print('줄', sum(len(scenes[s]['lines']) for s in order), '단계', sum(len(scenes[s]['steps']) for s in order), '선택', len(meta['choices']))

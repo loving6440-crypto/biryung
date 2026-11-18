@@ -99,7 +99,10 @@ function newMB(enemy, members, size = 3, limit = false) {
   const taint = enemy.story?.taint || 0 // vD.02.2 기다리는 것: 정신오염에 따라 모습
   mb.story = { p, key: enemy.story?.key, hits: 0, broken: false, calm: 0, asked: 0, askedBy: {}, shown: false, roots: 3, baseAtk: mb.enemy.atk, has: enemy.story?.has || {}, form: taint < 20 ? 'mercy' : taint < 50 ? 'revenge' : 'fear', taint, freeze: 0, read: false }
   if (p === 'forms') noteMB(mb, `${mb.enemy.name}의 모습 — ${FORM_NAME[mb.story.form]} (정신오염 ${taint})`)
+  // vD.03 4장 오류: [신탁] 첫 차례는 시곗바늘을 23시 17분으로 뛰어넘기는 데 쓴다(그 뒤 공격력 ×2) · [절대 신탁] 세 라운드마다 그 라운드에 받은 피해를 되돌린다
+  if (p === 'oracle') { mb.story.jump = false; mb.story.rStart = mb.ehp; noteMB(mb, `[${mb.enemy.name}] 시곗바늘을 쥔다 — 첫 차례에 23시 17분으로 뛰어넘을 셈이다.`) }
   openingInitiative(mb)
+  if (p === 'oracle' && mb.queue?.length) mb.queue = ['none', ...mb.queue.slice(1)]
   if (!mb.turn && mb.phase === 'input') beginRound(mb)
   return mb
 }
@@ -139,6 +142,21 @@ function resolveWithStory(mb, actorId, offensive) {
   }
   if (st?.p === 'calm') mb.enemy.atk = st.calm >= 50 ? Math.max(1, Math.round(st.baseAtk / 2)) : Math.round(st.baseAtk * 1.2)
   if (st?.p === 'names' && st.broken) mb.queue = mb.queue.map((q) => (q === 'guard' ? 'jab' : q))
+  if (st?.p === 'oracle' && mb.round > round0) {
+    if (!st.jump) {
+      st.jump = true; mb.enemy.atk = Math.round(st.baseAtk * 2)
+      const txt = `✦ [신탁] 시곗바늘이 23시 17분으로 뛰었다 — 이제 ${mb.enemy.name}의 공격력 ×2.`
+      const skip = [...(mb.log || [])].reverse().find((l) => typeof l?.text === 'string' && l.text.includes('무효화')) // 첫 차례(쉼)를 알리는 엔진 글을 [신탁]으로 바꿔 적는다
+      if (skip) { skip.text = txt; skip.kind = 'warn' } else noteMB(mb, txt)
+    }
+    if (round0 % 3 === 0 && !mb.over) {
+      const back = Math.max(0, Math.min(mb.enemy.hp, st.rStart) - mb.ehp)
+      if (back > 0) { mb.ehp += back; noteMB(mb, `✦ [절대 신탁] 23시 17분으로 되감는다 — 이 라운드에 받은 피해 ${back}이(가) 모두 되돌아갔다.`) }
+      else noteMB(mb, '✦ [절대 신탁] 23시 17분으로 되감았지만 되돌릴 피해가 없다 — 시계가 헛돈다.')
+    }
+    st.rStart = mb.ehp
+    if (mb.round % 3 === 0 && !mb.over) noteMB(mb, '⚠ 이번 라운드가 끝나면 [절대 신탁] — 이 라운드에 준 피해는 되돌아간다. 막기 · 회복 · 준비가 낫다.')
+  }
   if (st?.p === 'roots' && st.roots > 0 && mb.round > round0 && !mb.over) {
     const h = Math.min(mb.enemy.hp - mb.ehp, pct(mb, 0.04 * st.roots))
     if (h > 0) { mb.ehp += h; noteMB(mb, `뿌리가 마을의 불행을 빨아올린다. ${mb.enemy.name} 체력 +${h}`) }
@@ -199,6 +217,7 @@ function npcTurn(mb, m) {
   if (st?.p === 'roots' && m.id === 'npc-jinseo' && st.roots > 0 && m.mp >= cutCost(m)) { if (storyAct(mb, m.id, 'cut').ok) return }
   // 이름 부르기는 플레이어만 한다(NPC 가 부르면 정답이 드러난다)
   let action = 'attack'
+  if (st?.p === 'oracle' && mb.round % 3 === 0) { const r0 = submit(mb, m.id, { action: 'guard' }); if (!r0.error) { resolveWithStory(mb, m.id, false); return } } // vD.03 되감는 라운드엔 공격을 아낀다
   // vD.02.3 부적도 쓴다: 상대가 방어 태세면 꼭, 그 밖에도 부적이 남아 있고 의지력이 넉넉하면 절반쯤은 부적으로(마지막 하나는 방어 태세용으로 아낀다)
   if (['smash', 'special', 'group'].includes(intent) && !m.bound) action = 'guard'
   else if (m.charms > 0 && m.mp >= 12 && (intent === 'guard' || (m.charms > 1 && Math.random() < 0.5) || mb.ehp <= mb.enemy.hp * 0.25)) action = 'charm'
@@ -230,12 +249,15 @@ function StoryPanel({ story, round, me, myTurn, onStory, hasPortrait = false }) 
   } else if (story.p === 'forms') {
     meter = <p>모습 · {FORM_NAME[story.form]}{story.freeze ? ` · 쪽지로 힘이 꺼짐(${story.freeze}라운드)` : ''}</p>
     acts.push(btn('read', '쪽지를 읽어 준다', story.read ? '이미 읽어 주었다' : '기도 쪽지 묶음 · 한 번 · 한 턴 멈추고 세 라운드 동안 모습의 힘이 꺼진다', undefined, !!story.read || !story.has?.['st-prayers']))
+  } else if (story.p === 'oracle') {
+    const left = 3 - ((round - 1) % 3) - 1
+    meter = <p>시각 {story.jump ? '23:17 · 공격력 ×2' : '23:05 · 첫 차례에 시간이 뛴다'} · {left === 0 ? <b style={{ color: '#ff9a7a' }}>이번 라운드 끝에 되감는다 — 준 피해가 되돌아간다</b> : `되감기까지 ${left}라운드`}</p>
   } else if (story.p === 'roots') {
     meter = <p>뿌리 {'♣'.repeat(story.roots)}{'·'.repeat(3 - story.roots)} {story.roots ? `· 받는 피해 −${story.roots * 20}% · 라운드마다 회복` : '· 뿌리째 드러남(받는 피해 +30%)'}</p>
     acts.push(btn('cut', '금줄을 끊는다', `의지력 ${cutCost(me)} · 뿌리 하나 · 턴을 쓴다`, undefined, !story.roots))
   }
   return <div className="mb-3 rounded-xl p-3 text-xs" style={{ background: '#101a24', border: '1px solid #8a7146', color: '#ece3cf' }} aria-label="이야기 전투">
-    <p className="mb-1 font-serif text-sm" style={{ color: '#ffd889' }}>이야기 행동 {!myTurn && <small style={{ color: '#b9b1a1', fontSize: 11 }}>· 내 차례에 쓸 수 있다</small>}</p>{meter}
+    <p className="mb-1 font-serif text-sm" style={{ color: '#ffd889' }}>{acts.length ? '이야기 행동' : '이야기 상황'} {acts.length > 0 && !myTurn && <small style={{ color: '#b9b1a1', fontSize: 11 }}>· 내 차례에 쓸 수 있다</small>}</p>{meter}
     {acts.length > 0 && <div className="mt-2 grid gap-1.5 sm:grid-cols-3">{acts}</div>}
   </div>
 }

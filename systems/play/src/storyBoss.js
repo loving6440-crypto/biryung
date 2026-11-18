@@ -31,7 +31,8 @@ export const STORY_FOES = {
   echo: { pattern: null, hp: 1, drop: null, rules: ['예측이 남긴 찌꺼기. 별다른 수는 없다.'] },
   // vD.02.2 3장 「사찰귀」 — 3단계 보스 수준(아이템과 영능력을 함께 써야 한다) · vD.02.4 3인 전투(체력은 3인 배율이 따로 붙어 2.4 → 1.6)
   sachal: { pattern: null, hp: 1.6, atk: 1.2, drop: null, rules: ['3단계 보스 수준의 상대 — 체력이 아주 많고 한 방이 아프다. 아이템과 영능력을 함께 써야 이길 수 있다.'] },
-  error: { pattern: 'rewind', hp: 1.3, drop: ['st-stopwatch', 1], rules: ['두 턴마다 23시 17분으로 되감는다 — 상대와 나의 체력이 두 턴 전으로 돌아간다.', '두 턴 안에 상대 최대 체력의 20% 이상을 깎으면 되감기가 끊기고 초침 하나가 부러진다.', '초침 셋이 모두 부러지면 더는 되감지 못하고 받는 피해 +25%.'],
+  // vD.03 4장 「오류(誤謬)」 — 3인 전투(StoryParty)의 'oracle' 패턴
+  error: { pattern: 'oracle', hp: 1.2, atk: 0.7, drop: ['st-stopwatch', 1], rules: ['[신탁] 첫 차례에 시곗바늘을 23시 17분으로 뛰어넘긴다 — 그 뒤로 오류의 공격력이 2배가 된다.', '[절대 신탁] 세 라운드마다(3 · 6 · 9 … 라운드가 끝날 때) 23시 17분으로 되감아, 그 라운드에 오류가 받은 피해를 모두 되돌린다.', '되감는 라운드엔 공격보다 막기 · 회복 · 준비가 낫다. 그 라운드에 쓰러뜨리면 되감지 못한다.'],
     say: { start: '23시 17분. 그 시각은 지켜져야 한다.', stop: '…시각이, 지나갔다.' } },
   baekmok: { pattern: 'eyes', hp: 1.3, drop: ['st-eyelid', 1], rules: ['열 개의 눈이 나를 본다 — 뜬 눈이 많을수록 상대의 공격이 아프다(눈 10개 ×1.2 ~ 0개 ×0.4).', '앞 턴과 다른 행동을 하면 눈 하나가 감기고, 같은 행동을 하면 다시 뜬다.', '눈이 모두 감기면 백목이 한 턴 쉰다. 관측 차단 봉투를 지니면 눈 세 개가 감긴 채로 시작한다.'],
     say: { start: '관측 대상 확인. 행동 패턴 학습 개시.', blind: '관측… 불가…' } },
@@ -52,7 +53,7 @@ export const STORY_FOES = {
   final: { pattern: 'phases', phases: { 1: ['eyes', 'rewind', 'voices'], 2: ['heads', 'roots', 'alternate'], 3: ['ward', 'fog', 'voices'] }, hp: 1.6, drop: ['st-final-knot', 1], rules: ['체력 66% · 33%에서 형태를 바꾼다. 고른 진영에 따라 지금까지 만난 신탁들의 모습을 차례로 빌린다.'],
     say: { start: '(수천 개의 기도와 대답이 한꺼번에) 너희는 무엇을 약속하겠느냐.', shift: '형태가 바뀐다 —' } },
 }
-const PATTERN_NAME = { names: '이름 부르기', calm: '진정', roots: '뿌리', forms: '모습', rewind: '되감기', eyes: '눈', heads: '두 머리', voices: '목소리', alternate: '번갈아 오는 신탁', fog: '안개', ward: '부모들의 자리' }
+const PATTERN_NAME = { names: '이름 부르기', calm: '진정', roots: '뿌리', forms: '모습', rewind: '되감기', oracle: '신탁', eyes: '눈', heads: '두 머리', voices: '목소리', alternate: '번갈아 오는 신탁', fog: '안개', ward: '부모들의 자리' }
 
 /** 이 상대를 이기면 열리는 전리품 제작법 */
 export const bossRecipes = (key) => STORY_RECIPES.filter((r) => r.unlock === `boss:${key}`)

@@ -73,8 +73,34 @@ export const STORE_PRICES = {
   picnic: 15, chocolate: 25, ramen: 20, dumpling: 30, chewy: 20, energy: 80, 'cone-icecream': 25, 'bag-snack': 40, 'slice-cake': 40,
   firecracker: 90, 'twin-pop': 25, hotbar: 120, brush: 25, hanji: 12, 'carving-knife': 25, pouch: 20, inkstick: 25, bag: 300, 'st-tangerine': 10, 'st-seaweed': 12,
 }
+// vD.03 실제 성능에 맞춘 글 · 태그(효과는 그대로 두고 보이는 것만 고친다)
+//   effectText · desc: 덮어쓴다 · addTags: 없으면 더한다 · party: 일행 전용 여부
+const BATTLE_TAG = '전투 중 사용 가능'
+export const ITEM_TEXT_FIX = {
+  'beginner-godok': { effectText: '일행 전투 중에만: 3라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },
+  'nw-centipede-jar': { effectText: '일행 전투 중에만: 2라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },
+  'nw-sealed-godok': { effectText: '일행 전투 중에만: 5라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },
+  godok: { effectText: '일행 전투 중에만: [보스]를 포함한 그 어떤 적이든 일격에 처치한다. 대신 함께 싸운 모두가 사흘 동안 저주에 걸린다.', addTags: [BATTLE_TAG] },
+  'yarn-doll': { addTags: [BATTLE_TAG] }, 'jaeaek-charm': { addTags: [BATTLE_TAG] },
+  'nw-mugwort-rope': { party: false, desc: '쑥대를 한지 띠에 꽂아 꼰 금줄. 몸에 둘러 두면 들이치는 기운이 반으로 꺾인다.' },
+  'nw-raccoon-tag': { desc: '벽조목 패에 봉인 가루로 너구리 발톱을 붙였다. 쥐고 있으면 날아드는 것이 한 번은 비껴 맞는다.' },
+  'goblin-mask': { effectText: '착용 시 모든 공격력에 +200% 보정. 단, 돌발 확률이 50% 늘어나고, 일반 공격이 (호전/3)% 확률로 상대 대신 우리 편을 친다 — 나를 포함한 일행 가운데 하나(혼자면 나 자신). 맞은 사람의 체력은 1 아래로 내려가지 않는다.' },
+  'hwatu-paulownia': { effectText: '장착자가 받는 모든 피해가 10%(올림) 줄어든다.' },
+  energy: { effectText: '1회에 한하여 전투불능 패널티 없이, 또한 전투를 종료하지 않고 체력 1로 부활시킨다. 의지력은 회복되지 않는다. 전투불능이 되기 전 미리 먹어둬야 효과가 바로 발휘되며, 전투불능 이후에는 사용할 수 없다. 한 전투에 1회만 쓸 수 있다 (부활에 쓰고 나서도 같은 전투에서는 다시 마실 수 없다).' },
+}
+export function applyTextFix(items) {
+  for (const it of items) {
+    const f = ITEM_TEXT_FIX[it.id]; if (!f) continue
+    if (f.effectText) it.effectText = f.effectText
+    if (f.desc) it.desc = f.desc
+    if ('party' in f) it.party = f.party
+    if (f.addTags) it.tags = [...new Set([...(it.tags ?? []), ...f.addTags])]
+  }
+  return items
+}
 export function retuneItems(items) {
   for (const it of items) if (STORE_PRICES[it.id] != null && it.price != null) it.price = STORE_PRICES[it.id]
-  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === true) it.battle = true; for (const k of ['only', 'oncePerBattle']) if (k in r) { if (r[k] == null) delete it[k]; else it[k] = r[k] } if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
+  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === true) it.battle = true; for (const k of ['only', 'oncePerBattle']) if (k in r) { if (r[k] == null) delete it[k]; else it[k] = r[k] } if (r.battle === false) { it.battle = false; it.party = false; if (it.only === 'battle') delete it.only; delete it.oncePerBattle; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } } // vD.03 전투 밖 음식에 남아 있던 only:'battle'(전투 중에만)이 겹쳐 어디서도 못 쓰던 것을 푼다
+  applyTextFix(items)
   return items
 }

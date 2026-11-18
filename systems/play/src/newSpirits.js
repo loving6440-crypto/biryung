@@ -68,9 +68,9 @@ export const NEW_SPIRIT_ITEMS = [
     effect: { hunt: { banish: 1, ward: 6 } }, effectText: '개척 중: 터의 요괴를 쫓아낸다 · 요괴 쫓기 6턴', battle: false,
   },
   {
-    id: 'white-wolf-amulet', kind: 'consumable', name: '백랑 송곳니 부적', price: null, tags: ['완성품', '#전투', '#기운(버프)'], pixel: { t: 'necklace', p: 'ghost' },
+    id: 'white-wolf-amulet', kind: 'consumable', name: '백랑 송곳니 부적', price: null, tags: ['완성품', '전투 중 사용 가능', '#전투', '#기운(버프)'], pixel: { t: 'necklace', p: 'ghost' },
     desc: '백랑 송곳니를 끈에 꿴 것. 목에 걸면 늑대처럼 먼저 뛰어든다.',
-    effect: { battleStat: { aggression: 6, agility: 3 }, onlyBattle: true }, effectText: '이번 전투 동안 공격성 +6 · 민첩 +3 (전투 중에만)', battle: true,
+    effect: { battleStat: { aggression: 6, agility: 3 }, onlyBattle: true }, effectText: '전투 중: 호전 +6 · 신속 +3 (다인 전투는 그 전투 동안, 단독 전투는 20분)', battle: true,
   },
 ]
 

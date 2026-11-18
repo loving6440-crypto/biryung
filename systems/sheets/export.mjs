@@ -16,9 +16,9 @@ const hunt = await imp('huntSites.js')
 const garden = await imp('garden.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 const AIL = await import(join(ROOT, 'systems/play/src/ailments.js')) // vC.06 몸의 이상을 낫게 하는 물건
-const { ITEM_RETUNE, STORE_PRICES } = await import(join(ROOT, 'systems/play/src/itemRetune.js')) // vD.01 · vD.02.3 매점 값
+const { ITEM_RETUNE, STORE_PRICES, applyTextFix } = await import(join(ROOT, 'systems/play/src/itemRetune.js')) // vD.01 · vD.02.3 매점 값 · vD.03 글 맞추기
 const SPR = await import(join(ROOT, 'systems/play/src/newSpirits.js')) // vD.02 새 영물의 전리품 · 물건
-const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS, ...SPR.NEW_SPIRIT_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)).map((i) => (ITEM_RETUNE[i.id] ? { ...i, ...ITEM_RETUNE[i.id] } : i)).map((i) => (STORE_PRICES[i.id] != null && i.price != null ? { ...i, price: STORE_PRICES[i.id] } : i)) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
+const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS, ...SPR.NEW_SPIRIT_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)).map((i) => (ITEM_RETUNE[i.id] ? { ...i, ...ITEM_RETUNE[i.id] } : i)).map((i) => (STORE_PRICES[i.id] != null && i.price != null ? { ...i, price: STORE_PRICES[i.id] } : i)).map((i) => applyTextFix([{ ...i }])[0]) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
 const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
 const name = (id) => R.ITEM_RESKIN[id]?.name ?? ITEMS.find((i) => i.id === id)?.name ?? id
 const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]))

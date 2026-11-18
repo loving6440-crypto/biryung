@@ -244,7 +244,7 @@ export const NURSE_ITEMS = NURSE_RAW.map(([id, name, ail, price, desc, pixel]) =
 export const FIRST_AID = {
   pixel: { t: 'box', p: 'crimson' }, id: 'nurse-firstaid', kind: 'consumable', name: '응급 처치 상자', price: 150, storeOnly: 'infirmary',
   desc: '양호실 선반 맨 위에 둔 빨간 상자. 실습 중에 다친 학생이 생기면 선생님이 이걸 들고 뛰어간다. 무엇이든 하나는 손볼 수 있다.',
-  tags: ['#몸의 이상', '#양호실', '#턴소모無'], effectText: '걸려 있는 나쁜 상태 하나를 골라 푼다 — 전투 중 상태 이상 · 저주 · 속박 · 몸의 이상 (전투 중에도 쓸 수 있다)',
+  tags: ['#몸의 이상', '#양호실', '전투 중 사용 가능', '#턴소모無'], effectText: '걸려 있는 나쁜 상태 하나를 골라 푼다 — 전투 중 상태 이상 · 저주 · 속박 · 몸의 이상 (전투 중에도 쓸 수 있다)',
   effect: { cureOneBs: true }, battle: true, party: false,
 }
 /** 양호실 진열대: 몸의 이상 10종의 기본 물품 + 응급 처치 상자 + 쇠약 전용 영양제(비싸다) */

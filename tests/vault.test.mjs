@@ -206,10 +206,10 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
   const D = window.BIRYEONG_QUESTS
   assert10.deepEqual(D.scenes.map((s) => s.id), ['P-1', 'P-2', 'P-3'])
   assert10.ok(D.scenes.every((s) => s.ch === 0), '사이트에는 프롤로그만')
-  const chapters = [1, 2, 3].map((n) => JSON.parse(read10(new URL(`../story-chapters/ch${n}.json`, import.meta.url), 'utf8')))
+  const chapters = [1, 2, 3, 4].map((n) => JSON.parse(read10(new URL(`../story-chapters/ch${n}.json`, import.meta.url), 'utf8')))
   chapters.forEach((c, i) => { assert10.equal(c.format, 'biryeong-chapter'); assert10.equal(c.ch, i + 1); assert10.ok(c.scenes.every((s) => s.ch === i + 1)) })
   const all = [...D.scenes, ...chapters.flatMap((c) => c.scenes)]
-  assert10.equal(all.length, 21) // vD.02.2 3장 5장면
+  assert10.equal(all.length, 26) // vD.02.2 3장 5장면 · vD.03 4장 5장면
   const spots = new Set(Object.entries(D.regions).flatMap(([r, v]) => v.spots.map((s) => `${r}/${s.id}`)))
   const { ITEMS } = await import('../systems/vault/modules/game/items.js')
   const { STORY_ITEMS } = await import('../systems/biryeong/reskin.data.js')
@@ -224,7 +224,7 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
       const needs = [...(st.n ?? []), ...Object.values(st.alt ?? {}).flatMap((by) => Object.values(by).flat())]
       for (const n of needs) {
         if (n.startsWith('battle:')) assert10.ok(D.foes[n.slice(7).split('|')[0]], `${s.id} ${n}`)
-        const m = /^(make|inspect):(.+)$/.exec(n); if (m) assert10.ok(ids.has(m[2]), `${s.id} ${n}`)
+        const m = /^(make|inspect|bring):([^×]+)/.exec(n); if (m) assert10.ok(ids.has(m[2]), `${s.id} ${n}`)
       }
       for (const r of [st.l, st.pre]) if (r) for (let i = r[0]; i < r[1]; i++) covered.add(i)
     }
@@ -233,7 +233,7 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
       assert10.ok(!('d' in ln), `${s.id} 연출 글(d)이 줄에 남았다`)
       if (ln.x) assert10.ok(!/^\(.*\)$/.test(ln.x.trim()), `${s.id} 괄호 연출이 대사로 나온다: ${ln.x}`)
       if (ln.t === 'choice') { assert10.ok(ln.o.length >= 2); choiceIds.add(ln.id); assert10.ok(D.choices[ln.id], ln.id) }
-      if (ln.c) for (const c of ln.c) assert10.ok(choiceIds.has(c.flag), `${s.id} 분기 조건 ${c.flag} 는 앞에서 고른 것이어야 한다`)
+      if (ln.c) for (const c of ln.c) if (!c.grade) assert10.ok(choiceIds.has(c.flag), `${s.id} 분기 조건 ${c.flag} 는 앞에서 고른 것이어야 한다`)
       if (ln.op) assert10.equal(s.id, 'P-1')
     }
   }
@@ -242,7 +242,7 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
   // 2장 마지막 전투는 고른 것에 따라 상대가 바뀐다
   const last = chapters[1].scenes.at(-1).steps.find((st) => st.alt)
   assert10.deepEqual(last.alt['C2-3'], { 1: ['battle:effigy'], 2: ['battle:dangsan'], 3: ['battle:dangsan'] })
-  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 4)
+  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 5)
   assert10.ok(!JSON.stringify(D.regions).includes('서울'), '바깥 지역 서울은 강릉으로')
 })
 
@@ -795,4 +795,33 @@ test('vD.02.6: 보이는 글에 옛 개척 터 이름 · 없는 곳이 없다', 
   assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/items-new.txt'), 'utf8').includes('산길에서 오래 탄다'))
   const hl = readFileSync(join(ROOT, 'systems/play/src/huntLevels.js'), 'utf8')
   assert.ok(hl.includes("'left-trail-19': { name: '얼음꽃 능선'") && !hl.includes('솟대 소나무길를'))
+})
+
+test('vD.03: 4장 「신탁 오류」 — 지참 · 학년 줄 · 비의 얼굴 가림 · 오류 보스(신탁 · 절대 신탁)', async () => {
+  const ch4 = JSON.parse(readFileSync(join(ROOT, 'story-chapters/ch4.json'), 'utf8'))
+  assert.equal(ch4.ch, 4); assert.equal(ch4.title, '신탁 오류')
+  const steps = ch4.scenes.flatMap((s) => s.steps)
+  const bring = steps.find((st) => (st.n || []).some((n) => n.startsWith('bring:')))
+  assert.deepEqual(bring.n.filter((n) => n.startsWith('bring:')), ['bring:cinnabar×3', 'bring:sealing-stone', 'bring:charm-scrap×4'])
+  assert.ok(steps.some((st) => (st.n || []).includes('battle:error')))
+  const lines = ch4.scenes.flatMap((s) => s.lines)
+  assert.ok(lines.some((l) => l.c?.some((c) => c.grade?.[0] === 1)))
+  assert.ok(lines.filter((l) => l.w === '비').every((l) => l.mask))
+  assert.ok(lines.at(-2).t === 'end' && lines.at(-2).ch === 4)
+  const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
+  assert.ok(q.includes("n.type === 'bring'") && q.includes('function myGrade()') && q.includes('ln?.mask'))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/storyBoss.js'), 'utf8').includes("error: { pattern: 'oracle'"))
+  const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
+  assert.ok(sp.includes("st?.p === 'oracle' && mb.round > round0") && sp.includes('[절대 신탁]'))
+})
+
+test('vD.03: 아이템 글 = 실제 성능 — 전투 밖 음식은 어디서든 못 쓰던 것 풀림 · 일행 전투 전용 표기 · 전투 태그', async () => {
+  const { ITEM_TEXT_FIX, applyTextFix } = await import('../systems/play/src/itemRetune.js')
+  assert.ok(ITEM_TEXT_FIX['beginner-godok'].effectText.includes('일행 전투 중에만') && ITEM_TEXT_FIX['beginner-godok'].effectText.includes('라운드'))
+  assert.ok(ITEM_TEXT_FIX.godok.effectText.includes('사흘') && ITEM_TEXT_FIX['hwatu-paulownia'].effectText.includes('받는'))
+  const [x] = applyTextFix([{ id: 'nw-mugwort-rope', party: true, tags: ['완성품'] }]); assert.equal(x.party, false)
+  const rt = readFileSync(join(ROOT, 'systems/play/src/itemRetune.js'), 'utf8')
+  assert.ok(rt.includes("if (it.only === 'battle') delete it.only"))
+  const ns = readFileSync(join(ROOT, 'systems/play/src/newSpirits.js'), 'utf8')
+  assert.ok(!ns.includes('공격성') && ns.includes('호전 +6 · 신속 +3'))
 })

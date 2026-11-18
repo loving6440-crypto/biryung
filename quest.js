@@ -119,7 +119,8 @@
     const k = baseName(who);
     const box = h('div', 'pt-frame'); box.dataset.who = who;
     for (const c of ['tl', 'tr', 'bl', 'br']) box.append(h('i', `pt-corner pt-${c}`));
-    let src = shown !== '??' && (PORTRAITS[who] || PORTRAITS[k]);
+    let src = shown !== '??' && !ln?.mask && (PORTRAITS[who] || PORTRAITS[k]); // vD.03 mask: 아직 모습이 드러나지 않은 인물은 단색 인장
+    if (ln?.mask) { box.append(seal(who)); return box; }
     if (src && typeof src === 'object') { const f = faceOf(k, ln); box.dataset.face = src[f] ? f : 'base'; src = src[f] || src.base || Object.values(src)[0]; }
     const fallback = () => (k === '비령' ? hanjaSeal() : shown !== '??' && MAIN_CAST.includes(k) ? emptySlot(k) : seal(shown === '??' ? '??' : who));
     if (src) { const img = new Image(); img.className = 'pt-img'; img.alt = `${shown} 초상`; const ss = portraitSrcset(src); if (ss) { img.srcset = ss; img.sizes = '(max-width:790px) 50px, 70px'; } img.src = src; img.addEventListener('error', () => img.replaceWith(fallback())); box.append(img); }
@@ -170,8 +171,15 @@
   }
 
   /* ───────── 조건 ───────── */
+  // vD.03 학년(1~3)에 따라 나오는 줄 — 프로필에서 고른 학년(없으면 실행 화면의 학년, 그것도 없으면 나이로)
+  function myGrade() {
+    const g = Number(App.profile()?.grade);
+    if (g >= 1 && g <= 3) return g;
+    try { const pg = Number(globalThis.BiryeongPlayGrade?.()); if (pg >= 1 && pg <= 3) return pg; } catch (_) { /* 실행 화면 전 */ }
+    const age = Number(App.profile()?.age); return age ? Math.max(1, Math.min(3, age - 16)) : 1;
+  }
   function ok(conds, sid) {
-    return (conds || []).every((c) => (c.flag ? c.in.includes(flagOf(c.flag, sid)) : true));
+    return (conds || []).every((c) => (c.flag ? c.in.includes(flagOf(c.flag, sid)) : c.grade ? c.grade.includes(myGrade()) : true));
   }
   /* ───────── 모두의 선택(투표) → 루트 공개 ─────────
    * 투표 선택(예: C2-3)은 각자 고른 것이 집계로만 쓰이고, 이야기가 실제로 어느 길로 갈지는 관리자가 [스토리 관리]에서 공개한 루트를 따른다.
@@ -232,6 +240,8 @@
       if (n.type === 'equip') have = heir() && api()?.equippedBase() === heir().weapon ? 1 : 0;
       if (n.type === 'heirlvl') have = (api()?.heirloomEnh?.() || 0) >= Number(n.arg) ? 1 : 0;
       if (n.type === 'tutorial') have = Math.min(n.count, api()?.tutorialCount?.() || 0);
+      // vD.03 지참: 소지품에 그만큼 있으면 된다(단계를 마칠 때 한 번만 빠진다 — 이미 낸 적이 있으면 다시 내지 않는다)
+      if (n.type === 'bring') have = claims().claimed[`bring:${scene.id}.${q.step}`] ? n.count : Math.min(n.count, countOf(n.id));
       return { ...n, raw, i, have, done: have >= n.count };
     });
   }
@@ -258,6 +268,7 @@
     if (n.type === 'heirlvl') return `유품 무구 ${n.arg}강 이상 — 뒷산 무구보관소에서 강화 (지금 ${api()?.heirloomEnh?.() || 0}강)`;
     if (n.type === 'tutorial') return `[전투 안내] ${Math.min(n.have, n.count)} / ${n.count}단계`;
     if (n.type === 'inspect') return `소지품에서 「${name}」 조사하기`;
+    if (n.type === 'bring') return `「${name}」 ${n.count}개 지니기 (지금 ${Math.min(n.have, n.count)}/${n.count})`;
     if (n.type === 'battle') { const foe = D.foes[n.arg]; return `${foe?.name || '상대'}${n.calm ? ' — 진정시키거나 쓰러뜨리기' : ' 퇴마'}`; }
     if (n.type === 'visit') return '그 자리를 살핀다(탐사)';
     return `${NEED_TEXT[n.type] || n.type}${n.count > 1 ? ` ${Math.min(n.have, n.count)}/${n.count}` : ''}`;
@@ -287,6 +298,14 @@
     const q = Q(), a = api();
     const got = [];
     const stepKey = `${scene.id}.${q.step}`;
+    // vD.03 지참한 것을 쓴다(최초 1회만 — 다시 보기 · 다시 시작에는 빠지지 않는다)
+    const bring = {};
+    for (const n of needsOf(st).map(parseNeed)) if (n.type === 'bring' && n.id) bring[n.id] = (bring[n.id] || 0) + n.count;
+    if (Object.keys(bring).length && a && !claims().claimed[`bring:${stepKey}`]) {
+      if (!a.take(bring)) { toast('본편', '지닌 것이 모자라다 — 소지품을 다시 확인하자.'); drawTracker(); return; }
+      claims().claimed[`bring:${stepKey}`] = Date.now();
+      card({ kind: 'use', head: '의식에 썼다', title: Object.entries(bring).map(([id, k]) => `${itemName(id)} ×${k}`).join(' · '), lines: ['소지품에서 빠졌다.'] });
+    }
     if (st.give && a && claimOnce(`give:${stepKey}`)) {
       a.grant({ items: st.give, log: `본편: ${Object.entries(st.give).map(([id, n]) => `${itemName(id)}${n > 1 ? ` ×${n}` : ''}`).join(', ')}을(를) 받았다.` });
       for (const [id, n] of Object.entries(st.give)) { q.given[id] = (q.given[id] || 0) + n; got.push(`${itemName(id)}${n > 1 ? ` ×${n}` : ''}`); }
@@ -480,7 +499,7 @@
     const c = cards.shift();
     const box = h('div', `ach-card is-${c.kind || 'item'}`);
     for (const k of ['tl', 'tr', 'bl', 'br']) box.append(h('i', `pt-corner pt-${k}`));
-    const MARK = { heir: '器', recipe: '方', item: '得', boss: '勝', chapter: '章', lose: '息' };
+    const MARK = { heir: '器', recipe: '方', item: '得', use: '用', boss: '勝', chapter: '章', lose: '息' };
     box.append(h('span', 'ach-mark', MARK[c.kind] || '◆'), h('p', 'ach-head', c.head || ''));
     if (c.title) box.append(h('h3', 'ach-title', c.title));
     if (c.sub) box.append(h('p', 'ach-sub', c.sub));
