@@ -206,10 +206,10 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
   const D = window.BIRYEONG_QUESTS
   assert10.deepEqual(D.scenes.map((s) => s.id), ['P-1', 'P-2', 'P-3'])
   assert10.ok(D.scenes.every((s) => s.ch === 0), '사이트에는 프롤로그만')
-  const chapters = [1, 2].map((n) => JSON.parse(read10(new URL(`../story-chapters/ch${n}.json`, import.meta.url), 'utf8')))
+  const chapters = [1, 2, 3].map((n) => JSON.parse(read10(new URL(`../story-chapters/ch${n}.json`, import.meta.url), 'utf8')))
   chapters.forEach((c, i) => { assert10.equal(c.format, 'biryeong-chapter'); assert10.equal(c.ch, i + 1); assert10.ok(c.scenes.every((s) => s.ch === i + 1)) })
   const all = [...D.scenes, ...chapters.flatMap((c) => c.scenes)]
-  assert10.equal(all.length, 16)
+  assert10.equal(all.length, 21) // vD.02.2 3장 5장면
   const spots = new Set(Object.entries(D.regions).flatMap(([r, v]) => v.spots.map((s) => `${r}/${s.id}`)))
   const { ITEMS } = await import('../systems/vault/modules/game/items.js')
   const { STORY_ITEMS } = await import('../systems/biryeong/reskin.data.js')
@@ -242,7 +242,7 @@ t10('v1.8 본편(스크립트 v4): 프롤로그는 사이트에, 1 · 2장은 �
   // 2장 마지막 전투는 고른 것에 따라 상대가 바뀐다
   const last = chapters[1].scenes.at(-1).steps.find((st) => st.alt)
   assert10.deepEqual(last.alt['C2-3'], { 1: ['battle:effigy'], 2: ['battle:dangsan'], 3: ['battle:dangsan'] })
-  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 3)
+  assert10.equal(window.BIRYEONG_TITLES.filter((t) => t.from === 'story').length, 4)
   assert10.ok(!JSON.stringify(D.regions).includes('서울'), '바깥 지역 서울은 강릉으로')
 })
 
@@ -327,7 +327,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
-  assert17.equal(C.items.length, 477) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
+  assert17.equal(C.items.length, 478) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
   // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
   for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
@@ -554,7 +554,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.0[12])'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[12](\.1)?)'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -730,7 +730,7 @@ test('vD.02: 단계 보상은 언제나 위가 많다 · 느린 싸움 · 2명�
   assert.equal(S.NEW_SPIRIT_RECIPES.length, 5)
   for (const r of S.NEW_SPIRIT_RECIPES) assert.ok(S.NEW_SPIRIT_ITEMS.some((i) => i.id === r.result) && S.NEW_SPIRIT_ITEMS.some((i) => i.id === r.inputs[0][0]))
   const A = await import('../systems/play/src/ailments.js')
-  assert.equal(A.NURSE_STOCK.length, 11)
+  assert.equal(A.NURSE_STOCK.length, 12) // vD.02.1 응급 처치 상자
   assert.ok(A.NURSE_STOCK.find((x) => x.id === 'nutrient').price >= 500)
   const { ITEM_RETUNE } = await import('../systems/play/src/itemRetune.js')
   assert.ok(Object.values(ITEM_RETUNE).filter((r) => r.effect?.timed).length >= 10)
@@ -741,4 +741,16 @@ test('vD.02: 단계 보상은 언제나 위가 많다 · 느린 싸움 · 2명�
   assert.ok(sql.includes("'leader', r.members->0->>'u'") && sql.includes('not_leader'))
   const party = readFileSync(join(ROOT, 'party.js'), 'utf8')
   assert.ok(party.includes('party-leader-tag') && party.includes('get isLeader()'))
+})
+
+test('vD.02.1: 학생기록부 · 동아리 멤버는 서버에서 · 응급 처치 상자(하나 골라 풀기) · 언어장벽 새로 굴리기 · 단도 ×1.7 · 하사 목록 스크롤', async () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('function public.bry_students(p_token text, p_grade int)') && sql.includes('function public.bry_club_members(p_token text, p_club text)'))
+  const pat = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
+  assert.ok(pat.includes("export const fetchStudents = async (grade)") && pat.includes("queue[i] = rollIntent(null, rng, s.party, !!s.enemy?.boss)") && pat.includes('base = Math.floor(base * 1.7)'))
+  const host = readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8')
+  assert.ok(host.includes("A.call('bry_club_members'") && host.includes('setBsPick({ id, options })'))
+  const A = await import('../systems/play/src/ailments.js')
+  assert.ok(A.FIRST_AID.battle && A.FIRST_AID.effect.cureOneBs && A.NURSE_STOCK.some((x) => x.id === 'nurse-firstaid'))
+  assert.ok(readFileSync(join(ROOT, 'server.js'), 'utf8').includes('admin-grant-list') && readFileSync(join(ROOT, 'styles.css'), 'utf8').includes('.admin-grant-list{max-height'))
 })

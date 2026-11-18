@@ -30,7 +30,7 @@ import { GOBLIN_GAMES } from '@vault/game/hike.js'
 import { clubOf } from '@vault/game/clubs.js'
 import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
-import { PSYCHICS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
+import { PSYCHICS, BESTIARY_ENEMIES, PS_INFO } from '@vault/game/battle.js'
 import { noteKill } from './steal.js'
 import { NURSE_STOCK, NURSE_GUARD_MIN } from './ailments.js'
 import { AIL, AILMENTS, addAilment, setAilmentSource, afterBattleAilment, huntAilment, effortAilment, cureAilments, shortenAilments, activeAilments, gotText, ailLabel, leftText, WEAK_INFO } from './ailments.js'
@@ -114,6 +114,7 @@ export function usePlayHost() {
   const [toasts, setToasts] = useState([]) // C.01 업적 달성 알림
   const [invOpen, setInvOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // { text, run }
+  const [bsPick, setBsPick] = useState(null) // vD.02.1 응급 처치 상자: { id, options:[{key,label,desc}] }
 
   // ── 저장 ──
   const saveTimer = useRef(null)
@@ -309,6 +310,15 @@ export function usePlayHost() {
     commit(bumpWeekly({ ...cur, money: cur.money - item.price * n + off, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }, 'shopBuy'))
     addLog(`매점에서 ${item.name} ${n}개를 샀다. (-${item.price * n - off}냥${admin ? ' · 관리자' : off ? ` · 칭호의 기능으로 ${off}냥 덜 냈다` : ''})`)
   }
+  /** vD.02.1 응급 처치 상자로 풀 수 있는 것: 전투 중 상태(battle 이 알려 준 칸) + 몸의 이상 */
+  const bsOptions = (p, battleBs = []) => {
+    const now = Date.now()
+    const out = (battleBs || []).map((k) => ({ key: k, label: `[${k === 'curse' ? '저주' : k === 'bound' ? '속박' : PS_INFO[k]?.label ?? k}]`, desc: k === 'curse' ? '매 턴 막을 수 없는 피해' : k === 'bound' ? '움직임이 묶였다' : PS_INFO[k]?.desc ?? '' }))
+    for (const a of activeAilments(p, now)) out.push({ key: a.id, ail: true, label: `[${a.def.name}]${a.stack > 1 ? ` ${a.stack}겹` : ''}`, desc: `몸의 이상 · ${a.def.effect ?? ''}` })
+    return out
+  }
+  /** vD.02.1 다인 전투에서 고른 몸의 이상을 푼다(StoryParty 가 부른다) */
+  const cureAilOne = (key) => { const c = playerRef.current; const r = cureAilments(c, [key]); if (r.cured?.length) { commit(r.player); addLog(`응급 처치: ${ailLabel(key)} 나았다.`) } }
   /** vD.02 시간 기운 이름 */
   const TIMED_LABEL = { hpRegen: (v) => `1분마다 체력 +${v}`, mpRegen: (v) => `1분마다 의지력 +${v}`, huntOdds: (v) => `개척 성공률 +${v}%`, huntBonus: (v) => `개척 추가 보상 확률 +${v}%`, winMoney: (v) => `전투 승리 냥 +${v}%` }
   /** vD.02 양호실 물품 사기(매점 영업시간과 상관없다) */
@@ -615,6 +625,24 @@ export function usePlayHost() {
     })
     if (!ok.ok) { notify(ok.why); return }
     if (isHuntItem(item)) { huntActionRef.current?.({ type: 'item', itemId: id }); return }
+    if (item.effect?.cureOneBs) { // vD.02.1 응급 처치 상자: 걸린 나쁜 상태 하나를 골라 푼다(여럿이면 고른다)
+      const options = bsOptions(cur, battleRef.current ? afflictRef.current.bs : [])
+      if (!options.length) { notify('현재는 사용할 필요가 없습니다.'); return }
+      const pick = options.find((o) => o.key === target) ?? (options.length === 1 ? options[0] : null)
+      if (!pick) { setBsPick({ id, options }); return }
+      setBsPick(null)
+      if (battleRef.current && afflictRef.current.itemSeal) { notify('주머니를 빼앗겨 지금은 아이템을 쓸 수 없다.'); return }
+      let p1 = cur
+      if (pick.ail) p1 = cureAilments(p1, [pick.key]).player
+      const inventory = { ...p1.inventory, [id]: (p1.inventory?.[id] || 0) - 1 }
+      if (inventory[id] <= 0) delete inventory[id]
+      commit({ ...p1, inventory })
+      if (!pick.ail && battleRef.current) setSoloItemFx({ seq: Date.now() + Math.random(), name: item.name, effect: { cureBs: pick.key, cureBsLabel: pick.label.replace(/[[\]]/g, '') } })
+      if (battleRef.current) setBattleUsedItems((arr) => (arr.includes(id) ? arr : [...arr, id]))
+      bump('itemsUsed')
+      addLog(`${item.name}을(를) 사용했다. (${pick.label} 풀림)`)
+      return
+    }
     // vD.02 지금 쓸 필요가 없으면 쓰지 않는다 · 여러 개를 한 번에(체력 · 의지력 · 영력 같은 쌓이는 효과만, 필요한 만큼만)
     const e0 = item.effect ?? {}
     {
@@ -632,7 +660,8 @@ export function usePlayHost() {
     }
     let n = 1
     const STACKABLE = ['hp', 'mp', 'giveHp', 'giveMp', 'spirit', 'sellMoney', 'mpStats', 'hpCost']
-    if (!battleRef.current && nWant > 1 && Object.keys(e0).length && Object.keys(e0).every((k) => STACKABLE.includes(k))) {
+    const ONCE = ['weakCap', 'cureWeak', 'cureAil', 'shortenAil', 'ailGuard', 'hpFull', 'mpFull'] // vD.02.2 한 번만 들면 되는 효과(여러 개를 써도 한 번)
+    if (!battleRef.current && nWant > 1 && Object.keys(e0).some((k) => STACKABLE.includes(k)) && Object.keys(e0).every((k) => STACKABLE.includes(k) || ONCE.includes(k))) {
       n = Math.max(1, Math.min(Math.floor(nWant), cur.inventory?.[id] || 0))
       const only = Object.keys(e0)
       if (only.every((k) => ['hp', 'mp'].includes(k))) { // 회복만 하는 것은 모자란 만큼만 쓴다
@@ -640,7 +669,7 @@ export function usePlayHost() {
         if (need >= 1 && need < n) { n = need; notify(`필요한 만큼 ${n}개만 썼다.`) }
       }
     }
-    const e = n > 1 ? Object.fromEntries(Object.entries(e0).map(([k, v]) => [k, typeof v === 'number' ? v * n : k === 'mpStats' ? Array(n).fill(v).flat() : v])) : e0
+    const e = n > 1 ? Object.fromEntries(Object.entries(e0).map(([k, v]) => [k, !STACKABLE.includes(k) ? v : typeof v === 'number' ? v * n : k === 'mpStats' ? Array(n).fill(v).flat() : k === 'giveHp' || k === 'giveMp' ? { ...v, self: (v.self || 0) * n } : v])) : e0 // vD.02.2 쌓이는 효과만 n배
     const healOnly = Object.keys(e).every((k) => ['hp', 'mp', 'giveHp', 'giveMp'].includes(k))
     if (battleRef.current && afflictRef.current.itemSeal) { notify('주머니를 빼앗겨 지금은 아이템을 쓸 수 없다.'); return }
     if (battleRef.current && afflictRef.current.healBlock && healOnly && (e.hp || e.giveHp)) { notify('돌림병 탓에 지금은 회복 아이템이 듣지 않는다.'); return }
@@ -773,19 +802,28 @@ export function usePlayHost() {
     return r
   }
 
-  // ───── 동아리 (서버가 붙기 전까지는 이 브라우저에만 적는다) ─────
+  // ───── 동아리 (가입 정보는 저장 기록에 담겨 서버로 간다 — 멤버 목록은 서버가 모아 준다 · vD.02.1) ─────
   const [club, setClub] = useState(() => first.counts?.club ?? null)
   const applyClub = async (clubId, name, grade, age, hope) => {
     if (countsRef.current.club) return { error: 'already-in-club' }
     const mine = { id: clubId, name, grade, age, hope, joinedAt: Date.now() }
     countsRef.current = { ...countsRef.current, club: mine, clubJoins: (countsRef.current.clubJoins || 0) + 1 }
     setClub(mine); persist()
+    try { globalThis.BiryeongAuth?.pushSave?.() } catch { /* 다음 저장 때 */ } // vD.02.1 가입하자마자 서버에도(멤버 목록에 바로 보이게)
     addLog(`${clubOf(clubId)?.name ?? '동아리'}에 가입 신청서를 냈다. 가입 완료.`)
     return { ok: true }
   }
-  const fetchClubMembers = async (clubId) => ({ ok: true, members: countsRef.current.club?.id === clubId ? [{ id: 'me', name: countsRef.current.club.name, grade: countsRef.current.club.grade, age: countsRef.current.club.age, hope: countsRef.current.club.hope, joinedAt: countsRef.current.club.joinedAt }] : [] })
+  // vD.02.1 멤버 목록은 서버(모두의 저장 기록)에서 — 닿지 않으면 이 브라우저의 내 가입 정보만
+  const fetchClubMembers = async (clubId) => {
+    const A = globalThis.BiryeongAuth
+    if (A?.call && A.token?.()) {
+      try { persist(); await A.pushSave?.() } catch { /* 저장은 다음 기회에 */ }
+      try { const r = await A.call('bry_club_members', { p_club: clubId }); if (r?.ok) return r } catch { /* 아래로 */ }
+    }
+    return ({ ok: true, members: countsRef.current.club?.id === clubId ? [{ id: 'me', name: countsRef.current.club.name, grade: countsRef.current.club.grade, age: countsRef.current.club.age, hope: countsRef.current.club.hope, joinedAt: countsRef.current.club.joinedAt }] : [] })
+  }
 
-  // ───── 관리자 (초록동색 관리자 도구의 '내 수치 고치기' · 아이템 지급) ─────
+  // ───── 관리자 (관리자 도구의 '내 수치 고치기' · 아이템 지급) ─────
   const adminApply = (v) => {
     if (!admin) return false
     let next = { ...playerRef.current, stats: { ...playerRef.current.stats, ...(v.stats ?? {}) } }
@@ -1048,6 +1086,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
   } : null
 
   return {
+    bsPick, setBsPick, bsOptions, cureAilOne,
     profile, player, admin, club, effStats, logs, storyFight, finishStoryBattle, roomFight, spendItem, saveBossSlot, notice, toasts, setToasts, invOpen, setInvOpen, confirm, setConfirm, battleActive,
     reviveOn, boostOn, battleUsedItems, notify, addLog,
     handlers: {

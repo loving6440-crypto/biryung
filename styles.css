@@ -835,3 +835,16 @@ body.is-opening{overflow:hidden}
 .item-tip[hidden]{display:none}
 .item-tip .item-tip-from{color:#a9b9a0;font-size:11px}
 .item-tip:popover-open{inset:auto}
+
+/* vD.02.1 관리자 — 보낸 하사 목록은 네모 칸 안에서 스크롤 */
+.admin-grant-list{max-height:min(420px,55vh);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(201,169,97,.35);border-radius:8px;padding:6px;margin-top:10px;scrollbar-width:thin}
+/* vD.02.2 3장 — 신에게 이름 지어 주기 */
+.vn-name .scene-name-note{margin:.35em 0 .8em;font-size:13px;line-height:1.6;color:#c9c2b2}
+.scene-name-input{width:100%;max-width:320px;padding:10px 12px;border:1px solid #c9a961;border-radius:8px;background:#0a1725;color:#f3e6c8;font:inherit;font-size:16px;letter-spacing:.04em}
+.scene-name-input:focus{outline:2px solid #e3bf6a;outline-offset:2px}
+
+/* vD.02.2 오프닝은 글자만 — 화면 가운데에 자막 */
+.opening .op-stage{display:none}
+.opening .op-cap{top:0;bottom:0;justify-content:center;gap:18px;padding:0 10vw}
+.opening .op-line{font-size:clamp(17px,2.4vw,28px);line-height:1.85;max-width:980px}
+.opening .op-type{font-size:clamp(17px,2.3vw,26px);margin-top:14px}

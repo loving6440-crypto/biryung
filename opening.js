@@ -1,7 +1,7 @@
 /* 秘靈 · 비령 — 오프닝 (v1.6)
  * 명부 등록(회원가입) 직후, 프로필이 아직 없는 계정에 한 번 화면 전체를 채워 흐른다. 끝나면 「내 프로필 만들기」 창으로 넘어간다.
- * 어둠 속 제호 → 컷마다 그림 연출 + 한두 줄 → 빛이 번지며 다음 화면.
- * 글자만 지나가지 않도록 컷마다 도트 무대가 있다(화면 격자 · 정확도 계기 · 뉴스 화면 · 문틈 빛). 무대 그림은 본편 이야기 화면도 함께 쓴다(BiryeongOpening.stage).
+ * 어둠 속 제호 → 컷마다 한두 줄(글자만 · vD.02.2부터 그림 없음) → 빛이 번지며 다음 화면.
+ * 아래 도트 무대(STAGES)는 오프닝에서는 쓰지 않고 본편 이야기 화면만 쓴다(BiryeongOpening.stage).
  * 클릭 · Space · Enter · → 로 넘기고, Esc · [건너뛰기]로 끝낸다. 컷마다 8초 뒤 저절로 넘어간다.
  * 다시 보기: window.BiryeongOpening.play({ replay: true })
  * 자막은 스토리 스크립트 v4 의 첫 줄들 그대로다. 프로필을 만들면 본편 프롤로그가 그 다음 줄부터 잇는다.
@@ -115,7 +115,7 @@
       if (i >= CUTS.length) { finish(); return; }
       at = i; const c = CUTS[i];
       stage.replaceChildren(); cap.replaceChildren();
-      const scene = h('div', `op-scene op-scene-${c.id}`); stage.append(scene); STAGES[c.id](scene);
+      // vD.02.2 오프닝은 그림 없이 글자만(화면을 채운 어둠 위에 자막이 뜬다). 무대 그림(STAGES)은 본편 이야기 화면의 연출에서만 쓴다.
       c.lines.forEach((t, k) => { const p = h('p', 'op-line', t); p.style.animationDelay = `${0.5 + k * 1.1}s`; cap.append(p); });
       if (c.type) {
         const tp = h('p', 'op-type'); const cur = h('i', 'op-cursor'); tp.append(h('span'), cur); cap.append(tp);

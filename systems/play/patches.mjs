@@ -302,6 +302,91 @@ export function itemMatches(item, query0) {
       ['export const slowFightMinutes = (enemy) => Math.max(1, Math.round(enemy.spirit * SLOW_FIGHT_WAIT_PER_SPIRIT))', 'export const slowFightMinutes = (enemy) => Math.max(5, Math.round((enemy.spirit * 2) / 5) * 5)'],
     ],
   },
+  // ── vD.02.1 본관 3층 학생기록부: 서버의 저장 기록에서 그 학년 학생 전원을 읽는다 ──
+  {
+    file: 'ui/adapters/online.js',
+    edits: [
+      ['export const fetchStudents = notConnected()', "export const fetchStudents = async (grade) => { const A = globalThis.BiryeongAuth; if (!A?.call || !A.token?.()) return { ok: false }; try { return await A.call('bry_students', { p_grade: Number(grade) }) } catch { return { ok: false } } }"],
+    ],
+  },
+  // ── vD.02.1 응급 처치 상자: 전투 중 나쁜 상태 하나를 골라 푼다(cureBs = ps 칸 이름 · 'curse' · 'bound') ──
+  {
+    file: 'game/battleItems.js',
+    edits: [
+      ["export const cleansed = () => ({ ps: {}, curse: 0, bound: false })", "export const cleansed = () => ({ ps: {}, curse: 0, bound: false })\n// vD.02.1 나쁜 상태 하나만 푼다. 따라붙는 자료 칸(독의 주사위 등)도 함께 지운다.\nconst BS_DATA = { thorns: ['thornsDie'], poison: ['poisonDie'], guardTrap: ['guardTrapDie'], burn: ['burnPct'], statSwap: ['swap'], plague: ['plagueDie'], paralyze: ['paralyzeChance'], statDown: ['downStat'] }\nexport const BS_EXTRA = { curse: '저주', bound: '속박' }\nexport function cureOneBs(o, key) {\n  if (!o || !key) return false\n  if (key === 'curse') { const had = (o.curse || 0) > 0; o.curse = 0; return had }\n  if (key === 'bound') { const had = !!o.bound; o.bound = false; return had }\n  const ps = { ...(o.ps || {}) }; const had = (ps[key] || 0) > 0\n  delete ps[key]; for (const d of BS_DATA[key] ?? []) delete ps[d]\n  o.ps = ps\n  return had\n}\n/** 지금 걸린 나쁜 상태 칸 이름들 */\nexport const activeBs = (o) => [...Object.keys(o?.ps || {}).filter((k) => typeof o.ps[k] === 'number' && o.ps[k] > 0 && !/Die$|Pct$|Chance$/.test(k) && k !== 'swap' && k !== 'downStat'), ...((o?.curse || 0) > 0 ? ['curse'] : []), ...(o?.bound ? ['bound'] : [])]"],
+      ["export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse', 'dmgCut']", "export const BATTLE_STATE_KEYS = ['enemyHit', 'drainSpirit', 'reveal', 'charms', 'cleanse', 'dmgCut', 'cureBs']"],
+      ["  if (effect.cleanse) {\n    Object.assign(s, cleansed())", "  if (effect.cureBs) {\n    cureOneBs(s, effect.cureBs)\n    parts.push(`[${effect.cureBsLabel || effect.cureBs}] 상태가 풀렸다`)\n  }\n  if (effect.cleanse) {\n    Object.assign(s, cleansed())"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["import { cleansed, rollItemHit } from './battleItems.js'", "import { cleansed, rollItemHit, cureOneBs } from './battleItems.js'"],
+      ["  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }", "  if (e.cleanse) { Object.assign(m, cleansed()); parts.push('나쁜 상태 해제') }\n  if (e.cureBs) { cureOneBs(m, e.cureBs); parts.push(`[${e.cureBsLabel || e.cureBs}] 해제`) } // vD.02.1 응급 처치 상자\n  if (e.cureOneBs && !e.cureBs) parts.push(e.cureAilLabel ? `${e.cureAilLabel} 나았다` : '응급 처치')"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Battle.jsx',
+    edits: [
+      ["  const afflictKey = b && phase === 'fight' && !b.over ? `${itemSealed(b) ? 1 : 0}${healBlocked(b) ? 1 : 0}${b.pendingDeath ? 1 : 0}` : '000'\n  useEffect(() => {\n    onAfflict?.({ itemSeal: afflictKey[0] === '1', healBlock: afflictKey[1] === '1', downed: afflictKey[2] === '1' })",
+       "  const afflictKey = b && phase === 'fight' && !b.over ? `${itemSealed(b) ? 1 : 0}${healBlocked(b) ? 1 : 0}${b.pendingDeath ? 1 : 0}|${__activeBs(b).join(',')}` : '000|'\n  useEffect(() => {\n    onAfflict?.({ itemSeal: afflictKey[0] === '1', healBlock: afflictKey[1] === '1', downed: afflictKey[2] === '1', bs: afflictKey.split('|')[1] ? afflictKey.split('|')[1].split(',') : [] }) // vD.02.1 나쁜 상태 목록도"],
+      ["import { MULTI_TAG, isMulti } from '../../../game/mbattle'", "import { MULTI_TAG, isMulti } from '../../../game/mbattle'\nimport { activeBs as __activeBs } from '../../../game/battleItems'"],
+    ],
+  },
+  // ── vD.02.1 언어장벽: 고른 턴은 앞 턴(기 모으기)과 상관없이 새로 굴린다. 새로 기 모으기가 나오면 80% 기 모으기→강공 · 10% 기 모으기만 · 10% 강공만 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["    queue[i] = rollIntent(i > 0 ? queue[i - 1] : null, rng, s.party, !!s.enemy?.boss)\n",
+       "    queue[i] = rollIntent(null, rng, s.party, !!s.enemy?.boss)\n    if (queue[i] === 'charge') {\n      const x = rng()\n      if (x < 0.1) { /* 기 모으기만 — 다음 턴은 그대로 */ } else if (x < 0.2) queue[i] = 'smash'\n      else if (i + 1 < queue.length && !indices.includes(i + 1)) queue[i + 1] = 'smash'\n    }\n"],
+    ],
+  },
+  // ── vD.02.1 단도: 상대 체력이 35% 미만일 때 기본 공격력 ×1.5 → ×1.7 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["  if (stats.fx === 'dagger' && ehp < enemyHp * 0.35) {\n    base = Math.floor(base * 1.5)\n    notes.push('단검 ×1.5')", "  if (stats.fx === 'dagger' && ehp < enemyHp * 0.35) {\n    base = Math.floor(base * 1.7)\n    notes.push('단도 ×1.7')"],
+    ],
+  },
+  {
+    file: 'game/items.js',
+    edits: [
+      ["    effectText: '상대의 체력이 35% 미만으로 떨어지면 기본 공격력이 1.5배(내림)가 된다.',", "    effectText: '상대의 체력이 35% 미만으로 떨어지면 기본 공격력이 1.7배(내림)가 된다.',"],
+    ],
+  },
+  // ── vD.02.2 무구 다시 맞춤: 낫 보상 ×2 · 악기(보정은 모두에게 그대로, 든 사람의 기본 공격력은 75%) · 창 치명타 ×1.2~2 · 철퇴 받는 피해 ×2 · 활 일반 공격은 언제나 방어 무시 ──
+  {
+    file: 'game/progress.js',
+    edits: [
+      ["  let reward = weaponFx(player) === 'sickle' ? Math.ceil(reward0 * 1.5) : reward0 // 낫: 보상 1.5배(올림)", "  let reward = weaponFx(player) === 'sickle' ? reward0 * 2 : reward0 // vD.02.2 낫: 보상 2배"],
+    ],
+  },
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["export const auraSelfOf = (stats) => Math.floor(auraOf(stats) * 0.75)", "export const auraSelfOf = (stats) => auraOf(stats) // vD.02.2 보정은 든 사람에게도 그대로(대신 든 사람의 기본 공격력이 75%)"],
+      ["  const notes = []\n  if (aura > 0) {\n    base += aura", "  const notes = []\n  if (stats.fx === 'instrument') { base = Math.floor(base * 0.75); notes.push('악기 본인 ×0.75') } // vD.02.2\n  if (aura > 0) {\n    base += aura"],
+      ["  if (roll <= chance) return { dmg: Math.floor(dmg * 1.5), note: ' 치명타! ×1.5' }", "  if (roll <= chance) { const m = Math.round((1.2 + rng() * 0.8) * 10) / 10; return { dmg: Math.floor(dmg * m), note: ` 치명타! ×${m}` } } // vD.02.2 ×1.2~2"],
+      ["    let dmg = stats.fx === 'mace' ? Math.ceil(raw * 1.5) : raw // 철퇴: 받는 피해 ×1.5", "    let dmg = stats.fx === 'mace' ? raw * 2 : raw // vD.02.2 철퇴: 받는 피해 ×2"],
+      ["      const ignoreChance = bowActive ? Math.max(0, Math.min(100, stats.aggression)) : 0\n      const ignoreRoll = ignoreChance > 0 ? die(100, rng) : 101\n      if (ignoreChance > 0 && ignoreRoll <= ignoreChance) {\n        note += ` (활이 방어 태세를 무시했다! 호전 ${ignoreChance}%, d100 = ${ignoreRoll})`",
+       "      if (bowActive) { // vD.02.2 활: 일반 공격은 언제나 방어 태세를 무시한다\n        note += ' (활이 방어 태세를 무시했다!)'"],
+    ],
+  },
+  // ── vD.02.2 여러 개 한 번에: 쌓이는 효과(체력 · 의지력 · 영력 …)가 하나라도 있고, 나머지가 한 번만 들어도 되는 효과(쇠약 줄이기 · 몸의 이상 풀기 등)면 여러 개를 쓴다. 시간 기운은 빼고 ──
+  {
+    file: 'ui/components/InventoryModal.jsx',
+    edits: [
+      ["export const multiUsable = (item) => !!item?.effect && !item.effect.hunt && Object.keys(item.effect).length > 0 && Object.keys(item.effect).every((k) => STACK_KEYS.has(k))",
+       "const ONCE_KEYS = new Set(['weakCap', 'cureWeak', 'cureAil', 'shortenAil', 'ailGuard', 'hpFull', 'mpFull'])\nexport const multiUsable = (item) => !!item?.effect && !item.effect.hunt && Object.keys(item.effect).some((k) => STACK_KEYS.has(k) && k !== 'trainUnder10') && Object.keys(item.effect).every((k) => STACK_KEYS.has(k) || ONCE_KEYS.has(k))"],
+    ],
+  },
+  // ── vD.02.2 상대가 한 턴 멈추는 칸(none) — 3장 「기다리는 것」에게 쪽지를 읽어 줄 때 · 난초 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["  group: { label: '단체 공격', note: '약공이 일행 전원에게 들어온다.' },\n}", "  group: { label: '단체 공격', note: '약공이 일행 전원에게 들어온다.' },\n  none: { label: '멈춤', note: '이번 턴은 움직이지 않는다.' },\n}"],
+    ],
+  },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

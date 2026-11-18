@@ -28,6 +28,7 @@ import { HUNT_SITES } from '@vault/game/huntSites.js'
 import { parseHash } from './routes.js'
 import { usePlayHost } from './usePlayHost.js'
 import { bridge } from './bridge.js'
+import BsPicker from './BsPicker.jsx'
 
 // vC.01 추가전투 단계 공개: 처음에는 1단계만. 관리자가 [스토리 관리]에서 한 단계씩 연다(서버에 공개 — 장을 공개하듯이).
 const openExtraTier = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
@@ -184,7 +185,7 @@ export default function App() {
           me={{ id: globalThis.BiryeongAuth?.session?.() || 'me', name: host.profile?.name || '나' }} player={host.player} stats={host.effStats}
           seen={battleProps.seen} specials={battleProps.specials} psychics={battleProps.psychics} inventory={host.player.inventory}
           onSpendItem={host.spendItem} onSpecialSeen={battleProps.onSpecialSeen} onScan={battleProps.onScan} onFinish={host.finishStoryBattle}
-          onLog={battleProps.onLog} onSaveSlot={host.saveBossSlot} reviveOn={host.reviveOn} boostOn={host.boostOn} />
+          onLog={battleProps.onLog} onSaveSlot={host.saveBossSlot} reviveOn={host.reviveOn} boostOn={host.boostOn} bsOptions={host.bsOptions} onCureAil={host.cureAilOne} />
       , document.getElementById('playPortal') ?? document.body)}
 
       {/* 소지품 창은 어느 페이지에서나 떠야 하므로(실행 화면 칸이 감춰져 있어도) 바깥의 #playPortal 에 그린다. */}
@@ -193,6 +194,10 @@ export default function App() {
           onUse={(id, target, n = 1) => H.useItem(id, target, host.battleActive ? 1 : Math.max(1, Math.floor(n) || 1))} /* vD.02 여러 개는 한 번에(효과를 곱한다) */
           onDiscard={H.discardItem} onEquip={H.equip} onUnequip={H.unequip} onClaimPending={H.claimInventoryPending} onBag={H.bagAction}
           onClose={() => host.setInvOpen(false)} online={false} />
+      , document.getElementById('playPortal') ?? document.body)}
+      {/* vD.02.1 응급 처치 상자: 나쁜 상태가 여럿이면 하나를 고른다 */}
+      {host.bsPick && createPortal(
+        <BsPicker options={host.bsPick.options} onPick={(k) => H.useItem(host.bsPick.id, k)} onClose={() => host.setBsPick(null)} />
       , document.getElementById('playPortal') ?? document.body)}
 
       {host.confirm && (

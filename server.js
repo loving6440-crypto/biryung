@@ -95,7 +95,7 @@
     (App.playApi()?.psychicDefs?.() || []).slice().sort((a, b) => (a.stolen - b.stolen) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ko')).forEach((x) => gPsy.append(new Option(`${x.name}${x.stolen ? ' (빼앗은 영능력)' : ''}`, x.id)));
     grid.append(field('받는 아이디', gWho), field('냥', gMoney), field('영력', gSpirit), field('아이템', gItem), field('수량', gCount), field('영능력', gPsy), field('한마디', gNote));
     const gSend = h('button', 'solid-btn', '하사 보내기'); gSend.type = 'submit'; gf.append(grid, gSend); body.append(gf);
-    const gList = h('div', 'codex-list'); body.append(gList);
+    const gList = h('div', 'codex-list admin-grant-list'); gList.setAttribute('aria-label', '보낸 하사 목록'); body.append(gList); // vD.02.1 네모 칸 안에서 스크롤
     const drawGrants = guard(async () => {
       const { grants } = await call('bry_admin_grants'); gList.replaceChildren();
       if (!grants.length) gList.append(para('보낸 하사가 없다.'));

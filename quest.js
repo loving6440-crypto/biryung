@@ -26,6 +26,10 @@
   const itemName = (id) => { try { return App.playApi()?.itemName(id) || WEAPON_NAME[id] || id; } catch (_) { return WEAPON_NAME[id] || id; } };
   const heir = () => HEIRS.find((x) => x.weapon === save().story.heirloom) || null;
   const lineKey = () => heir()?.key || '';
+  // vD.02.2 3장에서 지어 준 신의 이름(△△ 자리) — 처음엔 「무명」
+  const godName = () => { const n = String(save().story.godName || '').trim(); return n || '무명'; };
+  // vD.02.2 「기다리는 것」의 정신오염 — 3장 사찰에서 고른 것: 나를 위한 소원 +20 · 남을 위한 소원 +10 / 보이는 대로 말한다 +30
+  const taintOf = (q) => ({ 1: 20, 2: 10 }[q.flags['C3-1']] || 0) + ({ 1: 30 }[q.flags['C3-2']] || 0);
   const chapterOf = (n) => D.chapters.find((c) => c.n === n) || { n, title: '' };
   const volOf = (n) => D.volumes.find((v) => v.n === n) || { n, title: '' };
 
@@ -152,6 +156,7 @@
       .replace(/OO\(이\)가/g, n + (b ? '이' : '가')).replace(/OO\(은\)는/g, n + (b ? '은' : '는')).replace(/OO\(을\)를/g, n + (b ? '을' : '를'))
       .replace(/OO는/g, n + (b ? '은' : '는')).replace(/OO가/g, n + (b ? '이' : '가')).replace(/OO를/g, n + (b ? '을' : '를')).replace(/OO와/g, n + (b ? '과' : '와'))
       .replace(/OO/g, n)
+      .replace(/△△/g, godName())
       .replace(/\{유품\}/g, heir()?.name || '유품').replace(/\{무구\}/g, heir() ? itemName(heir().weapon) : '무구');
   }
 
@@ -363,7 +368,7 @@
         const size = App.playApi()?.storySize?.(n.arg) ?? 3;
         out.push(btn('solid-btn quest-act', `${foe.name}와(과) ${n.calm ? '마주한다' : '싸운다'} · ${size > 1 ? '다인' : '1인'}`, () => {
           const a = App.playApi(); if (!a) { toast('본편', '실행 화면을 불러오는 중이다.'); return; }
-          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName() }, family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 }, first: !q.beaten[n.arg], npcUsed: !!claims().claimed[`npc:${n.arg}`] } });
+          a.storyBattle({ key: n.arg, tier: foe.tier, i: foe.i, name: foe.name, blurb: foe.blurb, ctx: { form: 1, stage: `${scene.id}.${q.step}`, names: { player: playerName(), god: godName() }, taint: taintOf(q), family: lineKey(), has: { 'st-bell302': countOf('st-bell302') > 0 }, first: !q.beaten[n.arg], npcUsed: !!claims().claimed[`npc:${n.arg}`] } });
         }));
       } else out.push(btn('solid-btn quest-act', n.arg || actOf(st), () => { q.prog[n.i] = (q.prog[n.i] || 0) + 1; persist(); later(); drawTracker(); }));
     });
@@ -565,6 +570,7 @@
       body.replaceChildren(); foot.replaceChildren();
       applyFx(ln.fx);
       if (ln.t === 'choice') { choice(ln, key); return; }
+      if (ln.t === 'name') { nameStep(ln, key); return; }
       if (ln.t === 'end') { endCard(ln.ch); return; }
       const fx = ln.fx || [];
       const row = h('div', `scene-line is-${ln.t}${fx.includes('corner') ? ' is-small' : ''}`);
@@ -617,6 +623,23 @@
       });
       qBox.append(box); body.append(qBox);
       box.querySelector('button')?.focus();
+    }
+    // vD.02.2 이름 지어 주기(3장): 처음엔 「무명」이 적혀 있다. 지우고 새로 적으면 그 이름이 이후 △△ 자리에 들어간다.
+    function nameStep(ln, key) {
+      const st = save().story;
+      if (q.picked[key] || replay) {
+        body.append(h('p', 'scene-chosen', `부른 이름 — ${st.godName ? godName() : (replay ? '(아직 부르지 않았다)' : godName())}`));
+        nextBtn('다음'); return;
+      }
+      const box = h('div', 'vn-choice vn-name');
+      box.append(h('p', 'scene-question', fill(ln.q)), h('p', 'scene-name-note', fill(ln.x)));
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'scene-name-input'; inp.maxLength = 12; inp.value = st.godName || ln.def || '무명'; inp.setAttribute('aria-label', '지어 줄 이름'); inp.dataset.godName = '1';
+      const go = () => { const v = inp.value.replace(/\s+/g, ' ').trim().slice(0, 12); st.godName = v || ln.def || '무명'; q.picked[key] = 1; persist(); at += 1; show(); };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); go(); } });
+      box.append(inp); body.append(box);
+      foot.append(btn('solid-btn scene-next', '이 이름으로 부른다', go));
+      inp.focus(); inp.select();
     }
     function pick(ln, key, n) {
       // 같은 선택이 다시 나와도 처음 고른 것이 남는다

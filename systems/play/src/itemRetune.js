@@ -36,6 +36,14 @@ export const ITEM_RETUNE = {
   'clover-hwajeon': { effect: { hunt: { double: 1, turns: 1 } }, effectText: '개척 중: 다음 1번의 성공 보상이 2배 / 개척 행동 턴 +1' },
   'nw-charcoal-smudge': { effect: { hunt: { ward: 4, freeze: 1 } }, effectText: '개척 중: 4턴 동안 요괴가 다가오지 못한다 / 1턴 동안 동물·영물이 제자리에 멈춘다' },
   'acorn-jelly': { effect: { hunt: { freeze: 2, turns: 1 } }, effectText: '개척 중: 2턴 동안 동물·영물이 제자리에 멈춘다 / 개척 행동 턴 +1' },
+  // ── vD.02.1 단도: ×1.5 → ×1.7 (효과는 battle.js 패치 · 여기는 글만) ──
+  'w-dagger': { effectText: '상대의 체력이 35% 미만으로 떨어지면 기본 공격력이 1.7배(내림)가 된다.' },
+  // ── vD.02.2 무구 다시 맞춤(효과는 patches.mjs · 여기는 글만) ──
+  'w-sickle': { effectText: '전투를 마치고 받는 보상이 2배로 늘어난다.' },
+  'w-instrument': { effectText: '같은 파티원(본인 포함)의 모든 공격 행동 및 막기 반격에 [이해] 값만큼 공격력 보정이 고정으로 붙는다. 단, 악기를 든 사람 자신의 기본 공격력은 75%(내림)로 떨어진다.' },
+  'w-spear': { effectText: '매 공격마다 (10 + 호전/2, 내림)% 확률로 치명타. 공격력이 적용되는 영능력·일반 공격·부적·효험에 적용되며, 치명타가 나면 그 공격이 1.2배~2배 사이의 값으로 들어간다.' },
+  'w-mace': { effectText: '모든 기본 공격력이 1.5배(내림)가 된다. 단, 적에게서 받는 모든 공격도 2배가 된다.' },
+  'w-bow': { effectText: '모든 공격이 반드시 명중하며, 모든 일반 공격이 상대의 방어 태세를 무시한다. 단체 전투일 경우 활을 든 사람이 한 명만 있어도 일행 전원이 이 효과를 받는다.' },
   // ── vD.02 조리실 음식: 대체로 'n분 동안' 기운이 드는 것으로(전투용 몇 가지는 그대로) ──
   'mushroom-stew': { effect: { hp: 10, timed: { kind: 'hpRegen', v: 2, min: 30 } }, effectText: '체력 +10 / 30분 동안 1분마다 체력 +2 (전투 밖에서)', battle: false },
   'king-mushroom-stew': { effect: { hp: 15, timed: { kind: 'hpRegen', v: 3, min: 30 } }, effectText: '체력 +15 / 30분 동안 1분마다 체력 +3 (전투 밖에서)', battle: false },
@@ -56,6 +64,6 @@ export const ITEM_RETUNE = {
   'nw-brick-shrine': { effect: { hunt: { bonus: 12, ward: 3 } }, effectText: '개척 중: 이번 개척 동안 추가 보상 확률 +12% / 3턴 동안 요괴가 다가오지 못한다' },
 }
 export function retuneItems(items) {
-  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
+  for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === false) { it.battle = false; it.party = false; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } }
   return items
 }

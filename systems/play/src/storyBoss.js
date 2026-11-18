@@ -29,6 +29,8 @@ export const STORY_FOES = {
   waiting: { pattern: 'forms', hp: 1.25, drop: ['st-waiting-bead', 1], rules: ['정신오염에 따라 모습이 바뀐다 — 20 미만 자비형(공격이 멈추고 스스로 낫는다) · 50 미만 복수형(준 피해의 25%를 돌려받는다) · 그 이상 공포형(공격 · 부적이 막힌다).', '[쪽지를 읽어 준다] 기도 쪽지 묶음이 있으면 한 번 — 그것이 한 턴 멈추고, 세 턴 동안 모습의 힘이 꺼진다.'],
     say: { start: '…기다렸어. 아주 오래. 누구를 기다렸는지는 잊었지만.', read: '돌아와… 돌아와… 그건 내가 쓴 글씨가 아니야.' } },
   echo: { pattern: null, hp: 1, drop: null, rules: ['예측이 남긴 찌꺼기. 별다른 수는 없다.'] },
+  // vD.02.2 3장 「사찰귀」 — 3단계 보스 수준(혼자 · 아이템과 영능력을 함께 써야 한다)
+  sachal: { pattern: null, hp: 2.4, atk: 1.2, size: 1, drop: null, rules: ['3단계 보스 수준의 상대 — 체력이 아주 많고 한 방이 아프다. 아이템과 영능력을 함께 써야 이길 수 있다.'] },
   error: { pattern: 'rewind', hp: 1.3, drop: ['st-stopwatch', 1], rules: ['두 턴마다 23시 17분으로 되감는다 — 상대와 나의 체력이 두 턴 전으로 돌아간다.', '두 턴 안에 상대 최대 체력의 20% 이상을 깎으면 되감기가 끊기고 초침 하나가 부러진다.', '초침 셋이 모두 부러지면 더는 되감지 못하고 받는 피해 +25%.'],
     say: { start: '23시 17분. 그 시각은 지켜져야 한다.', stop: '…시각이, 지나갔다.' } },
   baekmok: { pattern: 'eyes', hp: 1.3, drop: ['st-eyelid', 1], rules: ['열 개의 눈이 나를 본다 — 뜬 눈이 많을수록 상대의 공격이 아프다(눈 10개 ×1.2 ~ 0개 ×0.4).', '앞 턴과 다른 행동을 하면 눈 하나가 감기고, 같은 행동을 하면 다시 뜬다.', '눈이 모두 감기면 백목이 한 턴 쉰다. 관측 차단 봉투를 지니면 눈 세 개가 감긴 채로 시작한다.'],
@@ -63,8 +65,9 @@ export function makeStoryEnemy(base, { key, name, blurb }, ctx = {}) {
   if (pattern === 'byForm') { const f = cfg.forms[ctx.form] ?? cfg.forms[1]; pattern = f[0]; shown = f[1] }
   if (pattern === 'phases') { phases = cfg.phases[ctx.form] ?? cfg.phases[1]; pattern = phases[0] }
   const hp = Math.round(base.hp * (cfg.hp || 1))
+  const atk = Math.max(1, Math.round(base.atk * (cfg.atk || 1))) // vD.02.2 공격력 배율(사찰귀)
   return {
-    ...base, id: `story-${key}`, name: shown, blurb, hp,
+    ...base, id: `story-${key}`, name: shown, blurb, hp, atk,
     story: { key, pattern, phases, form: ctx.form || 1, taint: ctx.taint || 0, names: ctx.names || {}, has: ctx.has || {}, family: ctx.family || '', rules: cfg.rules || [], say: cfg.say || {} },
     gimmicks: pattern ? (cfg.rules || []) : undefined,
   }

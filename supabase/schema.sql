@@ -1572,9 +1572,49 @@ begin
   return jsonb_build_object('id', n);
 end $$;
 
+-- ── vD.02.1 학생기록부(본관 3층) · 동아리 멤버(별관 부실): 각자의 서버 저장 기록에서 읽는다 ──
+--   학년: 저장 기록의 game.grade(1~3) → 없으면 나이(game.age, 없으면 profile.age)로 17세 1학년 · 18세 2학년 · 19세 3학년
+--   동아리: 저장 기록의 counts.club = { id, name, grade, age, hope, joinedAt }
+create or replace function biryeong_private.save_grade(d jsonb) returns int language sql immutable as $$
+  select case
+    when (d #>> '{game,grade}') ~ '^[1-3]$' then (d #>> '{game,grade}')::int
+    else least(3, greatest(1, coalesce(nullif(regexp_replace(coalesce(d #>> '{game,age}', d #>> '{profile,age}', ''), '\D', '', 'g'), '')::int, 17) - 16))
+  end $$;
+
+create or replace function public.bry_students(p_token text, p_grade int) returns jsonb
+  language plpgsql stable security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if p_grade not between 1 and 3 then raise exception 'invalid_grade'; end if;
+  return jsonb_build_object('ok', true, 'names', coalesce((
+    select jsonb_agg(nm order by nm) from (
+      select left(coalesce(nullif(btrim(s.data #>> '{profile,name}'), ''), x.display_name), 40) as nm
+        from saves s join accounts x on x.id = s.account_id
+       where (x.banned_until is null or x.banned_until < now())
+         and s.data ? 'profile' and s.data -> 'profile' <> 'null'::jsonb
+         and biryeong_private.save_grade(s.data) = p_grade
+       limit 500) q), '[]'::jsonb));
+end $$;
+
+create or replace function public.bry_club_members(p_token text, p_club text) returns jsonb
+  language plpgsql stable security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('ok', true, 'members', coalesce((
+    select jsonb_agg(m order by (m ->> 'joinedAt')) from (
+      select jsonb_build_object('id', x.username, 'me', x.id = a.id,
+               'name', left(coalesce(nullif(btrim(s.data #>> '{counts,club,name}'), ''), x.display_name), 40),
+               'grade', s.data #> '{counts,club,grade}', 'age', s.data #> '{counts,club,age}',
+               'hope', left(coalesce(s.data #>> '{counts,club,hope}', ''), 200), 'joinedAt', s.data #> '{counts,club,joinedAt}') as m
+        from saves s join accounts x on x.id = s.account_id
+       where (x.banned_until is null or x.banned_until < now())
+         and s.data #>> '{counts,club,id}' = p_club
+       limit 300) q), '[]'::jsonb));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.02', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.02.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop
