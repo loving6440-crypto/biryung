@@ -145,6 +145,29 @@
   document.addEventListener('focusin', (e) => { const chip = e.target.closest?.('[data-cond]'); if (chip) { const r = chip.getBoundingClientRect(); condTipShow(chip, r.left + r.width / 2, r.top); } });
   document.addEventListener('focusout', () => { condTip.hidden = true; });
 
+  /* ───────── vD.04 육조 스탯에 마우스를 올리면 그 스탯의 뜻 · 쓰임 ───────── */
+  const STAT_TIP = {
+    insight: { lore: '눈꺼풀 들어올려 바라봐야만 맺힌 상이 무엇인지 식별 가능하다. 교육자들은 우선 눈을 크게 뜰 것을 1원칙으로 삼는다.', eff: '개척에 유리해집니다. 희귀한 품목을 주울 확률 및 전체적 성공률이 늘어납니다. 조사 이동 중 물건을 주울 확률이 늘어납니다.' },
+    aggression: { lore: '동작이란 세상에 흐름에 거슬러 육신을 다스리는 것. 공기의 저항감, 바닥의 중력, 피부에 달라붙는 옷가지 따위의 감각.', eff: '전투 중 공격력이 늘어나지만, 제어할 수 없는 돌발 행동 확률도 함께 늘어납니다.' },
+    endurance: { lore: '시간 낭비라 성토하는 이들에게 보여라, 버텼기에 살아남았고 살아남았기에 본인을 증명할 수 있는 법이다.', eff: '전투 중 방어력이 늘어나고, 시간을 들여 얻는 보상이 늘어납니다.' },
+    control: { lore: '자기 자신을 다룰 수 있음이란 자연의 일부를 거느린다는 뜻. 세상 만물이 한 개인을 위해 흐를 수 있게끔 끌어온다.', eff: '호전을 제어하는 역할을 합니다. 호전이 높을 때 절제도 함께 높아야 돌발 행동이 줄어들고 디버프를 받을 확률이 줄어듭니다. 또한 영력 활용이 효율적으로 변합니다.' },
+    agility: { lore: '몸에 익은 박자와 뇌가 시키지 않아도 진행되는 흐름, 몸에 체득될 적 까지 익히는 것. 그것이 반 박자 빠를 수 있는 법칙이다.', eff: '전투 중 선공을 잡을 확률이 늘어납니다. 시간을 들여 보상을 얻을 때, 그 시간이 전체적으로 줄어듭니다.' },
+    comprehension: { lore: '세상을 향해 너른 마음을 보이고 팔을 벌려 수용할 것을 선언하는 것. 그것 만으로도 자연은 개인을 환영한다.', eff: '전투 중 공격/방어 외 다른 행동을 지원하며, 개척 중 전투를 확률적으로 피하게 해줍니다.' },
+  };
+  const statTip = h('div', 'cond-tip stat-tip'); statTip.setAttribute('role', 'tooltip'); statTip.hidden = true; document.body.append(statTip);
+  function statTipShow(cell, x, y) {
+    const k = cell.dataset.statTip, t = STAT_TIP[k];
+    if (!t) { statTip.hidden = true; return; }
+    statTip.replaceChildren(h('b', '', R.stats?.[k]?.label || k), h('p', 'stat-tip-lore', t.lore), h('p', 'cond-tip-eff', t.eff));
+    statTip.hidden = false;
+    const r = statTip.getBoundingClientRect();
+    statTip.style.left = `${Math.max(6, Math.min(window.innerWidth - r.width - 6, x - r.width / 2))}px`;
+    statTip.style.top = `${y - r.height - 14 < 6 ? y + 22 : y - r.height - 14}px`;
+  }
+  document.addEventListener('pointermove', (e) => { const cell = e.target.closest?.('[data-stat-tip]'); if (cell && !e.target.closest('.status-stat-up')) statTipShow(cell, e.clientX, e.clientY); else if (!statTip.hidden) statTip.hidden = true; });
+  document.addEventListener('focusin', (e) => { const cell = e.target.closest?.('[data-stat-tip]'); if (cell && cell === e.target) { const r = cell.getBoundingClientRect(); statTipShow(cell, r.left + r.width / 2, r.top); } });
+  document.addEventListener('focusout', () => { statTip.hidden = true; });
+
   /* ───────── 업적 조건 ───────── */
   const dayKey = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   function streakNow() { // 오늘부터 거꾸로, 하루도 빠지지 않은 날 수
@@ -639,6 +662,13 @@
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   // vD.03 벼룩시장(market.js) — 서버에 연결된 계정만
+  // vD.04 카페 정산(cafe.js) — 서버에 연결된 계정만
+  function renderCafe() {
+    openPage('茶 / CAFE', '카페 정산', 'simple');
+    addTo('pages', 'cafe');
+    if (window.BiryeongCafe) window.BiryeongCafe.render(panelBody);
+    else panelBody.append(para('카페 정산을 불러오지 못했다. 새로고침해 줘.'));
+  }
   function renderMarket() {
     openPage('市 / FLEA MARKET', '벼룩시장', 'simple');
     addTo('pages', 'market');
@@ -876,7 +906,7 @@
     $('#statusStats').replaceChildren(...R.statKeys.map((k) => {
       const now = Math.floor(stats[k] ?? 1), cost = now * 10, can = !!p && spirit >= cost && now < R.statMax;
       const diff = eff && Number.isFinite(eff[k]) ? Math.floor(eff[k]) - now : 0; // vC.06 무구 · 장신구 · 칭호 · 음식 보정(쇠약 · 몸의 이상은 깎는다)
-      const c = h('div', 'status-stat'); c.title = R.stats[k].detail;
+      const c = h('div', 'status-stat'); c.dataset.statTip = k; c.tabIndex = 0; // vD.04 마우스를 올리면 스탯 설명
       const up = btn('status-stat-up', '+', () => raiseStat(k));
       up.disabled = !can; up.title = !p ? '프로필을 먼저 만든다' : now >= R.statMax ? '더 올릴 수 없다' : `영력 ${cost} 로 ${R.stats[k].label} +1`;
       up.setAttribute('aria-label', `${R.stats[k].label} 올리기 (영력 ${cost})`);
@@ -1102,6 +1132,7 @@
     else if (head === 'case') renderCase(rest[0]);
     else if (head === 'money') renderMoney();
     else if (head === 'market') renderMarket(); // vD.03 벼룩시장
+    else if (head === 'cafe') renderCafe(); // vD.04 카페 정산
     else if (head === 'adapt') { if (window.BiryeongAdapt) window.BiryeongAdapt.page(); else { openPage('適 / ADAPTATION', '적응 퀘스트', 'simple'); panelBody.append(para('적응 퀘스트를 불러오는 중이다. 새로고침해 줘.')); } }
     else if (head === 'admin' && Auth.isAdmin()) renderAdmin(rest[0]);
     else if (head === 'out' && window.BiryeongQuest) window.BiryeongQuest.renderPlace(rest[0], rest[1]); // 산문 너머의 바깥 지역 · 새 층
@@ -1198,6 +1229,7 @@
     adapt: () => go('#/adapt'), // vD.03.2 본편 퀘스트(산문으로 가기) 단추 자리에 적응 퀘스트
     quest: () => go('#/zone/north'), codex: () => openCodex(), money: () => go('#/money'), notes: () => go('#/notes'),
     market: () => go('#/market'), // vD.03
+    cafe: () => go('#/cafe'), // vD.04
   };
   document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => MENU[b.dataset.menu]?.()));
   document.querySelectorAll('[data-community]').forEach((b) => b.addEventListener('click', () => addTo('community', b.dataset.community)));

@@ -31,7 +31,7 @@ jobs:
           mkdir -p _site
           # vC.07.1: 맨 위의 화면 파일(.js · .css)을 이름을 하나하나 적지 않고 모두 담는다 — 새 파일(party.js 등)이 빠지지 않게
           cp index.html *.js *.css .nojekyll _site/
-          for f in party.js app.js auth.js config.js quest.js server.js market.js adapt.js community.js codex-data.js opening.js story-data.js; do test -f "_site/$f" || { echo "::error::$f 가 없다 — 저장소 맨 위에 올렸는지 확인"; exit 1; }; done
+          for f in party.js app.js auth.js config.js quest.js server.js market.js adapt.js cafe.js community.js codex-data.js opening.js story-data.js; do test -f "_site/$f" || { echo "::error::$f 가 없다 — 저장소 맨 위에 올렸는지 확인"; exit 1; }; done
           cp -r assets fonts play _site/
       # 관리자 코드: 저장소 Settings → Secrets and variables → Actions (또는 Environments → github-pages) 에 ADMIN_CODE 를 넣는다.
       # Secret 으로 넣어도, Variable 로 넣어도 읽는다. 코드 자체는 올리지 않고 SHA-256 만 config.js 에 적는다.

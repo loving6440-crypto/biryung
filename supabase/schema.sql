@@ -1772,9 +1772,59 @@ begin
   return jsonb_build_object('ok', true, 'items', items, 'cost', cost, 'change', p_paid - cost, 'short', short);
 end $$;
 
+-- ── vD.04 카페 정산: 카페에 쓴 글 · 댓글 · 방문 기록을 적고 정해진 보상을 받는다(내역은 본인과 관리자가 본다) ──
+-- 종류: 1 일반 로그 50냥 · 2 일반+메인스토리 70냥+영력 50 · 3 장편 로그 80냥 · 4 장편+메인스토리 100냥+영력 50 · 5 이벤트(직접 기입)
+create table if not exists biryeong_private.cafe_claims (
+  id         bigint generated always as identity primary key,
+  account_id bigint      not null references biryeong_private.accounts on delete cascade,
+  kind       smallint    not null check (kind between 1 and 5),
+  memo       text        not null check (length(memo) between 1 and 200),
+  money      int         not null check (money between 0 and 9999),
+  spirit     int         not null check (spirit between 0 and 999),
+  created_at timestamptz not null default now()
+);
+create index if not exists cafe_claims_account on biryeong_private.cafe_claims (account_id, id desc);
+alter table biryeong_private.cafe_claims enable row level security;
+revoke all on biryeong_private.cafe_claims from anon, authenticated;
+
+create or replace function public.bry_cafe_submit(p_token text, p_kind int, p_memo text, p_money int default 0, p_spirit int default 0) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); m int; sp int; n bigint; memo text := btrim(coalesce(p_memo, ''));
+begin
+  perform throttle_do('cafe:' || a.id, 30, 3600);
+  if length(memo) < 1 or length(memo) > 200 then raise exception 'invalid_memo'; end if;
+  if p_kind = 1 then m := 50; sp := 0;
+  elsif p_kind = 2 then m := 70; sp := 50;
+  elsif p_kind = 3 then m := 80; sp := 0;
+  elsif p_kind = 4 then m := 100; sp := 50;
+  elsif p_kind = 5 then
+    m := coalesce(p_money, 0); sp := coalesce(p_spirit, 0);
+    if m < 0 or m > 9999 or sp < 0 or sp > 999 or (m = 0 and sp = 0) then raise exception 'invalid_value'; end if;
+  else raise exception 'invalid_value'; end if;
+  insert into cafe_claims (account_id, kind, memo, money, spirit) values (a.id, p_kind, memo, m, sp) returning id into n;
+  return jsonb_build_object('ok', true, 'id', n, 'money', m, 'spirit', sp);
+end $$;
+
+create or replace function public.bry_cafe_mine(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('rows', (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'kind', c.kind, 'memo', c.memo, 'money', c.money, 'spirit', c.spirit, 'at', c.created_at) order by c.id desc), '[]'::jsonb)
+    from (select * from cafe_claims where account_id = a.id order by id desc limit 300) c));
+end $$;
+
+create or replace function public.bry_admin_cafe(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token);
+begin
+  return jsonb_build_object('rows', (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'username', u.username, 'display', u.display_name, 'name', s.data #>> '{profile,name}',
+      'kind', c.kind, 'memo', c.memo, 'money', c.money, 'spirit', c.spirit, 'at', c.created_at) order by c.id desc), '[]'::jsonb)
+    from (select * from cafe_claims order by id desc limit 1000) c join accounts u on u.id = c.account_id left join saves s on s.account_id = c.account_id));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.03', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.04', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

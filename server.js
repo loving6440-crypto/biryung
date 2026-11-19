@@ -138,6 +138,9 @@
     }));
     drawGrants();
 
+    /* vD.04 카페 정산 내역 */
+    if (window.BiryeongCafe) window.BiryeongCafe.admin(body);
+
     /* 회원 */
     body.append(h('div', 'panel-rule'));
     const uLabel = h('p', 'panel-label', '회원'); const uList = h('div', 'codex-list'); body.append(uLabel, uList);

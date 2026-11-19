@@ -554,7 +554,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.0[123](\.[13])?)'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[1234](\.[13])?)'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -862,4 +862,26 @@ test('vD.03.2: 영능력 글 = 실제 성능 — 효험 · 언어장벽 · 영�
   assert.ok(stealDetail({ mp: 15, rat: [3, 0.35, 20] }).includes('다음 3차례 동안'))
   assert.ok(readFileSync(join(ROOT, 'systems/play/src/reskin.js'), 'utf8').includes('applyPsychicFix(PSYCHICS)'))
   assert.ok(readFileSync(join(ROOT, 'systems/codex/build.mjs'), 'utf8').includes('applyPsychicFix(PSYCHICS)'))
+})
+
+test('vD.04: 카페 정산 — 상태 창 빈칸의 단추 · 메모 · 5가지 보상 · 내 내역 · 관리자 내역', () => {
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  assert.ok(html.includes('class="cafe-settle-btn" data-menu="cafe"') && html.includes('cafe.js?v='))
+  assert.ok(html.indexOf('id="npcTracker"') < html.indexOf('cafe-settle-btn') && html.indexOf('cafe-settle-btn') < html.indexOf('status-spacer'))
+  const cf = readFileSync(join(ROOT, 'cafe.js'), 'utf8')
+  assert.ok(cf.includes('[게시글 제목 / 날짜] [현재 댓글 수 / 날짜] [현재 방문 수 / 날짜] 셋 중 하나를 골라 기입해주세요. 메인스토리 또는 이벤트, 장편 보너스가 있는 경우 직접 계산해 수령하셔야 합니다.'))
+  for (const k of ['money: 50, spirit: 0', 'money: 70, spirit: 50', 'money: 80, spirit: 0', 'money: 100, spirit: 50', 'custom: true']) assert.ok(cf.includes(k), k)
+  assert.ok(cf.includes("call('bry_cafe_submit'") && cf.includes("call('bry_cafe_mine')") && cf.includes("call('bry_admin_cafe')"))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  for (const f of ['bry_cafe_submit(', 'bry_cafe_mine(', 'bry_admin_cafe(']) assert.ok(sql.includes(`function public.${f}`), f)
+  assert.ok(/bry_cafe_submit[\s\S]{0,900}p_kind = 2 then m := 70; sp := 50/.test(sql) && /bry_admin_cafe[\s\S]{0,200}adm\(p_token\)/.test(sql))
+  assert.ok(readFileSync(join(ROOT, 'server.js'), 'utf8').includes('window.BiryeongCafe.admin(body)'))
+  const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
+  assert.ok(app.includes("head === 'cafe'") && app.includes("cafe: () => go('#/cafe')"))
+})
+
+test('vD.04: 육조 스탯 마우스오버 설명 6개', () => {
+  const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
+  assert.ok(app.includes("c.dataset.statTip = k") && app.includes('const STAT_TIP = {'))
+  for (const t of ['교육자들은 우선 눈을 크게 뜰 것을 1원칙으로', '제어할 수 없는 돌발 행동 확률도', '시간을 들여 얻는 보상이 늘어납니다', '영력 활용이 효율적으로', '반 박자 빠를 수 있는 법칙', '개척 중 전투를 확률적으로 피하게']) assert.ok(app.includes(t), t)
 })
