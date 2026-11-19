@@ -2,6 +2,7 @@
 // (수치는 그대로. 표는 systems/biryeong/*.txt → reskin.data.js)
 import { ITEMS } from '@vault/game/items.js'
 import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
+import { applyPsychicFix } from './psychicText.js'
 import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS, HUNT_EXTRA } from '../../biryeong/reskin.data.js'
 import { HUNT_SPECIES } from '@vault/game/huntSites.js'
 import { LOCATIONS } from '@vault/game/constants.js'
@@ -38,6 +39,7 @@ for (const e of ALL_ENEMIES) {
 }
 reconceptPractice(ALL_ENEMIES) // vC.06 퇴마 실습장 상대 = 실습용 존재(practiceEnemies.js)
 for (const p of PSYCHICS) { const r = PSYCHIC_RESKIN[p.id]; if (r) p.note = r.note } // 이름(label)은 빌드할 때 글자째로 바꾼다
+applyPsychicFix(PSYCHICS) // vD.03.2 영능력 상세를 실제 계산에 맞춘다
 
 // ── vB.01 조사(탐사) 글 — 시트 「비령_조사」 탭에 맞춘 글로 바꾼다(josa-overrides.json, systems/biryeong/josa_match.mjs 가 만든다).
 //    조건부 글(스탯에 따라 덧붙는 글)은 그대로 두고, 바탕 글만 바꾼다. ──

@@ -546,7 +546,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(tut.includes('자, 주목! 지금부터 전투를 알려 줄게.') && !tut.includes('알려 드릴게요'))
   assert.equal(JSON.parse(readFileSync(join(ROOT, 'systems/biryeong/tutor-lines.json'), 'utf8')).length, 88)
   // 8 배너
-  assert.ok(app.includes('https://cafe.naver.com/occultblue') && app.includes('1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4'))
+  assert.ok(app.includes('https://cafe.naver.com/biryungkic102') && app.includes('1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4'))
   assert.ok(html.includes('비령 통합안내사항') && html.includes('비령 카페'))
   // 9 선택 집계 이름
   assert.match(sql, /function public\.story_admin_names\(/)
@@ -554,7 +554,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.0[12](\.[13])?)'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[123](\.[13])?)'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -824,4 +824,42 @@ test('vD.03: 아이템 글 = 실제 성능 — 전투 밖 음식은 어디서든
   assert.ok(rt.includes("if (it.only === 'battle') delete it.only"))
   const ns = readFileSync(join(ROOT, 'systems/play/src/newSpirits.js'), 'utf8')
   assert.ok(!ns.includes('공격성') && ns.includes('호전 +6 · 신속 +3'))
+})
+
+test('vD.03: 벼룩시장 — 이름 없이 · 여러 개 올리기 · 장바구니 · 가장 싼 것부터 · 판 사람에게 우편으로 대금', () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  for (const f of ['bry_market(', 'bry_market_post(', 'bry_market_cancel(', 'bry_market_buy(']) assert.ok(sql.includes(`function public.${f}`), f)
+  assert.ok(sql.includes('order by price, id for update') && sql.includes("'벼룩시장에서 팔렸다'") && sql.includes("raise exception 'price_changed'"))
+  assert.ok(!/bry_market\(p_token text\)[\s\S]{0,900}display_name/.test(sql)) // 올린 사람은 내보내지 않는다
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  assert.ok(html.includes('data-menu="market"') && html.includes('class="status-tools" data-admin-slot') && html.includes('market.js?v='))
+  const mk = readFileSync(join(ROOT, 'market.js'), 'utf8')
+  assert.ok(mk.includes('const cart = new Map()') && mk.includes('const staged = new Map()') && mk.includes("call('bry_market_buy'"))
+  const sv = readFileSync(join(ROOT, 'server.js'), 'utf8'); assert.ok(sv.includes("g.gift_from === '벼룩시장'"))
+})
+
+test('vD.03.2: 적응 퀘스트 — 본편 퀘스트 단추 자리 · 첫 장면 뒤 서창현 안내 · 5개 · 보상은 처음 한 번', () => {
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  assert.ok(html.includes('data-menu="adapt"') && !html.includes('data-menu="quest"') && html.includes('adapt.js?v='))
+  assert.ok(html.includes('https://cafe.naver.com/biryungkic102'))
+  const ad = readFileSync(join(ROOT, 'adapt.js'), 'utf8')
+  assert.ok(ad.includes('제3특수교육시설, 비령산 학당에 오신 것을 진심으로 환영합니다. 해당 버튼을 눌러 적응 퀘스트를 진행하면서 학당 생활에 익숙해져보세요.'))
+  for (const id of ['a1', 'a2', 'a3', 'a4', 'a5']) assert.ok(ad.includes(`id: '${id}'`), id)
+  assert.ok(ad.includes("'biryeong:scene-done'") && ad.includes('!a.paid[q.id]') && ad.includes('st().gave[key]'))
+  assert.ok(ad.includes("dialog[open]")) // 도감처럼 모달 창이 열려도 안내 상자를 누를 수 있게
+  assert.ok(readFileSync(join(ROOT, 'quest.js'), 'utf8').includes("new CustomEvent('biryeong:scene-done'"))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8').includes("bridge.quest('buy', id)"))
+})
+
+test('vD.03.2: 영능력 글 = 실제 성능 — 효험 · 언어장벽 · 영력결계 · 빼앗은 영능력', async () => {
+  const { PSYCHIC_DETAIL_FIX, applyPsychicFix } = await import('../systems/play/src/psychicText.js')
+  assert.ok(!PSYCHIC_DETAIL_FIX.buff.detail.includes('모자라면 0까지') && !PSYCHIC_DETAIL_FIX.buff.note.includes('생존본능'))
+  assert.ok(PSYCHIC_DETAIL_FIX['language-barrier'].detail.includes('80%') && PSYCHIC_DETAIL_FIX['spirit-barrier'].detail.includes('본편 보스'))
+  const [p] = applyPsychicFix([{ id: 'cotton-mist', detail: 'x' }]); assert.ok(p.detail.includes('바로 다음 행동'))
+  const { stealDetail } = await import('../systems/play/src/steal.js')
+  assert.ok(!stealDetail({ mp: 10, m: 2, p: 1, sf: 0.3 }).includes('부적 공격을'))
+  assert.ok(!stealDetail({ mp: 25, m: 1, n: 2, gx: 2 }).includes('방어 태세면 절반'))
+  assert.ok(stealDetail({ mp: 15, rat: [3, 0.35, 20] }).includes('다음 3차례 동안'))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/reskin.js'), 'utf8').includes('applyPsychicFix(PSYCHICS)'))
+  assert.ok(readFileSync(join(ROOT, 'systems/codex/build.mjs'), 'utf8').includes('applyPsychicFix(PSYCHICS)'))
 })

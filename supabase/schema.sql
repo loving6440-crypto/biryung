@@ -1683,9 +1683,98 @@ begin
     'popup', (select jsonb_build_object('id', pp.id, 'body', pp.body, 'reload', pp.reload, 'at', pp.created_at) from popups pp where pp.until > now() order by pp.id desc limit 1));
 end $$;
 
+-- ── vD.03 벼룩시장 ──
+--   올리기: 화면이 먼저 소지품에서 덜어 낸 뒤 부른다(여러 개 한 번에). 올린 사람은 누구에게도 보이지 않는다.
+--   사기: 장바구니(여러 물건 한 번에) — 물건마다 가장 싼 매물부터 자동으로 채운다. 화면이 먼저 예상 값을 덜어 내 p_paid 로 보내고,
+--         실제 값이 그보다 크면 아무것도 사지 않는다(값이 바뀌었다). 산 물건과 거스름돈은 우편(grants)으로 들어간다.
+--   판 사람: 팔린 만큼의 냥이 우편으로 자동으로 들어간다(접속 중이면 25~30초 안, 아니면 다음 접속 때). 거둔 물건도 우편으로 돌아온다.
+create table if not exists biryeong_private.market (
+  id         bigint generated always as identity primary key,
+  seller     bigint      not null references biryeong_private.accounts on delete cascade,
+  item       text        not null check (item ~ '^[a-z0-9][a-z0-9-]{0,47}$' and item not like 'st-%'),
+  qty        int         not null check (qty between 1 and 999),
+  price      int         not null check (price between 1 and 99999),
+  created_at timestamptz not null default now()
+);
+create index if not exists market_item_price on biryeong_private.market (item, price, id);
+create index if not exists market_seller on biryeong_private.market (seller);
+alter table biryeong_private.market enable row level security;
+revoke all on biryeong_private.market from anon, authenticated;
+
+create or replace function public.bry_market(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  perform throttle_do('mkt:' || a.id, 60, 60);
+  return jsonb_build_object(
+    -- 물건별: 남은 수 · 가장 싼 값 · 값마다의 수(올린 사람은 빼고). 내가 올린 것은 살 목록에 넣지 않는다.
+    'items', (select coalesce(jsonb_agg(jsonb_build_object('item', t.item, 'qty', t.qty, 'min', t.min, 'levels', t.levels) order by t.item), '[]'::jsonb) from (
+      select l.item, sum(l.q)::int qty, min(l.price) min, jsonb_agg(jsonb_build_array(l.price, l.q) order by l.price) levels
+        from (select m.item, m.price, sum(m.qty)::int q from market m where m.seller <> a.id group by m.item, m.price) l group by l.item) t),
+    'mine', (select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'item', m.item, 'qty', m.qty, 'price', m.price, 'at', m.created_at) order by m.id desc), '[]'::jsonb) from market m where m.seller = a.id));
+end $$;
+
+create or replace function public.bry_market_post(p_token text, p_items jsonb) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); e jsonb;
+begin
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) not between 1 and 20 then raise exception 'invalid_value'; end if;
+  for e in select * from jsonb_array_elements(p_items) loop
+    if coalesce(e->>'item', '') !~ '^[a-z0-9][a-z0-9-]{0,47}$' or (e->>'item') like 'st-%' or coalesce(e->>'qty', '') !~ '^[0-9]{1,3}$' or coalesce(e->>'price', '') !~ '^[0-9]{1,5}$'
+       or (e->>'qty')::int < 1 or (e->>'price')::int < 1 then raise exception 'invalid_value'; end if;
+  end loop;
+  perform throttle_do('mktpost:' || a.id, 30, 3600);
+  if (select count(*) from market where seller = a.id) + jsonb_array_length(p_items) > 60 then raise exception 'market_full'; end if;
+  insert into market (seller, item, qty, price) select a.id, x->>'item', (x->>'qty')::int, (x->>'price')::int from jsonb_array_elements(p_items) x;
+  return jsonb_build_object('ok', true, 'count', jsonb_array_length(p_items));
+end $$;
+
+create or replace function public.bry_market_cancel(p_token text, p_id bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); m biryeong_private.market;
+begin
+  perform throttle_do('mktcancel:' || a.id, 60, 3600);
+  delete from market where id = p_id and seller = a.id returning * into m;
+  if not found then raise exception 'not_found'; end if;   -- 이미 팔렸다
+  insert into grants (target, payload, note, by_admin, gift_from) values (a.id, jsonb_build_object('items', jsonb_build_object(m.item, m.qty)), '벼룩시장에서 거둔 물건', '', '벼룩시장');
+  return jsonb_build_object('ok', true, 'item', m.item, 'qty', m.qty);
+end $$;
+
+create or replace function public.bry_market_buy(p_token text, p_cart jsonb, p_paid int) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); e jsonb; m record; want int; took int; got int; cost bigint := 0; s text;
+  items jsonb := '{}'; short jsonb := '{}'; pay jsonb := '{}';
+begin
+  if jsonb_typeof(p_cart) <> 'array' or jsonb_array_length(p_cart) not between 1 and 20 or coalesce(p_paid, -1) not between 0 and 100000000 then raise exception 'invalid_value'; end if;
+  perform throttle_do('mktbuy:' || a.id, 40, 600);
+  for e in select * from jsonb_array_elements(p_cart) loop
+    if coalesce(e->>'item', '') !~ '^[a-z0-9][a-z0-9-]{0,47}$' or coalesce(e->>'qty', '') !~ '^[0-9]{1,3}$' or (e->>'qty')::int < 1 then raise exception 'invalid_value'; end if;
+    want := (e->>'qty')::int; got := 0;
+    for m in select * from market where item = e->>'item' and seller <> a.id order by price, id for update loop
+      exit when want <= 0;
+      took := least(want, m.qty);
+      if took = m.qty then delete from market where id = m.id; else update market set qty = qty - took where id = m.id; end if;
+      want := want - took; got := got + took; cost := cost + took::bigint * m.price;
+      s := m.seller::text;
+      if pay -> s is null then pay := pay || jsonb_build_object(s, jsonb_build_object('money', 0, 'sold', '{}'::jsonb)); end if;
+      pay := jsonb_set(pay, array[s, 'money'], to_jsonb((pay #>> array[s, 'money'])::bigint + took::bigint * m.price));
+      pay := jsonb_set(pay, array[s, 'sold', m.item], to_jsonb(coalesce((pay #>> array[s, 'sold', m.item])::int, 0) + took));
+    end loop;
+    if got > 0 then items := jsonb_set(items, array[e->>'item'], to_jsonb(coalesce((items ->> (e->>'item'))::int, 0) + got)); end if;
+    if want > 0 then short := jsonb_set(short, array[e->>'item'], to_jsonb(coalesce((short ->> (e->>'item'))::int, 0) + want)); end if;
+  end loop;
+  if cost = 0 then raise exception 'sold_out'; end if;
+  if cost > p_paid then raise exception 'price_changed'; end if;   -- 아무것도 사지 않은 것으로 되돌린다
+  for s in select jsonb_object_keys(pay) loop
+    insert into grants (target, payload, note, by_admin, gift_from) values (s::bigint, jsonb_build_object('money', (pay #>> array[s, 'money'])::bigint, 'sold', pay #> array[s, 'sold']), '벼룩시장에서 팔렸다', '', '벼룩시장');
+  end loop;
+  insert into grants (target, payload, note, by_admin, gift_from) values (a.id, jsonb_build_object('items', items, 'money', p_paid - cost), '벼룩시장에서 산 물건', '', '벼룩시장');
+  return jsonb_build_object('ok', true, 'items', items, 'cost', cost, 'change', p_paid - cost, 'short', short);
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.02.3', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.03', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

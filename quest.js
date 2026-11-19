@@ -322,6 +322,7 @@
   function finishQuest(scene) {
     const q = Q();
     q.done[scene.id] = Date.now(); q.step = 0; q.prog = {};
+    window.dispatchEvent(new CustomEvent('biryeong:scene-done', { detail: { id: scene.id } })); // vD.03.2 적응 퀘스트 첫 안내(「최초 최후의 신탁」 뒤)
     const spirit = 4 + scene.ch * 2, money = 5 + scene.ch * 3;
     if (claimOnce(`done:${scene.id}`)) try { App.playApi()?.grant({ spirit, money, log: `본편 「${scene.title}」을(를) 마쳤다. 영력 +${spirit}, ${money}냥.` }); } catch (_) { /* 실행 화면이 아직 없으면 넘어간다 */ }
     persist();

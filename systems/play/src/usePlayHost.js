@@ -314,6 +314,7 @@ export function usePlayHost() {
     bump('buys', n)
     const off = admin ? item.price * n : Math.floor(item.price * n * perkV('discount') / 100)
     commit(bumpWeekly({ ...cur, money: cur.money - item.price * n + off, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + n } }, 'shopBuy'))
+    bridge.quest('buy', id) // vD.03.2 적응 퀘스트(매점에서 사 보기)
     addLog(`매점에서 ${item.name} ${n}개를 샀다. (-${item.price * n - off}냥${admin ? ' · 관리자' : off ? ` · 칭호의 기능으로 ${off}냥 덜 냈다` : ''})`)
   }
   /** vD.02.1 응급 처치 상자로 풀 수 있는 것: 전투 중 상태(battle 이 알려 준 칸) + 몸의 이상 */
@@ -1088,7 +1089,10 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     // vB.01: 시간이 드는 행동(느린 싸움 · 수업 대기 · 휴식 · 잠 · 수련 · 제작) 중인가 — 바깥(app.js)이 페이지를 떠나기 전에 묻는다
     busy: () => busyLabel(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
-    itemName: (id) => itemOf(id)?.name ?? id, count: countOfId, equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
+    itemName: (id) => itemOf(id)?.name ?? id, count: countOfId,
+    // vD.03 벼룩시장: 물건 설명 · 소지품 칸 · 장착 중인 것
+    itemInfo: (id) => { const it = itemOf(id); return it ? { id: it.id, name: it.name, kind: it.kind, desc: it.desc || '', effectText: it.effectText || '', price: it.price ?? null, story: !!(it.storyOnly || String(it.id).startsWith('st-') || (it.tags || []).includes('본편')) } : null },
+    canAdd: (items) => canAddInventory(playerRef.current?.inventory || {}, items), equippedIds: () => Object.values(equipOf(playerRef.current) || {}).filter(Boolean), equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
     tutorialCount: () => Object.keys(playerRef.current?.tutorialDone ?? {}).length, // 본편: [전투 안내] 몇 단계까지 마쳤나
     heirloomEnh: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id ? enhTotal(cur, id) : 0 }, // 본편: 유품 무구 강화 수
         take, giveHeirloom, unlockRecipes, equip, heirloomWeapon: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id && (cur.inventory?.[id] || equipOf(cur).weapon === id) ? id : null }, knows: (id) => !!playerRef.current?.storyRecipes?.[id],

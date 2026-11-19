@@ -47,6 +47,15 @@
             toast('관리자', Array.isArray(done) && done.length ? `상태가 고쳐졌다: ${done.join(' · ')}${g.note ? ` — ${g.note}` : ''}` : '관리자가 상태를 확인했다.');
             continue;
           }
+          if (g.gift_from === '벼룩시장') { // vD.03 벼룩시장: 판 대금 · 산 물건(거스름돈) · 거둔 물건
+            const names = itemNames();
+            const sold = Object.entries(p.sold || {}).map(([id, n]) => `${names[id] || id} ×${n}`).join(' · ');
+            const text = p.sold ? `팔렸다 — ${sold} → ${Math.floor(Number(p.money) || 0)}냥` : `${g.note || '벼룩시장'} — ${payloadText({ items: p.items, money: p.money })}`;
+            api.grant({ money: Math.floor(Number(p.money) || 0), items, log: `[벼룩시장] ${text}` });
+            toast('벼룩시장', text); App.ding?.('gift');
+            window.dispatchEvent(new CustomEvent('biryeong:market-mail'));
+            continue;
+          }
           const kind = g.gift_from ? `${g.gift_from}님의 선물` : '하사'; // vC.06 다른 사람이 보낸 선물
           if (Array.isArray(p.psychics) && p.psychics.length) api.adminEdit?.({ psychicsAdd: p.psychics }, g.gift_from || '관리자'); // vC.07.5 영능력 하사
           api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `${kind}을(를) 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });

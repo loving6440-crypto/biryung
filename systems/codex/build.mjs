@@ -17,6 +17,7 @@ const { PSYCHICS: VAULT_PSYCHICS, ALL_ENEMIES, specialEffects, SPECIAL_PERCENT }
 const { stolenPsychics } = await import(join(ROOT, 'systems/play/src/steal.js'))
 ;(await import(join(ROOT, 'systems/play/src/practiceEnemies.js'))).reconceptPractice(ALL_ENEMIES) // vC.06
 const PSYCHICS = [...VAULT_PSYCHICS, ...stolenPsychics(ALL_ENEMIES)]
+;(await import(join(ROOT, 'systems/play/src/psychicText.js'))).applyPsychicFix(PSYCHICS) // vD.03.2 영능력 상세 맞추기
 // vC.01: 추가전투 6~10단계 재조정(실행 화면은 reskin.js 가 같은 함수를 부른다)
 const { rescaleEnemy, TIER_REC } = await import(join(ROOT, 'systems/play/src/tierScale.js'))
 const { BESTIARY_ENEMIES: __BE, REC_STATS: __RS } = await imp('battle.js')

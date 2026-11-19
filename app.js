@@ -638,6 +638,13 @@
     const log = (save.playLog || []).slice(-25).reverse();
     if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
+  // vD.03 벼룩시장(market.js) — 서버에 연결된 계정만
+  function renderMarket() {
+    openPage('市 / FLEA MARKET', '벼룩시장', 'simple');
+    addTo('pages', 'market');
+    if (window.BiryeongMarket) window.BiryeongMarket.render(panelBody);
+    else panelBody.append(para('벼룩시장을 불러오지 못했다. 새로고침해 줘.'));
+  }
   // vC.01: 지금까지의 노트는 모두 비웠다. 노트는 관리자가 [업데이트 노트] 화면에서 직접 쓴다(공지처럼. 서버 bry_notes — 서버가 없으면 이 브라우저에만).
   const UPDATE_NOTES = [];
   const NOTES_KEY = 'biryeong-notes-v2';
@@ -879,7 +886,8 @@
       return c;
     }));
     $('#statusMoney').textContent = `${Math.floor(g?.money ?? p?.money ?? 0)}냥`;
-    $('#statusQuest').textContent = window.BiryeongQuest ? window.BiryeongQuest.progressText() : '';
+    { const sq = $('#statusQuest'); if (sq) sq.textContent = window.BiryeongQuest ? window.BiryeongQuest.progressText() : ''; }
+    { const sa = $('#statusAdapt'); if (sa && window.BiryeongAdapt) sa.textContent = window.BiryeongAdapt.progressText(); }
   }
   /** 실행 화면이 바꾼 값(game · counts · playLog)을 다시 읽는다. */
   function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); }
@@ -1093,6 +1101,8 @@
     else if (head === 'notes') renderNotes();
     else if (head === 'case') renderCase(rest[0]);
     else if (head === 'money') renderMoney();
+    else if (head === 'market') renderMarket(); // vD.03 벼룩시장
+    else if (head === 'adapt') { if (window.BiryeongAdapt) window.BiryeongAdapt.page(); else { openPage('適 / ADAPTATION', '적응 퀘스트', 'simple'); panelBody.append(para('적응 퀘스트를 불러오는 중이다. 새로고침해 줘.')); } }
     else if (head === 'admin' && Auth.isAdmin()) renderAdmin(rest[0]);
     else if (head === 'out' && window.BiryeongQuest) window.BiryeongQuest.renderPlace(rest[0], rest[1]); // 산문 너머의 바깥 지역 · 새 층
     else { location.replace('#/'); return; }
@@ -1152,7 +1162,7 @@
   });
   // vC.01 배너를 누르면: 적 = 비령 통합안내사항, 황 = 비령 카페(새 창). 그 밖의 쪽(청 · 백 · 흑)은 어디에 있든 맨 첫 화면으로 돌아간다.
   let swiped = 0;
-  const HERO_LINKS = { red: 'https://docs.google.com/document/d/1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4/edit?tab=t.0', yellow: 'https://cafe.naver.com/occultblue' };
+  const HERO_LINKS = { red: 'https://docs.google.com/document/d/1K2-S1SxB3rrrBRc1oMBVMZRg9Nbv8XIJ5Lbwo2yoii4/edit?tab=t.0', yellow: 'https://cafe.naver.com/biryungkic102' };
   hero.addEventListener('click', (event) => {
     if (event.target.closest('button, a, .hero-bottom') || Date.now() - swiped < 400) return;
     const colour = heroTrack.children[heroPage]?.dataset.colour, url = HERO_LINKS[colour];
@@ -1181,10 +1191,13 @@
   $('#statusWho').addEventListener('click', () => openMyProfile());
   $('#accountName').textContent = Auth.session();
   $('#accountBtn').addEventListener('click', () => { if (window.confirm('로그아웃할까요? 기록은 이 브라우저에 그대로 남습니다.')) { try { playApi()?.save(); } catch (_) { /* 무시 */ } Auth.logout(); } });
-  if (Auth.isAdmin()) { const slot = $('[data-admin-slot]'); const b = btn('', '', () => go('#/admin')); b.dataset.menu = 'admin'; b.append(h('i', '', '管'), h('span', '', '관리자')); slot.replaceWith(b); }
+  // vD.03 관리자 도구는 메뉴 아래의 작은 단추로(그 자리에는 벼룩시장)
+  if (Auth.isAdmin()) { const slot = $('[data-admin-slot]'); const b = btn('status-admin-btn', '', () => go('#/admin')); b.dataset.menu = 'admin'; b.append(h('i', '', '管'), h('span', '', '관리자 도구')); slot.append(b); }
   const MENU = {
     inventory: () => { const api = playApi(); if (api) api.openInventory(); else go('#/profile'); },
+    adapt: () => go('#/adapt'), // vD.03.2 본편 퀘스트(산문으로 가기) 단추 자리에 적응 퀘스트
     quest: () => go('#/zone/north'), codex: () => openCodex(), money: () => go('#/money'), notes: () => go('#/notes'),
+    market: () => go('#/market'), // vD.03
   };
   document.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => MENU[b.dataset.menu]?.()));
   document.querySelectorAll('[data-community]').forEach((b) => b.addEventListener('click', () => addTo('community', b.dataset.community)));
