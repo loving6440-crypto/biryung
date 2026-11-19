@@ -300,7 +300,7 @@ export default function StoryParty({ fight, me, player, stats, seen, specials, p
 
   // 로비 목록
   const refreshList = async () => { if (!live() || !fight.stage) return; try { setParties((await call('bry_party_list', { p_stage: fight.stage })).parties) } catch (e) { setMsg(e.message) } }
-  useEffect(() => { if (mode !== 'choose') return undefined; refreshList(); const t = setInterval(() => { if (!document.hidden) refreshList() }, 8000); return () => clearInterval(t) }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (mode !== 'choose') return undefined; refreshList(); const t = setInterval(() => { if (!document.hidden && !globalThis.BiryeongAuth?.idle?.()) refreshList() }, 8000); return () => clearInterval(t) }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── 방장(또는 혼자 + NPC): 판 돌리기 ── */
   const publish = async () => {

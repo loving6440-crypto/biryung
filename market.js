@@ -53,7 +53,7 @@
     body.append(h('div', 'mkt-root'));
     draw(); load();
     clearInterval(timer);
-    timer = setInterval(() => { if (!root?.isConnected) { clearInterval(timer); root = null; return; } if (!document.hidden && !busy) load(); }, 20000);
+    timer = setInterval(() => { if (!root?.isConnected) { clearInterval(timer); root = null; return; } if (!document.hidden && !busy && !Auth.idle?.()) load(); }, 45000); // vD.04.3 20초 → 45초 · 자리를 비우면 묻지 않는다
   }
   window.addEventListener('biryeong:market-mail', () => { if (root?.isConnected) load(); });
 

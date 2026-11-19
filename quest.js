@@ -67,7 +67,7 @@
     if (before !== after) { drawTracker(); if (/^#\/zone\/north/.test(location.hash) || /^#\/admin\/story/.test(location.hash)) App.route(); else later(); }
   }
   // vC.01: 2분마다 · 가려진 탭은 묻지 않는다 · 다시 보이면 곧바로 한 번
-  setInterval(() => { if (!document.hidden) refreshChapters(); }, 300 * 1000); // vD.01 공개 장 목록은 드물게 바뀐다 — 5분마다
+  setInterval(() => { if (!document.hidden && !window.BiryeongAuth?.idle?.()) refreshChapters(); }, 300 * 1000); window.addEventListener('biryeong:active', () => refreshChapters()); // vD.04.3 자리를 비운 동안엔 묻지 않는다 // vD.01 공개 장 목록은 드물게 바뀐다 — 5분마다
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshChapters(); });
 
   /* ───────── 인물 얼굴 자리 (vC.01) ─────────

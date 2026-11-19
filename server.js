@@ -61,6 +61,7 @@
           api.grant({ money: Math.floor(Number(p.money) || 0), spirit: Math.floor(Number(p.spirit) || 0), items, log: `${kind}을(를) 받았다. (${payloadText(p)})${g.note ? ` — ${g.note}` : ''}` });
           toast(g.gift_from ? '선물' : '하사', `${g.gift_from ? `${g.gift_from}님이 보냈다: ` : ''}${payloadText(p)}${g.note ? ` — ${g.note}` : ''}`);
           App.ding?.('gift'); // vD.01 선물 · 하사는 언제나 띠링
+          if (g.gift_from && items['friendship-letter']) toast('친구', `${g.gift_from}님과 친구가 됐다. (내 기록 → 친구 목록)`); // vD.04.2 우정 편지
         }
         App.renderStatus?.();
         Auth.pushSave();
@@ -69,7 +70,7 @@
       if (e.code === 'banned' || e.code === 'login_required') location.reload(); // auth.js 가 다시 확인하고 내보낸다
     } finally { polling = false; }
   }
-  if (live()) { setTimeout(poll, 2500); setInterval(() => { if (!document.hidden) poll(); }, 300000); /* vD.01: 받을 우편 · 밀담 수는 접속 확인(25초)이 알려 준다 — 여기는 공지만 5분마다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
+  if (live()) { setTimeout(poll, 2500); setInterval(() => { if (!document.hidden && !Auth.idle?.()) poll(); }, 300000); /* vD.04.3 자리를 비운 동안엔 묻지 않는다 */ /* vD.01: 받을 우편 · 밀담 수는 접속 확인(25초)이 알려 준다 — 여기는 공지만 5분마다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); }); }
 
   /* ───────── 서버 관리 ───────── */
   const field = (label, input) => { const w = h('label', 'admin-num'); w.append(h('span', '', label), input); return w; };

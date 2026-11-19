@@ -235,6 +235,7 @@ create table if not exists biryeong_private.audit (
 );
 create table if not exists biryeong_private.throttle (key text not null, at timestamptz not null default now());
 create index if not exists throttle_key on biryeong_private.throttle (key, at);
+alter table biryeong_private.throttle set unlogged; -- vD.04.3 잠깐 쓰는 표 — 디스크 기록(WAL)을 남기지 않는다(서버가 다시 켜지면 비워질 뿐)
 revoke all on all tables in schema biryeong_private from anon, authenticated;
 
 -- 예전 판의 기록 백업 표는 누구나 읽을 수 있었다. 이제 기록은 계정에 묶어 biryeong_private.saves 에 둔다.
@@ -271,8 +272,7 @@ create or replace function biryeong_private.throttle_do(p_key text, p_max int, p
   language plpgsql security definer set search_path = biryeong_private as $$
 begin
   if hits(p_key, p_secs) >= p_max then raise exception 'too_many_requests'; end if;
-  delete from throttle where key = p_key and at < now() - interval '1 day';
-  insert into throttle (key) values (p_key);
+  insert into throttle (key) values (p_key); -- vD.04.3 오래된 줄은 maint_tick 이 1분마다 지운다(부를 때마다 지우지 않는다)
 end $$;
 
 create or replace function biryeong_private.ip() returns text language sql stable as $$
@@ -383,12 +383,37 @@ begin
 end $$;
 
 -- ── 기록(어느 기기에서 들어와도 이어진다) ──
+-- vD.04.3 부하 줄이기: 프로필 사진(수십 KB)은 기록과 따로 둔다. 기록은 2분마다 통째로 다시 쓰이는데, 사진까지 매번 다시 쓰지 않게.
+--   · 기록에 profile.photo 가 있으면 사진 표로 옮기고(바뀌었을 때만 쓴다) 기록에서는 뺀다. 키가 없으면 사진은 그대로 둔다. null 이면 지운다.
+--   · 기록을 돌려줄 때(bry_save_get)는 사진을 다시 끼워 준다 — 화면 쪽은 예전과 똑같이 profile.photo 를 쓴다.
+create table if not exists biryeong_private.photos (
+  account_id bigint primary key references biryeong_private.accounts on delete cascade,
+  photo      text        not null check (octet_length(photo) <= 400000),
+  updated_at timestamptz not null default now()
+);
+alter table biryeong_private.photos enable row level security;
+revoke all on biryeong_private.photos from anon, authenticated;
+insert into biryeong_private.photos (account_id, photo)
+  select account_id, data #>> '{profile,photo}' from biryeong_private.saves
+   where coalesce(data #>> '{profile,photo}', '') like 'data:image/%' and octet_length(data #>> '{profile,photo}') <= 400000
+on conflict (account_id) do nothing;
+update biryeong_private.saves set data = jsonb_set(data, '{profile}', (data -> 'profile') - 'photo') where jsonb_typeof(data -> 'profile') = 'object' and (data -> 'profile') ? 'photo';
+
 create or replace function public.bry_save_put(p_token text, p_data jsonb) returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
-declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text;
+declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text; ph text;
 begin
   if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'invalid_save'; end if;
   if octet_length(p_data::text) > 1000000 then raise exception 'save_too_large'; end if; -- vC.01: 4MB → 1MB (보통 기록은 수십 KB)
+  -- vD.04.3 사진은 따로(바뀌었을 때만 쓴다)
+  if jsonb_typeof(p_data -> 'profile') = 'object' and (p_data -> 'profile') ? 'photo' then
+    ph := p_data #>> '{profile,photo}';
+    if coalesce(ph, '') = '' then delete from photos where account_id = a.id;
+    elsif ph like 'data:image/%' and octet_length(ph) <= 400000 then
+      insert into photos (account_id, photo) values (a.id, ph) on conflict (account_id) do update set photo = excluded.photo, updated_at = now() where photos.photo is distinct from excluded.photo;
+    end if;
+    p_data := jsonb_set(p_data, '{profile}', (p_data -> 'profile') - 'photo');
+  end if;
   insert into saves (account_id, data) values (a.id, p_data)
     on conflict (account_id) do update set data = excluded.data, updated_at = now() returning updated_at into t;
   -- 처음 정한 캐릭터 이름을 서버 표시 이름으로 맞춘다(관리자 도구 · 밤쥐들의 터 등에 그 이름이 뜬다).
@@ -401,7 +426,9 @@ create or replace function public.bry_save_get(p_token text, p_meta boolean defa
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
 declare a biryeong_private.accounts := who(p_token); r jsonb;
 begin
-  select case when p_meta then jsonb_build_object('updated_at', s.updated_at) else jsonb_build_object('updated_at', s.updated_at, 'data', s.data) end into r from saves s where s.account_id = a.id;
+  select case when p_meta then jsonb_build_object('updated_at', s.updated_at)
+    else jsonb_build_object('updated_at', s.updated_at, 'data', case when ph.photo is not null and jsonb_typeof(s.data -> 'profile') = 'object' then jsonb_set(s.data, '{profile,photo}', to_jsonb(ph.photo)) else s.data end) end
+    into r from saves s left join photos ph on ph.account_id = s.account_id where s.account_id = a.id; -- vD.04.3 사진은 따로 두었다가 끼워 준다
   return coalesce(r, jsonb_build_object('updated_at', null));
 end $$;
 
@@ -1287,11 +1314,23 @@ begin
   if not found then raise exception 'not_found'; end if;
   perform throttle_do('pcard:' || a.id, 40, 60);
   select s.data -> 'profile' into pr from saves s where s.account_id = t.id;
+  if pr is not null then pr := pr || jsonb_build_object('photo', coalesce((select ph.photo from photos ph where ph.account_id = t.id), pr->>'photo')); end if; -- vD.04.3
   return card(t) || jsonb_build_object('me', t.id = a.id, 'seen', t.last_seen,
     'profile', case when pr is null then null else jsonb_build_object('name', pr->>'name', 'age', pr->>'age', 'gender', pr->>'gender', 'intro', pr->>'intro', 'title', pr->>'title',
       'photo', case when octet_length(coalesce(pr->>'photo', '')) <= 400000 then pr->>'photo' else null end) end);
 end $$;
 
+-- vD.04.2 친구: 우정 편지를 주고받은 두 사람(a < b)
+create table if not exists biryeong_private.friends (
+  a     bigint      not null references biryeong_private.accounts on delete cascade,
+  b     bigint      not null references biryeong_private.accounts on delete cascade,
+  since timestamptz not null default now(),
+  primary key (a, b),
+  check (a < b)
+);
+create index if not exists friends_b on biryeong_private.friends (b);
+alter table biryeong_private.friends enable row level security;
+revoke all on biryeong_private.friends from anon, authenticated;
 -- vD.04 선물을 보낸 계정(관리자 우편함 열람용)
 alter table biryeong_private.grants add column if not exists gift_by bigint references biryeong_private.accounts on delete set null;
 -- 선물: 보내는 사람의 화면이 먼저 소지품에서 덜어 낸 뒤 부른다. 받는 사람은 우편함(bry_inbox)으로 받는다.
@@ -1305,7 +1344,11 @@ begin
      or coalesce((p_payload->>'spirit')::int, 0) <> 0 or (select count(*) from jsonb_object_keys(coalesce(p_payload->'items', '{}'::jsonb))) > 10 then raise exception 'invalid_value'; end if;
   perform throttle_do('gift:' || a.id, 20, 3600);
   insert into grants (target, payload, note, by_admin, gift_from, gift_by) values (t.id, p_payload, left(coalesce(p_note, ''), 200), '', a.display_name, a.id) returning id into n;
-  return jsonb_build_object('ok', true, 'id', n);
+  -- vD.04.2 우정 편지를 보내면 보낸 사람과 받는 사람이 서로 친구가 된다
+  if coalesce(p_payload->'items', '{}'::jsonb) ? 'friendship-letter' then
+    insert into friends (a, b) values (least(a.id, t.id), greatest(a.id, t.id)) on conflict do nothing;
+  end if;
+  return jsonb_build_object('ok', true, 'id', n, 'friend', coalesce(p_payload->'items', '{}'::jsonb) ? 'friendship-letter');
 end $$;
 
 -- 우편함은 선물이면 보낸 사람 이름도 준다
@@ -1847,9 +1890,31 @@ begin
       left join grant_claims c on c.grant_id = g.id and c.account_id = g.target));
 end $$;
 
+-- ── vD.04.2 친구 목록: 우정 편지를 보냈거나 받은 상대. 접속 여부(최근 3분) · 마지막 접속 ──
+-- 이번 판 전에 주고받은 우정 편지도 친구로 친다(보낸 계정을 아는 것 · 이름이 하나뿐인 것)
+insert into biryeong_private.friends (a, b, since)
+  select least(s.id, g.target), greatest(s.id, g.target), min(g.created_at)
+    from biryeong_private.grants g
+    join biryeong_private.accounts s on s.id = coalesce(g.gift_by, (select x.id from biryeong_private.accounts x where x.display_name = g.gift_from and (select count(*) from biryeong_private.accounts y where y.display_name = g.gift_from) = 1))
+   where g.by_admin = '' and g.gift_from <> '' and g.gift_from <> '벼룩시장' and g.target is not null and g.target <> s.id
+     and coalesce(g.payload->'items', '{}'::jsonb) ? 'friendship-letter'
+   group by 1, 2
+on conflict do nothing;
+
+create or replace function public.bry_friends(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  perform throttle_do('friends:' || a.id, 30, 60);
+  return jsonb_build_object('friends', (select coalesce(jsonb_agg(card(x) || jsonb_build_object('name', s.data #>> '{profile,name}', 'online', x.last_seen > now() - interval '3 minutes',
+      'seen', x.last_seen, 'since', f.since) order by (x.last_seen > now() - interval '3 minutes') desc, x.last_seen desc), '[]'::jsonb)
+    from friends f join accounts x on x.id = case when f.a = a.id then f.b else f.a end left join saves s on s.account_id = x.id
+    where (f.a = a.id or f.b = a.id) and (x.banned_until is null or x.banned_until < now())));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.04.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.04.3', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

@@ -93,8 +93,13 @@
     const local = get(saveKey(id)); if (local == null) return false;
     const meta = cloudMeta(id), s = sig(local); if (meta.sig === s) return false;
     let data; try { data = JSON.parse(local); } catch (_) { return false; }
+    // vD.04.3 프로필 사진은 바뀌었을 때만 함께 보낸다(서버는 사진을 따로 두고, 키가 없으면 그대로 둔다 · null 이면 지운다)
+    const prof = data && typeof data.profile === 'object' && data.profile ? data.profile : null;
+    const ph = prof ? sig(String(prof.photo || '')) : meta.ph;
+    if (prof) { if (meta.ph === ph) delete prof.photo; else if (!prof.photo) prof.photo = null; }
+    const body = JSON.stringify(data);
     pushing = true; lastPush = Date.now();
-    try { const r = await rpc('bry_save_put', { p_token: t, p_data: data }, { keepalive: !!opt.keepalive && local.length < 60000 }); set(CLOUD_KEY(id), JSON.stringify({ at: r.updated_at, sig: s })); return true; }
+    try { const r = await rpc('bry_save_put', { p_token: t, p_data: data }, { keepalive: !!opt.keepalive && body.length < 60000 }); set(CLOUD_KEY(id), JSON.stringify({ at: r.updated_at, sig: s, ph })); return true; }
     catch (e) { if (e.code === 'save_too_large' && !pushSave.warned) { pushSave.warned = true; console.warn('[비령]', e.message); } return false; }
     finally { pushing = false; }
   }
@@ -113,7 +118,7 @@
     const full = await rpc('bry_save_get', { p_token: t, p_meta: false });
     if (!full || !full.data) return 'none';
     const text = JSON.stringify(full.data);
-    set(PENDING_KEY(id), text); set(CLOUD_KEY(id), JSON.stringify({ at: full.updated_at, sig: sig(text) }));
+    set(PENDING_KEY(id), text); set(CLOUD_KEY(id), JSON.stringify({ at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) })); // vD.04.3 받은 사진은 다시 올리지 않는다
     return 'pulled';
   }
   /* 서버 로그인 · 등록. 이 브라우저에만 있던 계정은 같은 비밀번호로 로그인하면 서버에 올라간다. */
@@ -160,7 +165,8 @@
       if (e.code === 'banned') { window.alert(ERR.banned); del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
       if (e.code === 'login_required') { del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
     }
-    setInterval(() => { if (!document.hidden) pushSave({ paced: true }); }, 30000);
+    setInterval(() => { if (!document.hidden && !idle()) pushSave({ paced: true }); }, 30000); // vD.04.3 자리를 비운 동안엔 올리지 않는다(돌아오거나 화면을 가리면 올린다)
+    window.addEventListener('biryeong:active', () => pushSave({ paced: true }));
     document.addEventListener('visibilitychange', () => { if (document.hidden) pushSave({ keepalive: true }); });
     window.addEventListener('pagehide', () => { pushSave({ keepalive: true }); });
     setTimeout(pushSave, 4000);
@@ -197,8 +203,16 @@
     return !!CONFIG.adminCodeHash && sha256(code) === CONFIG.adminCodeHash;
   }
 
+  // vD.04.3 자리를 비웠는가: 마지막으로 누르거나 움직인 뒤 지난 시간. 켜 두고 자리를 비운 화면은 서버에 덜 묻는다.
+  let lastInput = Date.now();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart', 'pointermove'].forEach((ev) => window.addEventListener(ev, () => {
+    const was = Date.now() - lastInput > IDLE_MS; lastInput = Date.now();
+    if (was) window.dispatchEvent(new CustomEvent('biryeong:active')); // 돌아왔다 → 곧바로 한 번 묻는다
+  }, { passive: true, capture: true }));
+  const IDLE_MS = 10 * 60 * 1000;
+  const idle = () => Date.now() - lastInput > IDLE_MS;
   const Auth = {
-    session, saveKey,
+    session, saveKey, idle,
     isAdmin: () => { const id = session(); return !!(id && readAcc().users[id].admin); },
     logout() {
       const id = session(), t = token(id);

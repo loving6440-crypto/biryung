@@ -82,6 +82,35 @@
   }
   function openOnline() { openDlg(online.d); renderOnline().catch((e) => { online.body.replaceChildren(para(errText(e))); }); }
 
+  /* ───────── vD.04.2 친구 목록: 우정 편지를 보냈거나 받은 상대 ───────── */
+  const friends = dialog('friendsDialog', '친구 목록', '友 / FRIENDS');
+  friends.tabs.remove(); friends.d.classList.add('party-small');
+  const ago = (v) => { const m = Math.floor((Date.now() - Date.parse(v)) / 60000); if (!Number.isFinite(m)) return ''; if (m < 60) return `${Math.max(1, m)}분 전`; if (m < 1440) return `${Math.floor(m / 60)}시간 전`; return `${Math.floor(m / 1440)}일 전`; };
+  async function renderFriends() {
+    const body = friends.body;
+    if (!need(body)) return;
+    body.replaceChildren(para('불러오는 중…'));
+    try {
+      const r = await call('bry_friends');
+      const fs = r.friends || [];
+      const intro = para('우정 편지를 보냈거나 받은 사람이 서로의 친구가 된다. 이름을 누르면 프로필이 보인다.');
+      if (!fs.length) { body.replaceChildren(intro, para('아직 친구가 없다. 매점에서 [우정 편지]를 사서 [접속자 확인하기 → 선물]로 보내 보자.'), btn('ghost-btn online-refresh', '새로고침', renderFriends)); return; }
+      const list = h('ul', 'online-list friend-list'); list.dataset.friendList = '';
+      for (const u of fs) {
+        const li = h('li', `online-row${u.online ? ' is-online' : ''}`); li.dataset.friend = u.username;
+        const av = h('span', 'online-avatar', u.avatar_symbol || '✦'); av.style.color = u.accent || ''; av.style.cursor = 'pointer';
+        const who = h('button', 'online-who'); who.type = 'button'; who.title = '프로필 보기';
+        who.append(h('b', '', u.name || u.display_name || u.username), h('small', '', `@${u.username}${u.chat_title ? ` · ${u.chat_title}` : ''} · 친구가 된 지 ${ago(u.since)}`));
+        who.addEventListener('click', () => openCard(u)); av.addEventListener('click', () => openCard(u));
+        const st = h('span', `friend-state${u.online ? ' is-on' : ''}`, u.online ? '● 접속 중' : `○ ${u.seen ? `${ago(u.seen)} 접속` : '접속 기록 없음'}`); st.dataset.friendOnline = u.online ? '1' : '0';
+        li.append(av, who, st);
+        list.append(li);
+      }
+      body.replaceChildren(intro, h('p', 'friend-count', `친구 ${fs.length}명 · 지금 접속 ${fs.filter((u) => u.online).length}명`), list, btn('ghost-btn online-refresh', '새로고침', renderFriends));
+    } catch (e) { body.replaceChildren(para(errText(e))); }
+  }
+  function openFriends() { openDlg(friends.d); renderFriends().catch((e) => { friends.body.replaceChildren(para(errText(e))); }); }
+
   /* ───────── 프로필 카드(접속자 이름을 누르면) ───────── */
   const pcard = dialog('playerCardDialog', '인물 기록', '人物 / PROFILE');
   pcard.tabs.remove(); pcard.d.classList.add('party-small');
@@ -133,9 +162,9 @@
       if (!api.giveAway({ items, money: m })) { toast('선물', '소지품이 바뀌었다. 다시 골라 준다.'); return; }
       send.disabled = true;
       try {
-        await call('bry_gift', { p_username: u.username, p_payload: { money: m, items }, p_note: note.value.trim() });
+        const gr = await call('bry_gift', { p_username: u.username, p_payload: { money: m, items }, p_note: note.value.trim() });
         api.grant({ log: `${u.display_name || u.username}에게 선물을 보냈다. (${[id ? `${api.itemName(id)} ×${n}` : '', m ? `${m}냥` : ''].filter(Boolean).join(' · ')})` });
-        toast('선물', '선물을 보냈다. 받는 사람이 다음에 우편함을 열면 들어간다.'); Auth.pushSave?.(); App.renderStatus?.(); gift.d.close();
+        toast('선물', gr?.friend ? `우정 편지를 보냈다. 이제 ${u.display_name || u.username}와(과) 친구다! (내 기록 → 친구 목록)` : '선물을 보냈다. 받는 사람이 다음에 우편함을 열면 들어간다.'); Auth.pushSave?.(); App.renderStatus?.(); gift.d.close();
       } catch (e) {
         api.grant({ items, money: m, log: '선물을 보내지 못해 물건을 되돌려 받았다.' }); // 서버가 받지 않았으면 그대로 돌려놓는다
         toast('선물', errText(e)); send.disabled = false;
@@ -228,7 +257,7 @@
     document.querySelectorAll('[data-party-open]').forEach((b) => { if (unread > 0 && !(party.d.open && partyTab === 'room')) b.dataset.unread = String(unread); else delete b.dataset.unread; });
     const head = $('#partyHeadBtn'); if (head) head.hidden = !inRoom;
   }
-  if (live()) { setTimeout(presence, 1500); setInterval(() => presence(), 25000); /* vD.02 탭을 내려 둬도 알림(띠링)을 받는다 — 브라우저가 가려진 탭은 1분에 한 번쯤으로 늦춘다 */ /* vD.01 이 한 번으로 초대 · 우편 · 밀담 · 일행 대화 알림을 모두 받는다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
+  if (live()) { setTimeout(presence, 1500); /* vD.04.3 자리를 비운 화면(10분 넘게 손대지 않음)은 2분에 한 번만 · 일행 중이면 언제나 25초 */ let lastP = Date.now(); setInterval(() => { const gap = (Auth.idle?.() && !room) ? 120000 : 25000; if (Date.now() - lastP >= gap - 1000) { lastP = Date.now(); presence(); } }, 25000); window.addEventListener('biryeong:active', () => { lastP = Date.now(); presence(); }); /* vD.02 탭을 내려 둬도 알림(띠링)을 받는다 — 브라우저가 가려진 탭은 1분에 한 번쯤으로 늦춘다 */ /* vD.01 이 한 번으로 초대 · 우편 · 밀담 · 일행 대화 알림을 모두 받는다 */ document.addEventListener('visibilitychange', () => { if (!document.hidden) presence(); }); }
   // 본편 파티 전투가 둘 이상 모였다(StoryParty)
   window.addEventListener('biryeong:party-room', async (e) => { if (!live() || !e.detail?.party) return; try { await call('bry_room_battle', { p_party: e.detail.party }); await presence(); if (wantBattleChat && room) { wantBattleChat = false; openParty('room'); } } catch (_) { /* 없으면 그만 */ } });
   // vD.01 파티 전투가 열리면 일행 대화를 옆에 띄운다(전투와 같이 본다)
@@ -320,7 +349,7 @@
       } catch (_) { /* 다음에 */ }
     }
     await pull();
-    timer = setInterval(() => { if (!document.hidden && !party.d.classList.contains('is-min')) pull(); }, 5000); // vD.01 4초 → 5초 · 접어 두면 묻지 않는다(숫자는 접속 확인이 준다)
+    timer = setInterval(() => { if (!document.hidden && !party.d.classList.contains('is-min') && !Auth.idle?.()) pull(); }, 5000); // vD.04.3 자리를 비우면 묻지 않는다 // vD.01 4초 → 5초 · 접어 두면 묻지 않는다(숫자는 접속 확인이 준다)
     input.focus();
   }
   async function renderOthers(body) {
@@ -362,5 +391,5 @@
   document.addEventListener('click', (e) => {
     const b = e.target.closest?.('[data-party-open]'); if (b) { e.preventDefault(); openParty(); return; }
   });
-  window.BiryeongParty = { openParty, openOnline, presence, get room() { return room; }, me, get isLeader() { return !room || (room.leader ?? room.members?.[0]?.u) === me(); } };
+  window.BiryeongParty = { openParty, openOnline, openFriends, presence, get room() { return room; }, me, get isLeader() { return !room || (room.leader ?? room.members?.[0]?.u) === me(); } };
 })();

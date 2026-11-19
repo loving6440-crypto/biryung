@@ -928,3 +928,8 @@ body.is-opening{overflow:hidden}
 /* vD.04.1 관리자 — 우편함 엿보기 · 정해진 높이 안에서 스크롤 */
 .admin-scroll{max-height:420px;overflow:auto;padding-right:4px;border:1px solid #2f4653;background:#0d1b27}
 .gift-spy-note{color:#f1dfb4 !important;font-style:italic}
+/* vD.04.2 친구 목록 */
+.friend-count{margin:4px 0 8px;color:#bfe0e6;font-size:12px}
+.friend-list{max-height:420px;overflow:auto}
+.friend-state{margin-left:auto;flex-shrink:0;font-size:11px;color:#8fa4aa;white-space:nowrap}
+.friend-state.is-on{color:#8fd19a}

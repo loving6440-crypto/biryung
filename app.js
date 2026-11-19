@@ -765,6 +765,7 @@
     const foot = h('div', 'profile-actions');
     foot.append(btn('ghost-btn', '프로필 고치기', () => { if (inPop) myProfileDialog.close(); openProfile(true); }), btn('ghost-btn', '업적 / 도감', () => { if (inPop) myProfileDialog.close(); openCodex('titles'); }));
     if (window.BiryeongOpening) foot.append(btn('ghost-btn', '오프닝 다시 보기', () => window.BiryeongOpening.play({ replay: true })));
+    if (window.BiryeongParty?.openFriends) { const fb = btn('ghost-btn', '친구 목록', () => window.BiryeongParty.openFriends()); fb.dataset.openFriends = ''; foot.append(fb); } // vD.04.2 우정 편지를 주고받은 사람
     root.append(foot, h('p', 'panel-fine', Auth.server ? '프로필과 진행 기록은 비령 서버에 함께 보관됩니다. 다른 기기에서도 같은 아이디로 이어집니다.' : '프로필과 진행 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.'));
   }
   function renderProfileForm(p) {

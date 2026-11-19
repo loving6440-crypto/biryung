@@ -237,7 +237,7 @@
         const send=h('button','','전송');send.type='submit';form.append(input,send);form.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await post(`dm/threads/${activeThread}/messages`,{body:input.value});input.value='';await refreshMessages();});});chat.append(form);
       }else chat.append(h('p','community-warning','운영자 감사 열람 · 읽기 전용 · 열람 시각이 서버에 기록됩니다.'));
       await refreshMessages();
-      if(!adminView)dmTimer=setInterval(()=>{if(dialog.open && tab==='dm'&&activeThread && !document.hidden)refreshMessages().catch(()=>{});},15000);
+      if(!adminView)dmTimer=setInterval(()=>{if(dialog.open && tab==='dm'&&activeThread && !document.hidden && !window.BiryeongAuth?.idle?.())refreshMessages().catch(()=>{});},15000);
     }catch(err){chat.replaceChildren(empty(err.message));}
   }
   async function searchUsers(q,sidebar){const host=sidebar.querySelector('#communityUserResults');if(!host)return;host.replaceChildren();

@@ -555,7 +555,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.0[1234](\.[123])?)'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[1234](\.[1-9])?)'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -918,4 +918,24 @@ test('vD.04.1: 탐사 지점마다 1% 분실물(다섯 가지가 똑같이) · �
 test('vD.04.1: 처음 만든 캐릭터의 소지금 200냥', () => {
   assert.ok(readFileSync(join(ROOT, 'game-data.js'), 'utf8').includes('"startMoney":200'))
   assert.ok(readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8').includes("['export const START_MONEY = 50', 'export const START_MONEY = 200']"))
+})
+
+test('vD.04.2: 친구 목록 — 우정 편지를 보내거나 받으면 서로 친구 · 접속 여부 · 프로필', () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('create table if not exists biryeong_private.friends') && sql.includes("? 'friendship-letter' then\n    insert into friends (a, b)"))
+  assert.ok(sql.includes('function public.bry_friends(') && sql.includes("'online', x.last_seen > now() - interval '3 minutes'"))
+  const pj = readFileSync(join(ROOT, 'party.js'), 'utf8')
+  assert.ok(pj.includes("call('bry_friends')") && pj.includes('openCard(u)') && pj.includes('openFriends,'))
+  assert.ok(readFileSync(join(ROOT, 'app.js'), 'utf8').includes("btn('ghost-btn', '친구 목록'"))
+})
+
+test('vD.04.3: 부하 줄이기 — 사진은 따로 · throttle 은 WAL 없이 · 자리 비우면 덜 묻는다', () => {
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('create table if not exists biryeong_private.photos') && sql.includes('where photos.photo is distinct from excluded.photo'))
+  assert.ok(sql.includes("jsonb_set(s.data, '{profile,photo}', to_jsonb(ph.photo))") && sql.includes('alter table biryeong_private.throttle set unlogged'))
+  assert.ok(!/throttle_do[\s\S]{0,300}delete from throttle where key = p_key/.test(sql))
+  const au = readFileSync(join(ROOT, 'auth.js'), 'utf8')
+  assert.ok(au.includes('const idle = () =>') && au.includes('if (meta.ph === ph) delete prof.photo') && au.includes('!idle()) pushSave'))
+  assert.ok(readFileSync(join(ROOT, 'party.js'), 'utf8').includes("(Auth.idle?.() && !room) ? 120000 : 25000"))
+  assert.ok(readFileSync(join(ROOT, 'market.js'), 'utf8').includes('!Auth.idle?.()) load(); }, 45000)'))
 })
