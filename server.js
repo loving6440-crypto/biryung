@@ -141,6 +141,35 @@
     /* vD.04 카페 정산 내역 */
     if (window.BiryeongCafe) window.BiryeongCafe.admin(body);
 
+    /* vD.04.1 우편함 엿보기 — 학생끼리 주고받은 선물 · 한마디 */
+    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '우편함 엿보기 — 학생끼리 주고받은 선물과 함께 보낸 한마디(최근 500통). 열면 감사 기록에 남는다'));
+    const gsBar = h('div', 'cafe-admin-bar'); const gsQ = input('search', '찾기 (보낸 사람 · 받는 사람 · 한마디 · 물건)'); gsQ.dataset.giftSpySearch = '';
+    const gsLoad = btn('ghost-btn', '열어 보기', () => drawGifts()); gsLoad.dataset.giftSpyLoad = '';
+    gsBar.append(gsQ, gsLoad);
+    const gsSum = h('p', 'cafe-sum'); const gsList = h('div', 'codex-list admin-scroll'); gsList.dataset.giftSpy = ''; gsList.setAttribute('aria-label', '학생끼리 주고받은 선물');
+    gsList.append(para('[열어 보기]를 누르면 불러온다.'));
+    body.append(gsBar, gsSum, gsList);
+    let gsRows = null;
+    const gsWho = (name, user, extra) => `${name || '(이름 없음)'}${user ? ` @${user}` : ''}${extra ? ` (${extra})` : ''}`;
+    const gsDraw = () => {
+      if (!gsRows) return;
+      const t = gsQ.value.trim().toLowerCase();
+      const text = (g) => [g.from_name, g.from_user, g.to_user, g.to_display, g.to_name, g.note, payloadText(g.payload || {})].join(' ').toLowerCase();
+      const shown = gsRows.filter((g) => !t || text(g).includes(t));
+      gsSum.textContent = `${shown.length}통${shown.length !== gsRows.length ? ` (전체 ${gsRows.length}통)` : ''}`;
+      gsList.replaceChildren();
+      if (!shown.length) { gsList.append(para(gsRows.length ? '찾는 선물이 없다.' : '아직 학생끼리 주고받은 선물이 없다.')); return; }
+      shown.forEach((g) => {
+        const r = h('div', 'codex-row is-got'); r.dataset.giftSpyRow = String(g.id); const tx = h('div', 'codex-text');
+        tx.append(h('strong', '', `${gsWho(g.from_name, g.from_user)} → ${gsWho(g.to_name || g.to_display, g.to_user)}`),
+          h('p', '', `${when(g.at)} · 보낸 것: ${payloadText(g.payload || {}) || '없음'} · ${g.claimed_at ? `받음 ${when(g.claimed_at)}` : '아직 받지 않음'}`));
+        if (g.note) tx.append(h('p', 'gift-spy-note', `“${g.note}”`));
+        r.append(h('span', 'codex-mark', '✉'), tx); gsList.append(r);
+      });
+    };
+    const drawGifts = guard(async () => { gsList.replaceChildren(para('불러오는 중…')); ({ rows: gsRows } = await call('bry_admin_gifts')); gsDraw(); });
+    gsQ.addEventListener('input', gsDraw);
+
     /* 회원 */
     body.append(h('div', 'panel-rule'));
     const uLabel = h('p', 'panel-label', '회원'); const uList = h('div', 'codex-list'); body.append(uLabel, uList);
@@ -234,7 +263,7 @@
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
     const aList = h('div', 'server-audit'); body.append(aList);
-    const LABEL = { edit: '상태 고침', claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
+    const LABEL = { edit: '상태 고침', claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', read_gifts: '우편함 엿보기', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {
       if (!rows.length) aList.append(para('아직 기록이 없다.'));

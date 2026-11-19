@@ -42,7 +42,7 @@ export default function NpcQuests({ place }) {
               </p>
               <p className="mt-1 text-[13px] leading-relaxed break-keep text-paper/85">“{said[q.id] ?? line}”</p>
               <div className="mt-1.5 flex flex-wrap gap-2">
-                {state === 'offer' && <button type="button" disabled={full} onClick={() => act('accept', q.id)} className="flat-btn !px-2 !py-0.5 text-[11px] disabled:opacity-40">{full ? '부탁은 다섯 건까지' : '부탁을 받는다'}</button>}
+                {state === 'offer' && <button type="button" disabled={full} onClick={() => act('accept', q.id)} className="flat-btn !px-2 !py-0.5 text-[11px] disabled:opacity-40">{full ? '부탁은 두 건까지 — 하나를 마치면 받는다' : '부탁을 받는다'}</button>}
                 {state === 'active' && pr?.done && <button type="button" onClick={() => act('finish', q.id)} className="flat-btn !px-2 !py-0.5 text-[11px]">{q.goal.type === 'deliver' ? '건넨다' : '알린다'}</button>}
                 {state === 'active' && <button type="button" onClick={() => { if (window.confirm(`「${q.title}」을(를) 그만둘까? (지금까지 센 것은 사라진다)`)) act('abandon', q.id) }} className="flat-btn-ghost !px-2 !py-0.5 text-[11px]">그만둔다</button>}
               </div>

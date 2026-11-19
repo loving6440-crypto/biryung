@@ -1,4 +1,4 @@
-/* 秘靈 · 비령 — 카페 정산 (vD.04)
+/* 秘靈 · 비령 — 카페 정산 (vD.04 · vD.04.1 여섯 가지)
  *
  *   카페에 남긴 기록(게시글 · 댓글 · 방문)을 메모로 적고, 정해진 보상 중 하나를 골라 제출하면 곧바로 받는다.
  *   · 제출 내역은 서버에 남는다 — 본인은 이 화면 아래에서, 관리자는 [관리자 도구 → 서버 관리 → 카페 정산 내역]에서 본다.
@@ -11,11 +11,12 @@
   const { h, btn, para, toast } = App;
 
   const KINDS = [
-    { id: 1, label: '일반 로그', money: 50, spirit: 0 },
+    { id: 1, label: '일반 로그 or 댓글 100개', money: 50, spirit: 0 },
     { id: 2, label: '일반 로그 + 메인스토리', money: 70, spirit: 50 },
     { id: 3, label: '장편 로그', money: 80, spirit: 0 },
     { id: 4, label: '장편 로그 + 메인스토리', money: 100, spirit: 50 },
-    { id: 5, label: '직접 기입(이벤트)', custom: true },
+    { id: 5, label: '방문 100회', money: 30, spirit: 0 },
+    { id: 6, label: '자유 기입', custom: true },
   ];
   const MONEY_MAX = 9999, SPIRIT_MAX = 999;
   const GUIDE = '[게시글 제목 / 날짜] [현재 댓글 수 / 날짜] [현재 방문 수 / 날짜] 셋 중 하나를 골라 기입해주세요. 메인스토리 또는 이벤트, 장편 보너스가 있는 경우 직접 계산해 수령하셔야 합니다.';
@@ -47,7 +48,7 @@
     custom.append(cl('냥', cm), cl('영력', cs));
     KINDS.forEach((k, i) => {
       const l = h('label', 'cafe-kind'); const r = h('input'); r.type = 'radio'; r.name = 'cafe-kind'; r.value = String(k.id); r.checked = i === 0; r.dataset.cafeKind = String(k.id);
-      l.append(r, h('b', '', `${k.id}. ${k.custom ? '직접 기입' : rewardText(k.money, k.spirit)}`), h('span', '', k.custom ? '(이벤트) — 받을 냥과 영력을 직접 적는다' : `(${k.label})`));
+      l.append(r, h('b', '', `${k.id}. ${k.custom ? '자유 기입' : rewardText(k.money, k.spirit)}`), h('span', '', k.custom ? '(이벤트 등) — 받을 냥과 영력을 직접 적는다' : `(${k.label})`));
       pick.append(l);
       r.addEventListener('change', () => { custom.hidden = kindOf(r.value)?.custom !== true; if (!custom.hidden) cm.focus(); });
     });

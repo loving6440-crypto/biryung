@@ -1,6 +1,6 @@
 // 비령 play — 세계관 개변 적용. 보관고의 아이템 · 적 · 영능력 객체에 비령판 이름 · 설명 · 도트 아이콘 데이터를 덮어쓴다.
 // (수치는 그대로. 표는 systems/biryeong/*.txt → reskin.data.js)
-import { ITEMS } from '@vault/game/items.js'
+import { ITEMS, STORE_ITEMS } from '@vault/game/items.js'
 import { ALL_ENEMIES, PSYCHICS } from '@vault/game/battle.js'
 import { applyPsychicFix } from './psychicText.js'
 import { ITEM_RESKIN, ENEMY_RESKIN, PSYCHIC_RESKIN, ITEM_PIXELS, ITEM_EDITS, HUNT_EXTRA } from '../../biryeong/reskin.data.js'
@@ -9,7 +9,7 @@ import { LOCATIONS } from '@vault/game/constants.js'
 import { REC_STATS, BESTIARY_ENEMIES } from '@vault/game/battle.js'
 import { rescaleEnemy, TIER_REC } from './tierScale.js'
 import { reconceptPractice } from './practiceEnemies.js'
-import { retuneItems } from './itemRetune.js'
+import { retuneItems, NEW_STORE } from './itemRetune.js'
 // vC.01 추가전투 6~10단계를 주 단위 공개 기준으로 다시 맞춘다(tierScale.js). 본편 보스 · 산길 요괴도 이 수치를 바탕으로 쓴다.
 for (const e of BESTIARY_ENEMIES) rescaleEnemy(e)
 Object.assign(REC_STATS, TIER_REC)
@@ -30,6 +30,7 @@ for (const item of ITEMS) {
   if (ITEM_PIXELS[item.id]) item.pixel = ITEM_PIXELS[item.id] // 도트 아이콘: { t: 틀 이름, p: 팔레트 이름 }
 }
 retuneItems(ITEMS) // vD.01 아이템 효과 겹침 정리(itemRetune.js)
+for (const id of Object.keys(NEW_STORE)) { const it = ITEMS.find((i) => i.id === id); if (it && !STORE_ITEMS.includes(it)) STORE_ITEMS.push(it) } // vD.04 매점에 새로 들인 물건(우정 편지)
 for (const e of ALL_ENEMIES) {
   const r = ENEMY_RESKIN[e.id]
   if (!r) continue

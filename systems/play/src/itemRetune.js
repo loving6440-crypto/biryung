@@ -73,6 +73,10 @@ export const STORE_PRICES = {
   picnic: 15, chocolate: 25, ramen: 20, dumpling: 30, chewy: 20, energy: 80, 'cone-icecream': 25, 'bag-snack': 40, 'slice-cake': 40,
   firecracker: 90, 'twin-pop': 25, hotbar: 120, brush: 25, hanji: 12, 'carving-knife': 25, pouch: 20, inkstick: 25, bag: 300, 'st-tangerine': 10, 'st-seaweed': 12,
 }
+// vD.04 매점에 새로 들이는 물건(원래 값이 없던 것) — 값 · 종류 · 태그 · 효과 글을 정한다. 설명(desc)은 그대로.
+export const NEW_STORE = {
+  'friendship-letter': { price: 10, kind: 'tool', tags: ['도구', '선물용'], effectText: '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.' },
+}
 // vD.03 실제 성능에 맞춘 글 · 태그(효과는 그대로 두고 보이는 것만 고친다)
 //   effectText · desc: 덮어쓴다 · addTags: 없으면 더한다 · party: 일행 전용 여부
 const BATTLE_TAG = '전투 중 사용 가능'
@@ -99,6 +103,7 @@ export function applyTextFix(items) {
   return items
 }
 export function retuneItems(items) {
+  for (const it of items) { const n = NEW_STORE[it.id]; if (n) Object.assign(it, { ...n, tags: [...n.tags], effect: {} }) }
   for (const it of items) if (STORE_PRICES[it.id] != null && it.price != null) it.price = STORE_PRICES[it.id]
   for (const it of items) { const r = ITEM_RETUNE[it.id]; if (r) { if (r.effect) it.effect = { ...r.effect }; it.effectText = r.effectText; if (r.tags) it.tags = [...r.tags]; if (r.battle === true) it.battle = true; for (const k of ['only', 'oncePerBattle']) if (k in r) { if (r[k] == null) delete it[k]; else it[k] = r[k] } if (r.battle === false) { it.battle = false; it.party = false; if (it.only === 'battle') delete it.only; delete it.oncePerBattle; it.tags = (it.tags ?? []).filter((t) => !['전투 중 사용 가능', '#턴소모無', '#턴소모有', '일행'].includes(t)) } } } // vD.03 전투 밖 음식에 남아 있던 only:'battle'(전투 중에만)이 겹쳐 어디서도 못 쓰던 것을 푼다
   applyTextFix(items)

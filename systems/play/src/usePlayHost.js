@@ -10,6 +10,7 @@ import { cancelCraft, recipeOf, startCraft, buyRecipe as buyRecipeAt } from '@va
 import { cook } from '@vault/game/cooking.js'
 import { markLineSeen } from '@vault/game/npcLines.js'
 import { canAddInventory, claimPending, limitNewGains } from '@vault/game/inventoryCapacity.js'
+import { LOST_FIND_CHANCE, LOST_FIND_ITEMS } from './lostFind.js'
 import { protectBags, putInBag, takeFromBag, bagCount, bagRoom, bagContents, BAG_SLOTS } from '@vault/game/bag.js'
 import { STAT_KEYS, STAT_META, STAT_MAX, STAT_UPGRADE_COST_PER_POINT } from '@vault/game/constants.js'
 import { LESSON_WAIT_MINUTES } from '@vault/game/courseInfo.js'
@@ -766,7 +767,18 @@ export function usePlayHost() {
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
   globalThis.__BRY_INSPECT = { can: (id) => !!globalThis.BiryeongQuest?.inspectable?.(baseIdOf(id)), run: (id) => bridge.quest('inspect', baseIdOf(id)) }
-  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const seenWeek = playerRef.current.weekly?.exploreVisited?.[key]; let next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (!(playerRef.current.daily?.visitSet ?? {})[key]) { const d0 = ensureDaily(next); next = { ...d0, daily: { ...d0.daily, visits: (d0.daily.visits || 0) + 1, visitSet: { ...(d0.daily.visitSet ?? {}), [key]: true } } } } void seenWeek; next = npcEvent(next, 'visit', key); if (next !== playerRef.current) commit(next) } // vC.06 오늘의 할일: 서로 다른 탐사 지점 수
+  // vD.04 탐사 지점을 볼 때마다 1% 확률로 [누군가 잃어버린~] 다섯 가지 중 하나(각 0.2%)를 줍는다
+  const lostFind = (key) => {
+    if (Math.random() >= LOST_FIND_CHANCE) return
+    const id = LOST_FIND_ITEMS[Math.floor(Math.random() * LOST_FIND_ITEMS.length)]
+    const cur = playerRef.current; if (!cur || !itemOf(id)) return
+    if (!canAddInventory(cur.inventory, { [id]: 1 })) { addLog(`발치에 [${itemOf(id).name}]이(가) 떨어져 있었지만, 소지품이 가득 차 줍지 못했다.`); return }
+    commit({ ...cur, inventory: { ...cur.inventory, [id]: (cur.inventory?.[id] || 0) + 1 } })
+    addLog(`탐사 중 발에 무언가가 채였다. [${itemOf(id).name}]을(를) 주웠다.`)
+    bridge.toast('분실물', `[${itemOf(id).name}]을(를) 주웠다.`)
+    void key
+  }
+  const visitSpot = (key) => { bridge.quest('visit', key); collect('spots', key); countsRef.current = { ...countsRef.current, lastSpot: key }; schedule(); const seenWeek = playerRef.current.weekly?.exploreVisited?.[key]; let next = markWeeklySet(playerRef.current, 'exploreVisited', key); if (!(playerRef.current.daily?.visitSet ?? {})[key]) { const d0 = ensureDaily(next); next = { ...d0, daily: { ...d0.daily, visits: (d0.daily.visits || 0) + 1, visitSet: { ...(d0.daily.visitSet ?? {}), [key]: true } } } } void seenWeek; next = npcEvent(next, 'visit', key); if (next !== playerRef.current) commit(next); lostFind(key) } // vC.06 오늘의 할일: 서로 다른 탐사 지점 수
   const lockerMove = (mode, grade, id, n) => {
     const cur = playerRef.current
     const r = mode === 'in' ? deposit(cur, grade, id, n) : withdraw(cur, grade, id, n)
@@ -1079,7 +1091,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
     adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용
     // vC.06 인물의 부탁 — 조사 장소의 NpcQuests.jsx · 오른쪽 상태 창(app.js)이 부른다
-    npcPlace: (place) => { const e = effStats || playerRef.current.stats; const v = Object.values(e).filter(Number.isFinite); return placeView(playerRef.current, place, v.reduce((a, b) => a + b, 0) / Math.max(1, v.length), openTierNow()) },
+    npcPlace: (place) => { const e = effStats || playerRef.current.stats; const v = Object.values(e).filter(Number.isFinite); return placeView(playerRef.current, place, v.reduce((a, b) => a + b, 0) / Math.max(1, v.length), openTierNow(), Number(globalThis.BiryeongQuest?.routes?.NPC_QUESTS) === 1) }, // vD.04 관리자가 퀘스트를 공개해야 보인다
     npcActive: () => activeList(playerRef.current).map(({ q, pr, npc }) => ({ id: q.id, npc, title: q.title, where: q.where, goal: npcGoalText(q), cur: pr?.cur ?? 0, need: pr?.need ?? 1, done: !!pr?.done })),
     npcAct: (kind, id) => { const cur = playerRef.current; const r = kind === 'accept' ? acceptQuest(cur, id) : kind === 'abandon' ? abandonQuest(cur, id) : finishQuest(cur, id); if (r.error) { notify(r.error); return null } commit(r.player); addLog(r.log); persist(); return r.line ?? '' },
     clubEnsure: (clubId) => { const cur = playerRef.current; const nx = ensureClubWeek(cur, clubId, effStats, openTierNow()); if (nx !== cur) commit(nx) },

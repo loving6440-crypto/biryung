@@ -2,7 +2,8 @@
 //
 // · 조사 장소에 들어가면 [이 장소에서 받을 수 있는 퀘스트]가 보인다 — 그 장소에서 받고, 그 장소로 돌아와 마친다.
 // · 내 수준(보정 포함 육조 평균 S)이 minS ~ maxS 일 때만 나온다. 적을 쓰러뜨리는 부탁은 그 적의 추가전투 단계가 열려 있어야 나온다.
-// · 한 번에 다섯 건까지. 한 번 마친 부탁은 다시 나오지 않는다.
+// · 한 번에 두 건까지(vD.04) — 하나를 마치면 자리가 비어 다음 부탁을 받는다. 한 번 마친 부탁은 다시 나오지 않는다.
+// · 관리자가 [스토리 관리 → 퀘스트 공개]를 누르기 전에는 받을 수 있는 부탁이 보이지 않는다(받아 둔 부탁은 마칠 수 있다).
 // 목표: kill { enemy, n } · win { n } 아무 전투 승리 · lesson { n } 수업 · pioneer { n } 개척 터에 들어가기 ·
 //       make { item, n } 받은 뒤에 만들기 · deliver { item, n } 마칠 때 건넨다(소지품에서 빠진다) · visit { key, where } 그 장소를 살핀다
 // 글 안의 {name} 은 내 캐릭터 이름, {left} 는 남은 수.
@@ -15,7 +16,7 @@ export const NPCS = {
   seo: { name: '서창현', color: '#9aa7b4' },
   yoon: { name: '윤진서', color: '#d8a0b4' },
 }
-export const MAX_ACTIVE = 5
+export const MAX_ACTIVE = 2
 
 const Q = (id, npc, place, where, minS, maxS, title, goal, offer, accept, progress, done, extra = {}) => ({ id, npc, place, where, minS, maxS, title, goal, offer, accept, progress, done, ...extra })
 export const NPC_QUESTS = [
@@ -204,18 +205,20 @@ export function progressOf(q, p) {
   return { cur, need, left: need - cur, done: cur >= need }
 }
 /** 장소 하나에서 보일 것: 받을 수 있는 부탁 + 이 장소에서 받은(진행 중인) 부탁 */
-export function placeView(p, place, S, openTier) {
+export function placeView(p, place, S, openTier, open = true) {
   const st = stateOf(p)
-  const activeN = Object.keys(st.act).length
+  const activeN = activeCount(p)
   const here = NPC_QUESTS.filter((q) => q.place === place)
   const rows = []
   for (const q of here) {
     const pr = progressOf(q, p)
     if (pr) rows.push({ q, state: 'active', pr, line: fill(pr.done ? q.done : q.progress, p, pr.left), reward: rewardOf(q) })
-    else if (canOffer(q, p, S, openTier)) rows.push({ q, state: 'offer', line: fill(q.offer, p, goalN(q.goal)), reward: rewardOf(q), full: activeN >= MAX_ACTIVE })
+    else if (open && canOffer(q, p, S, openTier)) rows.push({ q, state: 'offer', line: fill(q.offer, p, goalN(q.goal)), reward: rewardOf(q), full: activeN >= MAX_ACTIVE })
   }
   return rows
 }
+/** 진행 중인 부탁 수 — 지금 있는 부탁만 센다(없어진 부탁이 자리를 잡아먹지 않게) */
+export const activeCount = (p) => Object.keys(stateOf(p).act).filter((id) => NPC_QUESTS.some((q) => q.id === id)).length
 export function activeList(p) {
   const st = stateOf(p)
   return NPC_QUESTS.filter((q) => st.act[q.id]).map((q) => ({ q, pr: progressOf(q, p), npc: NPCS[q.npc].name }))
@@ -223,7 +226,7 @@ export function activeList(p) {
 export function acceptQuest(p, id, now = Date.now()) {
   const q = NPC_QUESTS.find((x) => x.id === id); const st = stateOf(p)
   if (!q || st.act[id] || st.done[id]) return { error: '받을 수 없는 부탁이다.' }
-  if (Object.keys(st.act).length >= MAX_ACTIVE) return { error: `부탁은 한 번에 ${MAX_ACTIVE}건까지 받을 수 있다.` }
+  if (activeCount(p) >= MAX_ACTIVE) return { error: `부탁은 한 번에 ${MAX_ACTIVE}건까지 받을 수 있다. 하나를 마치면 다시 받을 수 있다.` }
   return { player: { ...p, npcQ: { ...st, act: { ...st.act, [id]: { at: now, n: 0 } } } }, log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 받았다 — ${goalText(q)} (마치러 ${q.where}으로)`, line: fill(q.accept, p, goalN(q.goal)) }
 }
 export function abandonQuest(p, id) {

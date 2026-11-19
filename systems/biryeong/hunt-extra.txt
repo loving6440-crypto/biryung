@@ -4,7 +4,6 @@
 stoneTower|broken-inkstick|0.2|1
 # vD.02.4 갈라진 붓(split-brush)은 덤불 → 쓰러진 고목으로 옮겼다(huntLevels.js HUNT_EXTRA_SPECIES)
 stonePillar|pencil|0.15|1
-dove|friendship-letter|0.3|1
 azalea|cherry-branch|0.2|1
 pineTree|magpie-plain-feather|0.25|1
 # 본편 전용 아이템(st-…)은 일부러 붙이지 않는다 — 본편 이야기에서만 얻는다(아직 원고에 없는 것은 획득처 없음).

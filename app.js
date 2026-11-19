@@ -899,7 +899,7 @@
     if (npcBox) {
       const act = (() => { try { return api?.npcActive?.() ?? []; } catch (_) { return []; } })();
       npcBox.hidden = !act.length;
-      npcBox.replaceChildren(...(act.length ? [h('p', 'npc-tracker-head', `받은 부탁 ${act.length} / 5`)] : []), ...act.map((q) => { const r = h('p', `npc-tracker-row${q.done ? ' is-done' : ''}`); r.append(h('b', '', q.npc), ` 「${q.title}」 ${q.goal} · ${q.cur}/${q.need}`, h('small', '', q.done ? ` → ${q.where}에서 마친다` : ` (${q.where})`)); return r; }));
+      npcBox.replaceChildren(...(act.length ? [h('p', 'npc-tracker-head', `받은 부탁 ${act.length} / 2`)] : []), ...act.map((q) => { const r = h('p', `npc-tracker-row${q.done ? ' is-done' : ''}`); r.append(h('b', '', q.npc), ` 「${q.title}」 ${q.goal} · ${q.cur}/${q.need}`, h('small', '', q.done ? ` → ${q.where}에서 마친다` : ` (${q.where})`)); return r; }));
     }
     const stats = statsNow();
     const eff = (() => { try { return api?.effStats?.() ?? null; } catch (_) { return null; } })();

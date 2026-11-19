@@ -863,6 +863,25 @@
     drawTier(Math.max(1, Math.min(10, Number(routeStore().EXTRA_TIER?.option) || 1)));
     if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'EXTRA_TIER') : null; drawTier(Math.max(1, Math.min(10, Number(row?.option) || 1))); }).catch(() => {});
 
+    // vD.04 인물의 부탁(퀘스트 45종) 공개: 누르기 전에는 조사 장소에 [이 장소에서 받을 수 있는 퀘스트]가 나오지 않는다.
+    body.append(h('p', 'panel-label', '퀘스트 공개 — 인물의 부탁 45종'));
+    const npcBox = h('div', 'story-route'); npcBox.dataset.npcQuestAdmin = ''; body.append(npcBox);
+    const drawNpc = (open) => {
+      npcBox.replaceChildren(h('p', 'story-route-state', open ? '지금 공개되어 있다. 학생들은 조사 장소에서 부탁을 받는다(한 번에 두 건까지).' : '지금 숨겨져 있다. 공개하면 조사 장소마다 [이 장소에서 받을 수 있는 퀘스트]가 생긴다.'));
+      const setNpc = async (on) => {
+        const iso = new Date().toISOString(), all = routeStore(); all.NPC_QUESTS = { option: on ? 1 : null, openAt: on ? iso : null }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
+        if (server) { const r = await sync.adminRoute(adminCode(), 'NPC_QUESTS', on ? 1 : null, on ? iso : null); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
+        if (on) routes.NPC_QUESTS = 1; else delete routes.NPC_QUESTS;
+        toast('스토리 관리', on ? '퀘스트를 공개했다.' : '퀘스트를 다시 숨겼다. (이미 받은 부탁은 마칠 수 있다)'); refreshChapters(); drawNpc(on);
+      };
+      const acts = h('div', 'story-admin-acts');
+      if (!open) { const b = btn('solid-btn codex-use', '퀘스트 공개', () => { if (window.confirm('인물의 부탁(퀘스트 45종)을 모든 학생에게 공개할까요?')) setNpc(true); }); b.dataset.npcQuestOpen = ''; acts.append(b); }
+      else { const b = btn('ghost-btn codex-use', '퀘스트 숨기기', () => { if (window.confirm('퀘스트를 다시 숨길까요? (이미 받은 부탁은 마칠 수 있다)')) setNpc(false); }); b.dataset.npcQuestClose = ''; acts.append(b); }
+      npcBox.append(acts);
+    };
+    drawNpc(Number(routeStore().NPC_QUESTS?.option) === 1);
+    if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'NPC_QUESTS') : null; if (Array.isArray(r)) drawNpc(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
+
     body.append(h('p', 'panel-label', '선택 집계 · 누가 무엇을 골랐나'));
     const votes = h('div', 'story-votes'); body.append(votes); votes.append(para('불러오는 중…'));
     const drawVotes = (rows) => {

@@ -465,6 +465,10 @@ export function itemMatches(item, query0) {
   { file: 'ui/components/locations/HuntField.jsx', edits: [["{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%</>}", "{node.kind !== 'spirit' && <> · 보너스 {odds.bonus}%{node.kind === 'obstacle' && !node.bonus ? ' (자갈돌)' : ''}</>}"]] },
   // ── vD.03 피해 늘리기 아이템(초보용 고독 · 지네 독단지 · 봉인 고독함)의 기록에 그 아이템 이름을 쓴다 ──
   { file: 'game/mbattle.js', edits: [["text:`${m.name}의 초보용 고독! 적이", "text:`${m.name}의 ${item?.name || '고독'}! 적이"]] },
+  // ── vD.04.1 처음 만든 캐릭터의 소지금 50 → 200냥 ──
+  { file: 'game/items.js', edits: [['export const START_MONEY = 50', 'export const START_MONEY = 200']] },
+  // ── vD.04 우정 편지: 선물용 도구 — [사용]을 누르면 쓰임새를 알려 준다 ──
+  { file: 'game/items.js', edits: [["item.id === 'lost-key' ? '본관 3층의 다른 학년 물품보관소에서 [몰래 열어보기]를 하면 쓰인다(1회용)' :", "item.id === 'lost-key' ? '본관 3층의 다른 학년 물품보관소에서 [몰래 열어보기]를 하면 쓰인다(1회용)' : item.id === 'friendship-letter' ? '선물용 도구다. 접속자 목록에서 다른 학생에게 [선물]로 보내면 그 사람과 특별한 연을 맺게 된다.' :"]] },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',

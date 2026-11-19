@@ -432,7 +432,8 @@ t198('v1.9.8: 획득처가 없는 것은 본편 전용 아이템뿐 · 개척 �
   const none = w.BIRYEONG_CODEX.items.filter((i) => /^아직/.test(i.from)).map((i) => i.id)
   assert198.ok(none.every((id) => id.startsWith('st-')), `본편 전용이 아닌데 획득처가 없다: ${none.filter((id) => !id.startsWith('st-'))}`)
   const R = await import('../systems/biryeong/reskin.data.js')
-  assert198.ok(R.HUNT_EXTRA.length === 5 && R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
+  assert198.ok(R.HUNT_EXTRA.length === 4 && !R.HUNT_EXTRA.some((x) => x.item === 'friendship-letter') && // vD.04.1 우정 편지는 매점으로
+    R.HUNT_EXTRA.every((x) => !x.item.startsWith('st-') && x.chance > 0 && x.chance <= 0.3))
 })
 
 // ───────── vB.01 ─────────
@@ -554,7 +555,7 @@ test('vC.01: 추가전투 단계 공개 · 난이도 재조정 · 얼굴 자리 
   assert.ok(sync.includes("story_chapters?select=ch,updated_at&order=ch") && !sync.includes("call('story_chapters?select=ch,title,content&order=ch')"))
   assert.ok(auth.includes('PUSH_GAP') && auth.includes('"savedAt":0'))
   assert.match(sql, /function public\.bry_party_get\(p_token text, p_id bigint, p_seq integer default null\)/)
-  assert.match(sql, /'version', '(C\.0[167]|D\.0[1234](\.[13])?)'/)
+  assert.match(sql, /'version', '(C\.0[167]|D\.0[1234](\.[123])?)'/)
 })
 
 test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스는 언제나 훨씬 어렵다)', async () => {
@@ -884,4 +885,37 @@ test('vD.04: 육조 스탯 마우스오버 설명 6개', () => {
   const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
   assert.ok(app.includes("c.dataset.statTip = k") && app.includes('const STAT_TIP = {'))
   for (const t of ['교육자들은 우선 눈을 크게 뜰 것을 1원칙으로', '제어할 수 없는 돌발 행동 확률도', '시간을 들여 얻는 보상이 늘어납니다', '영력 활용이 효율적으로', '반 박자 빠를 수 있는 법칙', '개척 중 전투를 확률적으로 피하게']) assert.ok(app.includes(t), t)
+})
+
+test('vD.04.1: 우정 편지 매점 10냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
+  const { NEW_STORE, retuneItems } = await import('../systems/play/src/itemRetune.js')
+  assert.equal(NEW_STORE['friendship-letter'].price, 10)
+  assert.equal(NEW_STORE['friendship-letter'].effectText, '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.')
+  const [x] = retuneItems([{ id: 'friendship-letter', kind: 'material', tags: ['재료'], price: null, desc: '누군가들이 주고받은 편지. 다른 사람의 인연이 담겨있다.', effect: {} }])
+  assert.ok(x.price === 10 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
+  assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/hunt-extra.txt'), 'utf8').includes('friendship-letter'))
+  const R = await import('../systems/biryeong/reskin.data.js')
+  const recs = [...R.NEW_RECIPES.W, ...R.NEW_RECIPES.K, ...R.STORY_RECIPES]
+  assert.ok(!recs.some((r) => r.inputs.some(([id]) => id === 'friendship-letter')))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/reskin.js'), 'utf8').includes('STORE_ITEMS.push(it)'))
+})
+
+test('vD.04.1: 탐사 지점마다 1% 분실물(다섯 가지가 똑같이) · 우편함 엿보기 · 카페 여섯 가지 · 퀘스트 공개 · 동시에 2건', async () => {
+  const L = await import('../systems/play/src/lostFind.js')
+  assert.equal(L.LOST_FIND_CHANCE, 0.01); assert.equal(L.LOST_FIND_ITEMS.length, 5); assert.ok(L.LOST_FIND_ITEMS.includes('lost-key'))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8').includes('lostFind(key) }'))
+  const sql = readFileSync(join(ROOT, 'supabase/schema.sql'), 'utf8')
+  assert.ok(sql.includes('function public.bry_admin_gifts(') && sql.includes('gift_by) values (t.id') && sql.includes("p_kind = 5 then m := 30; sp := 0;"))
+  const sv = readFileSync(join(ROOT, 'server.js'), 'utf8'); assert.ok(sv.includes("call('bry_admin_gifts')") && sv.includes("'codex-list admin-scroll'"))
+  const cf = readFileSync(join(ROOT, 'cafe.js'), 'utf8'); assert.ok(cf.includes("label: '일반 로그 or 댓글 100개', money: 50") && cf.includes("label: '방문 100회', money: 30") && cf.includes("{ id: 6, label: '자유 기입', custom: true }"))
+  const nq = readFileSync(join(ROOT, 'systems/play/src/npcQuests.js'), 'utf8')
+  assert.ok(nq.includes('export const MAX_ACTIVE = 2') && (nq.match(/^  Q\('/gm) || []).length === 45)
+  assert.ok(nq.includes('else if (open && canOffer(') && nq.includes('if (activeCount(p) >= MAX_ACTIVE)'))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8').includes('BiryeongQuest?.routes?.NPC_QUESTS) === 1'))
+  assert.ok(readFileSync(join(ROOT, 'quest.js'), 'utf8').includes("sync.adminRoute(adminCode(), 'NPC_QUESTS'"))
+})
+
+test('vD.04.1: 처음 만든 캐릭터의 소지금 200냥', () => {
+  assert.ok(readFileSync(join(ROOT, 'game-data.js'), 'utf8').includes('"startMoney":200'))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8').includes("['export const START_MONEY = 50', 'export const START_MONEY = 200']"))
 })

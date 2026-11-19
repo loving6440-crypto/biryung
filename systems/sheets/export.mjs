@@ -16,9 +16,10 @@ const hunt = await imp('huntSites.js')
 const garden = await imp('garden.js')
 const R = await import(join(ROOT, 'systems/biryeong/reskin.data.js'))
 const AIL = await import(join(ROOT, 'systems/play/src/ailments.js')) // vC.06 몸의 이상을 낫게 하는 물건
-const { ITEM_RETUNE, STORE_PRICES, applyTextFix } = await import(join(ROOT, 'systems/play/src/itemRetune.js')) // vD.01 · vD.02.3 매점 값 · vD.03 글 맞추기
+const { ITEM_RETUNE, STORE_PRICES, applyTextFix, NEW_STORE } = await import(join(ROOT, 'systems/play/src/itemRetune.js')) // vD.01 · vD.02.3 매점 값 · vD.03 글 맞추기
+const { LOST_FIND_CHANCE, LOST_FIND_ITEMS } = await import(join(ROOT, 'systems/play/src/lostFind.js')) // vD.04 탐사 중 분실물
 const SPR = await import(join(ROOT, 'systems/play/src/newSpirits.js')) // vD.02 새 영물의 전리품 · 물건
-const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS, ...SPR.NEW_SPIRIT_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)).map((i) => (ITEM_RETUNE[i.id] ? { ...i, ...ITEM_RETUNE[i.id] } : i)).map((i) => (STORE_PRICES[i.id] != null && i.price != null ? { ...i, price: STORE_PRICES[i.id] } : i)).map((i) => applyTextFix([{ ...i }])[0]) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
+const ITEMS = [...VAULT_ITEMS, ...R.STORY_ITEMS, ...R.NEW_ITEMS, ...AIL.AIL_ITEMS, ...SPR.NEW_SPIRIT_ITEMS].map((i) => (R.ITEM_EDITS?.[i.id] ? { ...i, ...R.ITEM_EDITS[i.id] } : i)).map((i) => (ITEM_RETUNE[i.id] ? { ...i, ...ITEM_RETUNE[i.id] } : i)).map((i) => (NEW_STORE[i.id] ? { ...i, ...NEW_STORE[i.id], effect: {} } : i)).map((i) => (STORE_PRICES[i.id] != null && i.price != null ? { ...i, price: STORE_PRICES[i.id] } : i)).map((i) => applyTextFix([{ ...i }])[0]) // v1.3 본편 · v1.5 새 아이템 · v1.6 시트 수정
 const swap = (t) => R.TEXT_SWAPS.reduce((s, [a, b]) => s.split(a).join(b), String(t ?? ''))
 const name = (id) => R.ITEM_RESKIN[id]?.name ?? ITEMS.find((i) => i.id === id)?.name ?? id
 const byId = Object.fromEntries(ITEMS.map((i) => [i.id, i]))
@@ -85,7 +86,7 @@ if (hunt.HUNT_BONUSES?.obstacle) add(hunt.HUNT_BONUSES.obstacle.item, '개척 �
 for (const c of garden.GARDEN_CROPS ?? []) add(c.id, '텃밭(비닐하우스) 수확')
 const FILES = { 'explore.js': '본관 탐사', 'annex.js': '별관 탐사', 'hike.js': '산 탐사', 'shrineExplore.js': '사당 탐사', 'exploreActions.js': '탐사 중 행동(기다리기 · 도깨비 놀이 · 보관함)', 'travelEvents.js': '이동 중 사건', 'armory.js': '무구보관소', 'progress.js': '전투 · 진행 보상', 'character.js': '처음부터 지급', 'bag.js': '처음부터 지급', 'locker.js': '물품보관함', 'clubs.js': '동아리 활동', 'meals.js': '급식실', 'store.js': '매점' }
 const texts = Object.fromEntries(readdirSync(G).filter((f) => FILES[f]).map((f) => [f, readFileSync(join(G, f), 'utf8')]))
-for (const i of ITEMS) for (const [f, t] of Object.entries(texts)) if (t.includes(`'${i.id}'`)) add(i.id, FILES[f])
+for (const i of ITEMS) for (const [f, t] of Object.entries(texts)) if (t.includes(`'${i.id}'`) && !(f === 'travelEvents.js' && LOST_FIND_ITEMS.includes(i.id))) add(i.id, FILES[f]) // vD.04.1 분실물은 이동 중이 아니라 탐사 중에 줍는다
 for (const i of ITEMS) {
   if (i.slot === 'weapon') { add(i.id, '전투 튜토리얼 완주 보상(택 1)', '전투 튜토리얼 보상'); add(i.id, '도깨비 증표 10개 교환(무구보관소)', '무구보관소 교환') }
   if (i.id.startsWith('hwatu-')) add(i.id, '별관 패 놀이터 · 탐사')
@@ -95,6 +96,7 @@ for (const i of ITEMS) {
   if (i.id === 'fine-woodchip') add(i.id, '개척 채집에 실패했을 때 대신 얻는다')
   if (i.id === 'trap-scraps') add(i.id, '개척 수렵에 실패했을 때 대신 얻는다')
   if (i.id === 'someones-bag') add(i.id, '카드키로 남의 물품보관함 몰래 열기(본관 3층)')
+  if (LOST_FIND_ITEMS.includes(i.id)) add(i.id, `탐사 중 분실물 줍기 (탐사 지점을 볼 때마다 ${(LOST_FIND_CHANCE * 100 / LOST_FIND_ITEMS.length).toFixed(1)}%)`, '탐사 중 분실물 줍기') // vD.04
 }
 
 // ── 쓰임새(설명) ──
@@ -113,7 +115,7 @@ const useText = (i) => {
   if (!out.length) out.push(i.id.startsWith('seed-') ? '비닐하우스에 심는다' : '아직 쓰이는 곳이 없다(판매 · 보관)')
   return out.join(' / ')
 }
-const kindOf = (i) => (i.tags?.includes('재료') ? '재료' : i.slot === 'weapon' ? '완성품 · 무구' : i.slot === 'body' ? '완성품 · 신체 장비' : i.slot === 'trinket' ? '완성품 · 장신구' : i.tags?.includes('무구 강화') ? '완성품 · 무구 강화재' : i.tags?.includes('특수 강화 패') ? '완성품 · 특수 강화 패' : i.tags?.includes('#개척') ? '완성품 · 개척용' : i.tags?.includes('전투 중 사용 가능') ? '완성품 · 전투용' : '완성품 · 소모품')
+const kindOf = (i) => (i.tags?.includes('재료') ? '재료' : i.slot === 'weapon' ? '완성품 · 무구' : i.slot === 'body' ? '완성품 · 신체 장비' : i.slot === 'trinket' ? '완성품 · 장신구' : i.tags?.includes('무구 강화') ? '완성품 · 무구 강화재' : i.tags?.includes('특수 강화 패') ? '완성품 · 특수 강화 패' : i.tags?.includes('#개척') ? '완성품 · 개척용' : i.tags?.includes('선물용') ? '도구 · 선물용' : i.tags?.includes('전투 중 사용 가능') ? '완성품 · 전투용' : '완성품 · 소모품')
 const effectOf = (i) => (i.tags?.includes('재료') ? '제작용 재료' : swap(i.effectText) || '효과 없음')
 const items = ITEMS.map((i) => ({ id: i.id, name: name(i.id), kind: kindOf(i), tags: (i.tags ?? []).join(' · '), effect: effectOf(i), lore: swap(R.ITEM_RESKIN[i.id]?.desc ?? i.desc), use: useText(i), sourceSimple: [...(srcS[i.id] ?? ['아직 알려진 곳이 없다'])].join(' / '), source: [...(src[i.id] ?? ['아직 습득처 없음 — NPC · 퀘스트로 얻게 될 것. 새 NPC가 정해지면 연결(지금은 관리자 지급)'])].join(' / '), price: i.price ?? null }))
 

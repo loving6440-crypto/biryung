@@ -1292,6 +1292,8 @@ begin
       'photo', case when octet_length(coalesce(pr->>'photo', '')) <= 400000 then pr->>'photo' else null end) end);
 end $$;
 
+-- vD.04 선물을 보낸 계정(관리자 우편함 열람용)
+alter table biryeong_private.grants add column if not exists gift_by bigint references biryeong_private.accounts on delete set null;
 -- 선물: 보내는 사람의 화면이 먼저 소지품에서 덜어 낸 뒤 부른다. 받는 사람은 우편함(bry_inbox)으로 받는다.
 create or replace function public.bry_gift(p_token text, p_username text, p_payload jsonb, p_note text default '') returns jsonb
   language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
@@ -1302,7 +1304,7 @@ begin
   if jsonb_typeof(p_payload) <> 'object' or octet_length(p_payload::text) > 2000 or coalesce((p_payload->>'money')::int, 0) not between 0 and 100000
      or coalesce((p_payload->>'spirit')::int, 0) <> 0 or (select count(*) from jsonb_object_keys(coalesce(p_payload->'items', '{}'::jsonb))) > 10 then raise exception 'invalid_value'; end if;
   perform throttle_do('gift:' || a.id, 20, 3600);
-  insert into grants (target, payload, note, by_admin, gift_from) values (t.id, p_payload, left(coalesce(p_note, ''), 200), '', a.display_name) returning id into n;
+  insert into grants (target, payload, note, by_admin, gift_from, gift_by) values (t.id, p_payload, left(coalesce(p_note, ''), 200), '', a.display_name, a.id) returning id into n;
   return jsonb_build_object('ok', true, 'id', n);
 end $$;
 
@@ -1773,17 +1775,26 @@ begin
 end $$;
 
 -- ── vD.04 카페 정산: 카페에 쓴 글 · 댓글 · 방문 기록을 적고 정해진 보상을 받는다(내역은 본인과 관리자가 본다) ──
--- 종류: 1 일반 로그 50냥 · 2 일반+메인스토리 70냥+영력 50 · 3 장편 로그 80냥 · 4 장편+메인스토리 100냥+영력 50 · 5 이벤트(직접 기입)
+-- 종류: 1 일반 로그 or 댓글 100개 50냥 · 2 일반+메인스토리 70냥+영력 50 · 3 장편 로그 80냥 · 4 장편+메인스토리 100냥+영력 50 · 5 방문 100회 30냥 · 6 자유 기입
 create table if not exists biryeong_private.cafe_claims (
   id         bigint generated always as identity primary key,
   account_id bigint      not null references biryeong_private.accounts on delete cascade,
-  kind       smallint    not null check (kind between 1 and 5),
+  kind       smallint    not null check (kind between 1 and 6),
   memo       text        not null check (length(memo) between 1 and 200),
   money      int         not null check (money between 0 and 9999),
   spirit     int         not null check (spirit between 0 and 999),
   created_at timestamptz not null default now()
 );
 create index if not exists cafe_claims_account on biryeong_private.cafe_claims (account_id, id desc);
+-- vD.04.1 종류가 여섯 가지가 됐다(5 = 방문 100회 30냥 · 6 = 직접 기입). 예전 표(1~5, 5 = 직접 기입)였으면 한 번만 옮긴다.
+do $$ declare c text; begin
+  select conname into c from pg_constraint where conrelid = 'biryeong_private.cafe_claims'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%kind%' and pg_get_constraintdef(oid) like '%5)%';
+  if c is not null then
+    execute format('alter table biryeong_private.cafe_claims drop constraint %I', c);
+    update biryeong_private.cafe_claims set kind = 6 where kind = 5;
+    alter table biryeong_private.cafe_claims add constraint cafe_claims_kind_check6 check (kind between 1 and 6);
+  end if;
+end $$;
 alter table biryeong_private.cafe_claims enable row level security;
 revoke all on biryeong_private.cafe_claims from anon, authenticated;
 
@@ -1797,7 +1808,8 @@ begin
   elsif p_kind = 2 then m := 70; sp := 50;
   elsif p_kind = 3 then m := 80; sp := 0;
   elsif p_kind = 4 then m := 100; sp := 50;
-  elsif p_kind = 5 then
+  elsif p_kind = 5 then m := 30; sp := 0;
+  elsif p_kind = 6 then
     m := coalesce(p_money, 0); sp := coalesce(p_spirit, 0);
     if m < 0 or m > 9999 or sp < 0 or sp > 999 or (m = 0 and sp = 0) then raise exception 'invalid_value'; end if;
   else raise exception 'invalid_value'; end if;
@@ -1822,9 +1834,22 @@ begin
     from (select * from cafe_claims order by id desc limit 1000) c join accounts u on u.id = c.account_id left join saves s on s.account_id = c.account_id));
 end $$;
 
+-- ── vD.04.1 관리자 우편함 열람: 학생끼리 주고받은 선물과 한마디(최근 500통). 열람은 감사 기록에 남는다 ──
+create or replace function public.bry_admin_gifts(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token);
+begin
+  perform log(a, 'read_gifts', '', '');
+  return jsonb_build_object('rows', (select coalesce(jsonb_agg(jsonb_build_object('id', g.id, 'from_name', g.gift_from, 'from_user', f.username, 'to_user', t.username, 'to_display', t.display_name,
+      'to_name', s.data #>> '{profile,name}', 'payload', g.payload, 'note', g.note, 'at', g.created_at, 'claimed_at', c.claimed_at) order by g.id desc), '[]'::jsonb)
+    from (select * from grants where by_admin = '' and gift_from <> '' and gift_from <> '벼룩시장' and target is not null order by id desc limit 500) g
+      left join accounts f on f.id = g.gift_by left join accounts t on t.id = g.target left join saves s on s.account_id = g.target
+      left join grant_claims c on c.grant_id = g.id and c.account_id = g.target));
+end $$;
+
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.04', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.04.1', 'admin_code_set', exists (select 1 from admin_secret)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

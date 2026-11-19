@@ -119,7 +119,7 @@ const data = swapText(npcFill({
     statKeys: C.STAT_KEYS,
     stats: Object.fromEntries(C.STAT_KEYS.map((k) => [k, { label: C.STAT_META[k].label, en: C.STAT_META[k].en, hint: C.STAT_META[k].hint, detail: C.STAT_META[k].detail }])),
     statMin: C.STAT_MIN, statMax: 40 /* vC.02 육조 스탯 만렙 40(보정 제외). 실행 화면은 patches.mjs 가 같은 값으로 바꾼다 */, startPoints: C.STAT_START_POINTS,
-    hpMax: C.HP_MAX, mpMax: C.MP_MAX, spiritStart: C.SPIRIT_START, spiritMax: C.SPIRIT_MAX, startMoney: items.START_MONEY,
+    hpMax: C.HP_MAX, mpMax: C.MP_MAX, spiritStart: C.SPIRIT_START, spiritMax: C.SPIRIT_MAX, startMoney: 200, // vD.04.1 처음 만든 캐릭터의 소지금 50 → 200냥(실행 화면은 patches.mjs 가 START_MONEY 를 같은 값으로)
     nameMax: C.NAME_MAX_LENGTH, introMax: C.GREETING_MAX_LENGTH,
   },
   zones,

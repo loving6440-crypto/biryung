@@ -925,3 +925,6 @@ body.is-opening{overflow:hidden}
 .stat-tip{max-width:300px}
 .stat-tip .stat-tip-lore{color:#d8ccb3;font-style:italic}
 .status-stat[data-stat-tip]{cursor:help}
+/* vD.04.1 관리자 — 우편함 엿보기 · 정해진 높이 안에서 스크롤 */
+.admin-scroll{max-height:420px;overflow:auto;padding-right:4px;border:1px solid #2f4653;background:#0d1b27}
+.gift-spy-note{color:#f1dfb4 !important;font-style:italic}
