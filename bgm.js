@@ -6,7 +6,7 @@
  */
 (() => {
   const App = window.BiryeongApp;
-  const SRC = { commu: 'assets/bgm/commu.mp3', battle: 'assets/bgm/battle.mp3', boss: 'assets/bgm/boss.mp3' };
+  const SRC = { commu: 'assets/bgm/commu.mp3?v=2', battle: 'assets/bgm/battle.mp3', boss: 'assets/bgm/boss.mp3' };
   const MUTE_KEY = 'biryeong-music', VOL_KEY = 'biryeong-music-vol';
   const get = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* 이번만 */ } };

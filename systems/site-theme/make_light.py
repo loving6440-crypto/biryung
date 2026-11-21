@@ -6,12 +6,12 @@
 · 어두운 바탕 → 아주 희미한 녹색이 도는 백색, 밝은 글자(크림) → 짙은 녹색.
 · 금색 강조 → 녹색, 붉은 강조 → 그대로 적색 계열, 청록 · 남색 → 밝은 바탕에 맞게 어둡게.
 · 모든 규칙은 html[data-theme="light"] 아래에서만 적용된다. 그림이 깔린 자리(배너 · 구역 그림)는 건드리지 않는다.
-styles.css 를 고친 뒤에는 이것을 다시 돌린다(npm run build 가 함께 돌린다).
+styles.css · community.css 를 고친 뒤에는 이것을 다시 돌린다(npm run build 가 함께 돌린다).
 """
 import colorsys, os, re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SRC = os.path.join(ROOT, 'styles.css')
+SRCS = [os.path.join(ROOT, 'styles.css'), os.path.join(ROOT, 'community.css')]  # vD.06.4 낮새 · 밤쥐 · 도깨비들의 터(community.css)도
 OUT = os.path.join(ROOT, 'theme-light.css')
 P = 'html[data-theme="light"]'
 SKIP_SEL = re.compile(r'hero|zone-|pxwall|obang|canopy|opening|is-red|lantern|pt-seal|portrait|vn-flash|fx-')
@@ -159,7 +159,6 @@ EXTRA = f"""
 """
 
 if __name__ == '__main__':
-    css = strip_comments(open(SRC, encoding='utf-8').read())
-    body = walk(css)
+    body = '\n'.join(walk(strip_comments(open(f, encoding='utf-8').read())) for f in SRCS)
     open(OUT, 'w', encoding='utf-8').write('/* 직접 고치지 말 것 — systems/site-theme/make_light.py 가 styles.css 에서 만든다. 화이트 모드: 희미한 녹색 백색 + 녹색 · 적색 강조 */\n' + body + '\n' + EXTRA)
     print('theme-light.css', round(os.path.getsize(OUT) / 1024), 'KB')
