@@ -16,7 +16,7 @@
     "check:vault-c01": "node --test systems/vault/tests/c01/*.test.mjs",
     "site:data": "node systems/site-data/build.mjs",
     "play:build": "node systems/play/build.mjs",
-    "build": "node systems/biryeong/build.mjs && node systems/site-data/build.mjs && node systems/codex/build.mjs && node systems/play/build.mjs",
+    "build": "python3 systems/site-theme/make_light.py && node systems/biryeong/build.mjs && node systems/site-data/build.mjs && node systems/codex/build.mjs && node systems/play/build.mjs",
     "reskin:build": "node systems/biryeong/build.mjs",
     "sheets": "node systems/sheets/export.mjs > systems/sheets/sheets.json && node systems/sheets/icons-json.mjs > systems/sheets/icons.json && python3 systems/sheets/render_icons.py systems/sheets/icons.json systems/sheets/icons 3 && python3 systems/sheets/build_xlsx.py systems/sheets/sheets.json biryeong_tables.xlsx systems/sheets/icons",
     "story:build": "cd systems/story && python3 export_game.py ../.."

@@ -11,7 +11,10 @@ import { cook } from '@vault/game/cooking.js'
 import { markLineSeen } from '@vault/game/npcLines.js'
 import { canAddInventory, claimPending, limitNewGains } from '@vault/game/inventoryCapacity.js'
 import { LOST_FIND_CHANCE, LOST_FIND_ITEMS } from './lostFind.js'
-import * as Beasts from './beasts.js' // vD.05 신수들의 터: 새끼 신수 기르기
+import * as Beasts from './beasts.js'
+import { sfx as __sfx } from '@vault/game/sfx.js' // vD.06.1 [테마 관리]의 효과음 끄기가 실행 화면에도 닿게
+globalThis.BiryeongSfx = __sfx
+try { if (localStorage.getItem('biryeong-sfx') === 'off') __sfx.setMuted(true) } catch { /* 저장소 없음 */ } // vD.05 신수들의 터: 새끼 신수 기르기
 import { protectBags, putInBag, takeFromBag, bagCount, bagRoom, bagContents, BAG_SLOTS } from '@vault/game/bag.js'
 import { STAT_KEYS, STAT_META, STAT_MAX, STAT_UPGRADE_COST_PER_POINT } from '@vault/game/constants.js'
 import { LESSON_WAIT_MINUTES } from '@vault/game/courseInfo.js'
@@ -510,7 +513,9 @@ export function usePlayHost() {
   }
 
   // ───── 전투 ─────
+  const soloFoeRef = useRef(null) // vD.06.1 배경음악: 혼자 하는 전투의 상대(보스면 보스 곡)
   const startBattle = (enemyId) => {
+    soloFoeRef.current = typeof enemyId === 'object' ? enemyId : enemyById(enemyId)
     interruptAll('새 동작을 시작해')
     const cur = playerRef.current
     battleVitalsRef.current = { hp: cur.hp, mp: cur.mp }
@@ -875,6 +880,12 @@ export function usePlayHost() {
   // 바탕은 추가전투 도감의 같은 단계 '혼자 상대'의 수치. 그 위에 보스 고유 패턴(storyBoss.js)을 얹는다.
   // 이기면 전리품을 받고 그 전리품으로 만드는 제작법이 열린다. 져도 쇠약은 남지 않는다. 끝나면 biryeong:quest(storyBattle) 로 알린다.
   const [storyFight, setStoryFight] = useState(null)
+  // vD.06.1 배경음악: 전투가 열리면 일반 전투 곡 · 보스(보관고 보스 · 패턴이 있는 이야기 상대)면 보스 곡. 끝나면 커뮤 곡이 이어진다.
+  useEffect(() => {
+    const boss = (e) => !!(e && (e.boss || STORY_FOES[e.story?.key]?.pattern))
+    const mode = storyFight ? (boss(storyFight.enemy) ? 'boss' : 'battle') : battleActive ? (boss(soloFoeRef.current) ? 'boss' : 'battle') : null
+    try { globalThis.BiryeongBgm?.battle?.(mode) } catch { /* 음악 없이 */ }
+  }, [storyFight, battleActive])
   const storyBattle = ({ key, tier, i = 0, name, blurb, ctx = {} }) => {
     if (battleRef.current || playerRef.current.sleeping || playerRef.current.training) { notify('지금은 싸울 수 없다. (잠 · 수련 · 다른 전투 중)'); return false }
     const pool = BESTIARY_ENEMIES.filter((e) => e.tier === tier && !e.boss && (e.partySize ?? 1) <= 1)

@@ -543,6 +543,7 @@
   }
   let audio = null;
   function bellSound(n = 1) {
+    if (App.sfxOn && !App.sfxOn()) return; // vD.06.1 효과음 끄기
     try {
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
       for (let i = 0; i < n; i++) {

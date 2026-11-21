@@ -129,7 +129,9 @@ function scopeSelector(sel) {
   for (const ch of sel) { if (ch === '(' || ch === '[') depth++; if (ch === ')' || ch === ']') depth--; if (ch === ',' && !depth) { parts.push(cur); cur = '' } else cur += ch }
   parts.push(cur)
   const mapped = parts.map((p) => p.trim()).map((p) => {
-    if (/data-theme=["']?light/.test(p) && !p.includes(':where(')) return null // 비령은 어두운 화면만 쓴다
+    // vD.06.1 화이트 모드: [data-theme=light] X → html[data-theme=light] .play-scope X (중첩 & 는 .play-scope)
+    const lm = !p.includes(':where(') && p.match(/^(?:html)?\[data-theme=["']?light["']?\]\s*(.*)$/)
+    if (lm) { const rest = lm[1].replace(/^(html|body|:root)\b\s*/, ''); return `html[data-theme="light"] &${rest ? ` ${rest}` : ''}` }
     p = p.replace(/^html?\[data-theme=["']?dark["']?\]\s*|^\[data-theme=["']?dark["']?\]\s*/, '').replace(/^html\[data-ui-font\]\s*/, '')
     if (!p || ROOTISH.test(p)) return '&'
     return p.replace(/^(html|body|:root)\s+/, '')

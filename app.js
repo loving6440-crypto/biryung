@@ -39,7 +39,7 @@
   const DEFAULT_FONT = 'galmuri9';
   const FONT_STORAGE_KEY = 'biryeong-ui-font';
   const FONT_IDS = new Set(UI_FONTS.map((font) => font.id));
-  const fontMenu = $('#fontMenu'), fontToggle = $('#fontToggle'), fontOptions = $('#fontOptions');
+  const fontMenu = $('#themeMenu'), fontToggle = $('#themeToggle'), fontOptions = $('#fontOptions'); // vD.06.1 글꼴은 [테마 관리] 안으로
   function setFont(id, byUser) {
     if (!FONT_IDS.has(id)) id = DEFAULT_FONT;
     document.documentElement.dataset.uiFont = id;
@@ -64,9 +64,41 @@
   });
   fontToggle.addEventListener('click', () => toggleFontMenu());
   $('#fontClose').addEventListener('click', () => toggleFontMenu(false));
-  document.addEventListener('pointerdown', (event) => { if (!fontMenu.hidden && !$('#fontControl').contains(event.target)) toggleFontMenu(false); });
+  document.addEventListener('pointerdown', (event) => { if (!fontMenu.hidden && !$('#themeControl').contains(event.target)) toggleFontMenu(false); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !fontMenu.hidden) { toggleFontMenu(false); event.stopPropagation(); } });
   window.addEventListener('storage', (event) => { if (event.key === FONT_STORAGE_KEY) setFont(event.newValue); });
+
+  /* ───────── vD.06.1 테마 관리: 화면(다크 · 화이트) · 음악 · 효과음 ───────── */
+  const THEME_KEY = 'biryeong-theme', SFX_KEY = 'biryeong-sfx';
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* 이번만 */ } };
+  function setTheme(mode) {
+    const light = mode === 'light';
+    if (light) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;
+    lsSet(THEME_KEY, light ? 'light' : 'dark');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#eef5ec' : '#070e1b');
+    document.querySelectorAll('[data-theme-pick]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themePick === (light ? 'light' : 'dark'))));
+  }
+  const sfxOn = () => lsGet(SFX_KEY) !== 'off';
+  function setSfx(on) {
+    lsSet(SFX_KEY, on ? 'on' : 'off'); // 실행 화면(미니게임 등)의 효과음도 같이(아래 BiryeongSfx)
+    try { globalThis.BiryeongSfx?.setMuted?.(!on); } catch (_) { /* 실행 화면 전 */ }
+    drawSound();
+  }
+  function drawSound() {
+    const bg = window.BiryeongBgm, mOn = bg ? !bg.state().muted : lsGet('biryeong-music') !== 'off', vol = bg ? bg.state().volume : 0.4;
+    const ms = $('#musicSwitch'), ss = $('#sfxSwitch');
+    ms.textContent = mOn ? '켜짐' : '꺼짐'; ms.setAttribute('aria-pressed', String(mOn));
+    ss.textContent = sfxOn() ? '켜짐' : '꺼짐'; ss.setAttribute('aria-pressed', String(sfxOn()));
+    $('#musicVol').value = String(Math.round(vol * 100)); $('#musicVolText').textContent = `${Math.round(vol * 100)}%`;
+  }
+  document.querySelectorAll('[data-theme-pick]').forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.themePick)));
+  $('#musicSwitch').addEventListener('click', () => { const bg = window.BiryeongBgm; if (bg) bg.setMuted(!bg.state().muted); drawSound(); });
+  $('#musicVol').addEventListener('input', (e) => { window.BiryeongBgm?.setVolume(Number(e.target.value) / 100); drawSound(); });
+  $('#sfxSwitch').addEventListener('click', () => setSfx(!sfxOn()));
+  fontToggle.addEventListener('click', () => drawSound());
+  setTheme(lsGet(THEME_KEY) === 'light' ? 'light' : 'dark');
+  drawSound();
 
   /* ───────── 저장: 내 프로필 + 진행 기록 ─────────
    * 실행 화면(play)이 같은 칸에 game · counts · playLog 를 적는다. 메인 화면은 그 셋을 덮어쓰지 않는다. */
@@ -115,6 +147,7 @@
   const audio = () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (_) { audioCtx = null; } return audioCtx; };
   document.addEventListener('pointerdown', () => audio(), { once: true, capture: true }); // 브라우저는 한 번 누른 뒤에야 소리를 낸다
   function ding(kind = 'notice') {
+    if (!sfxOn()) return; // vD.06.1 효과음 끄기
     if (kind === 'chat' && !chatSoundOn()) return;
     const now = Date.now(); if (now - lastDing < 1200) return; lastDing = now;
     const ac = audio(); if (!ac) return;
@@ -1153,11 +1186,11 @@
   }
   window.addEventListener('hashchange', () => {
     if (skipHash) { skipHash = false; lastHash = location.hash; return; }
-    const busy = playApi()?.busy?.();
+    const busy = playApi()?.busy?.() || (window.BiryeongBeastEvent?.busy?.() ? '청화호수에서 기다리기' : ''); // vD.06.1 이벤트 대기도 같이 묻는다
     if (busy && location.hash !== lastHash) {
       const target = location.hash;
       skipHash = true; location.replace(lastHash || '#/'); // 일단 제자리로
-      leaveAsk(() => { playApi()?.interrupt?.('자리를 떠나'); location.hash = target; });
+      leaveAsk(() => { playApi()?.interrupt?.('자리를 떠나'); window.BiryeongBeastEvent?.cancelWait?.(); location.hash = target; });
       return;
     }
     lastHash = location.hash; route();
@@ -1259,7 +1292,7 @@
 
   /* 본편 퀘스트(quest.js)가 쓰는 창구 */
   window.BiryeongApp = {
-    h, btn, para, go, back, route, openPage, setTabs, toast, ding, chatSoundOn, setChatSound, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
+    h, btn, para, go, back, route, openPage, setTabs, toast, ding, sfxOn, chatSoundOn, setChatSound, mark, addTo, persist, playApi, zoneHash, placeHash, renderStatus, emptyBox, needProfile,
     get save() { return save; }, get body() { return panelBody; }, get tabs() { return panelTabs; }, get chips() { return panelChips; },
     profile, game, isAdmin: () => Auth.isAdmin(), zones: DATA.zones, heirloomNames: Object.fromEntries(Object.entries(HEIRLOOM).map(([k, v]) => [k, v.name])),
     grantTitle(id) { if (!titleById[id] || save.titles[id]) return false; save.titles[id] = Date.now(); persist(); toast('칭호', `「${titleById[id].name}」을(를) 얻었다.`); checkAchievements(); return true; },

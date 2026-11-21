@@ -1019,3 +1019,16 @@ test('vD.06: 이벤트 「학생 괴담 수칙」 — 관리자 공개 · 신수
   const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8'); assert.ok(sp.includes("st.p === 'smear' && act === 'call'"))
   const bc = readFileSync(join(ROOT, 'systems/play/src/BeastCare.jsx'), 'utf8'); assert.ok(!bc.includes('이름 바꾸기') && !bc.includes('아기 ') && bc.includes('NAME_NOTICE'))
 })
+
+test('vD.06.1: 주작 전투 한 번 · 괴담 고르기 · 대기 유지 · 테마 관리 · 배경음악', () => {
+  const ev = readFileSync(join(ROOT, 'beast-event.js'), 'utf8')
+  assert.equal((ev.match(/battle: FOX/g) || []).length, 1)
+  assert.ok(ev.includes('st().cur === q.id') && ev.includes('pb.dataset.evChoose'))
+  assert.ok(ev.includes('cancelWait') && ev.includes("hash: location.hash"))
+  const idx = readFileSync(join(ROOT, 'index.html'), 'utf8')
+  assert.ok(idx.includes('id="themeToggle"') && !idx.includes('id="fontToggle"') && idx.includes('data-theme-pick="light"') && idx.includes('id="musicSwitch"') && idx.includes('id="sfxSwitch"') && idx.includes('bgm.js?v=') && idx.includes('theme-light.css?v='))
+  for (const f of ['commu', 'battle', 'boss']) assert.ok(existsSync(join(ROOT, `assets/bgm/${f}.mp3`)), f)
+  assert.ok(readFileSync(join(ROOT, 'theme-light.css'), 'utf8').includes('html[data-theme="light"]'))
+  assert.ok(readFileSync(join(ROOT, 'play/play.css'), 'utf8').includes('--c-ink: #f2f7f0'))
+  const app = readFileSync(join(ROOT, 'app.js'), 'utf8'); assert.ok(app.includes('BiryeongBeastEvent?.busy?.()') && app.includes("if (!sfxOn()) return;"))
+})

@@ -152,8 +152,6 @@
         C('EV-S1b', '다시, 몰려드는 원인을 막으려면', ['겉옷을 벗어 주작을 덮어준다'], IF('EV-S1', 2)),
         S('윤진서', '뭔가 납치하는 기분이긴 하지만⋯ 정석이네요! 이대로 내려가요 OO!'),
         S('연호수', '그럼 일단 들러붙은 것들부터 치워주자고.'),
-      ] },
-      { battle: FOX, p: '비령산 산꼭대기', a: '주작에게 들러붙은 것들을 치운다 — 3인 전투', lines: [
         N('윗옷에 덮인 새끼가 길게 하품을 한다. 윗옷 안에서 따뜻한 빛이 포근하게 퍼지지만, 옷자락은 조금도 타지 않는다. 여우불들은 갈 곳을 잃고 흩어진다.'),
         N('당신의 품에 안긴 주작은 편안해보인다. 마치 제 자리를 찾아갔다는 듯이.'),
       ] },
@@ -259,7 +257,13 @@
   const preview = () => App.isAdmin?.() && App.save?.adminStoryPreview === true;
   const open = () => Number(BQ()?.routes?.[FLAG]) === 1 || preview();
   const finished = () => !!st().done.final;
-  const ready = (q) => (q.id === 'intro' ? true : q.id === 'final' ? FIVE.every((id) => st().done[id]) : !!st().done.intro);
+  const ready = (q) => (q.id === 'intro' ? true : q.id === 'final' ? FIVE.every((id) => st().done[id]) : !!st().done.intro && st().cur === q.id); // vD.06.1 다섯 괴담은 산문 › 이벤트에서 하나씩 골라서
+  const choosable = (q) => FIVE.includes(q.id) && !!st().done.intro && !st().done[q.id];
+  function choose(id) {
+    const e = st(); if (e.cur === id) return;
+    if (e.cur && waitOf(e.cur)) { toast('청화호수에서 기다리는 중이다. 기다림을 마치거나 그 자리를 떠난 뒤에 고르자.'); return; }
+    e.cur = id; persist(); toast(`「${byId[id].name}」을(를) 맡았다. 오른쪽 할 일에 뜬다.`); redraw(); setTimeout(tick, 300);
+  }
   const stepOf = (q) => q.steps[st().step[q.id] || 0] || null;
   const toast = (t) => BQ()?.toast?.('이벤트', t);
   const itemName = (id) => api()?.itemName?.(id) || id;
@@ -284,6 +288,7 @@
       BQ()?.card?.({ kind: 'item', head: '받은 것', title: `「${itemName(BOOK)}」`, lines: ['1조부터 6조까지의 괴담 수칙이 적힌 얇은 책자. 괴담을 하나 풀 때마다 한 조씩 글자가 떠오른다.', '이제 동 · 서 · 남 · 북 · 중 다섯 괴담을 순서 없이 풀 수 있다 — 산문 › 이벤트'] });
     }
     e.step[q.id] = i + 1; delete e.wait[q.id];
+    if (e.step[q.id] >= q.steps.length && e.cur === q.id) e.cur = null; // 다 풀면 산문에서 다음 괴담을 고른다
     if (e.step[q.id] >= q.steps.length) finish(q);
     persist(); redraw(); setTimeout(tick, 400);
   }
@@ -334,18 +339,24 @@
     const a = api(); if (!a?.storyBattle) { toast('실행 화면을 불러오는 중이다.'); return; }
     a.storyBattle({ key: s.battle.key, tier: 1, i: 0, name: s.battle.name, blurb: s.battle.blurb, ctx: { form: 1, stage: `EV-${q.id}.${st().step[q.id] || 0}`, names: { player: App.profile()?.name || '' }, npcUsed: false, first: true } });
   }
-  // 대기(북): 그 자리를 떠나면 끊긴다
+  // 대기(북): 시각으로 센다 — 창을 내리거나 닫아 접속이 끊겨도 이어진다.
+  //   끊기는 때는 둘뿐: 다른 화면으로 옮기려 할 때(묻고) · 산에서 다른 지점을 밟을 때.
+  const waitOf = (id) => { const w = st().wait[id]; return w ? (typeof w === 'number' ? { at: w } : w) : null; };
+  function cancelWait(why) {
+    const e = st(); if (!e.wait.north) return;
+    delete e.wait.north; persist(); clearInterval(waitTimer); waitTimer = null;
+    toast(why || '자리를 떠나 기다림이 끊겼다. 청화호수 선착장으로 돌아가 다시 기다리자.'); redraw();
+  }
   let waitTimer = null;
   function waitLoop() {
     clearInterval(waitTimer); waitTimer = null;
     const q = byId.north, e = st();
-    if (!e.wait.north || e.done.north) return;
+    if (!waitOf('north') || e.done.north) return;
     waitTimer = setInterval(() => {
-      const s = stepOf(q);
-      if (!s?.wait || !e.wait.north) { clearInterval(waitTimer); waitTimer = null; return; }
-      const left = e.wait.north + s.wait - Date.now();
-      if (left <= 0) { if (!busy && !BQ()?.sceneOpen?.()) { clearInterval(waitTimer); waitTimer = null; play(q, s, () => advance(q)); } return; }
-      if (!atStep(s)) { delete e.wait.north; persist(); clearInterval(waitTimer); waitTimer = null; toast('자리를 떠나 기다림이 끊겼다. 청화호수 선착장으로 돌아가 다시 기다리자.'); redraw(); return; }
+      const s = stepOf(q), w = waitOf('north');
+      if (!s?.wait || !w) { clearInterval(waitTimer); waitTimer = null; return; }
+      const left = w.at + s.wait - Date.now();
+      if (left <= 0) { if (!busy && !BQ()?.sceneOpen?.() && !document.body.classList.contains('is-ach')) { clearInterval(waitTimer); waitTimer = null; play(q, s, () => advance(q)); } return; }
       document.querySelectorAll('[data-ev-wait-left]').forEach((el) => { el.textContent = mmss(left); });
     }, 1000);
   }
@@ -365,10 +376,10 @@
     if (s.battle) {
       const b = btn('solid-btn quest-act', `${jo(s.battle.name, '과', '와')} 싸운다 · 3인`, () => fight(q, s)); b.dataset.evFight = q.id; acts.append(b);
     } else if (s.wait) {
-      if (e.wait[q.id]) { const w = h('span', 'ev-wait'); w.append('기다리는 중 — 남은 시간 ', h('b', '', mmss(e.wait[q.id] + s.wait - Date.now()))); w.lastChild.dataset.evWaitLeft = ''; acts.append(w); }
-      else if (atStep(s)) { const b = btn('solid-btn quest-act', '대기 시작', () => { e.wait[q.id] = Date.now(); persist(); waitLoop(); redraw(); }); b.dataset.evWait = ''; acts.append(b); }
+      if (waitOf(q.id)) { const w = h('span', 'ev-wait'); w.append('기다리는 중 — 남은 시간 ', h('b', '', mmss(waitOf(q.id).at + s.wait - Date.now()))); w.lastChild.dataset.evWaitLeft = ''; acts.append(w); }
+      else if (atStep(s)) { const b = btn('solid-btn quest-act', '대기 시작', () => { e.wait[q.id] = { at: Date.now(), hash: location.hash }; persist(); waitLoop(); redraw(); }); b.dataset.evWait = ''; acts.append(b); }
       else if (target) acts.append(btn('ghost-btn quest-go', '그곳으로', () => App.go(target)));
-      if (!compact) row.append(h('small', 'ev-step-need', '해당 페이지(청화호수)에서 15분을 기다린다. 다른 곳으로 가면 처음부터 다시.'));
+      if (!compact) row.append(h('small', 'ev-step-need', '해당 페이지(청화호수)에서 15분을 기다린다. 창을 내리거나 닫아도 이어지고, 다른 곳으로 옮기면 처음부터 다시.'));
     } else if (target && !atStep(s)) acts.append(btn('ghost-btn quest-go', '그곳으로', () => App.go(target)));
     if (acts.children.length) row.append(acts);
     return row;
@@ -378,10 +389,12 @@
     const box = h('div', 'quest-box ev-box'); box.dataset.beastEvent = '';
     box.append(h('p', 'quest-box-kicker', `이벤트 · ${TITLE.split('─')[0]}`));
     const list = QUESTS.filter((q) => !st().done[q.id] && ready(q));
-    const going = list.filter((q) => q.id === 'intro' || q.id === 'final' || (st().step[q.id] || 0) > 0 || st().wait[q.id]);
-    (going.length ? going : list.slice(0, 1)).forEach((q) => box.append(stepRow(q, true)));
-    const rest = list.length - (going.length ? going.length : 1);
-    if (rest > 0) box.append(h('small', 'ev-more', `그 밖에 아직 시작하지 않은 괴담 ${rest}개 — 산문 › 이벤트`));
+    list.forEach((q) => box.append(stepRow(q, true)));
+    if (!list.length) {
+      const left = FIVE.filter((id) => !st().done[id]).length;
+      box.append(h('p', 'ev-step-act', `산문 › 이벤트에서 풀 괴담을 하나 고른다. (남은 괴담 ${left}개)`));
+      const acts = h('div', 'quest-box-acts'); const b = btn('ghost-btn quest-go', '산문으로', () => App.go('#/zone/north/event')); b.dataset.evPick = ''; acts.append(b); box.append(acts);
+    }
     return box;
   }
   function redraw() { try { BQ()?.tick?.(); } catch (_) { /* 본편이 아직 */ } if (/^#\/zone\/north\/event/.test(location.hash)) App.route(); }
@@ -402,11 +415,13 @@
       const done = !!e.done[q.id], can = ready(q);
       const row = h('div', `quest-row${done ? ' is-done' : can ? ' is-now' : ' is-locked'}`); row.dataset.evRow = q.id;
       const t = h('div', 'quest-row-text');
-      t.append(h('strong', '', `${done ? '◆' : can ? '◈' : '◇'} ${q.side} ${can || done ? q.name : '？？？'}`));
+      t.append(h('strong', '', `${done ? '◆' : can ? '◈' : '◇'} ${q.side} ${can || done || choosable(q) ? q.name : '？？？'}`));
       if (done) t.append(h('p', '', q.beast ? `${jo(`새끼 ${KIND_NAME[q.beast]}`, '을', '를')} 만났다.` : q.id === 'final' ? `운명의 신수 — ${KIND_NAME[e.fate?.kind] || ''} 「${e.fate?.name || ''}」` : '괴담 수칙서를 받았다.'));
       else if (can) t.append(stepRow(q, false));
+      else if (choosable(q)) t.append(h('p', '', (st().step[q.id] || 0) > 0 ? '하다 만 괴담. 다시 고르면 이어서 한다.' : '아직 풀지 않은 괴담.'));
       else t.append(h('p', '', q.id === 'final' ? '다섯 괴담을 모두 풀면 열린다.' : '「번진 먹」을 마치면 열린다.'));
       row.append(t);
+      if (choosable(q) && !can) { const pb = btn('solid-btn codex-use', e.cur ? '이 괴담으로 바꾼다' : '이 괴담을 푼다', () => choose(q.id)); pb.dataset.evChoose = q.id; row.append(pb); }
       if (done) row.append(btn('ghost-btn codex-use', '다시 보기', () => replay(q)));
       sec.append(row);
     });
@@ -423,7 +438,10 @@
   // ── 연결 ──
   window.addEventListener('biryeong:quest', (ev) => {
     const { type, id } = ev.detail || {};
-    if (type === 'visit') { here = { key: id, hash: location.hash }; setTimeout(tick, 500); }
+    if (type === 'visit') {
+      if (waitOf('north') && id !== byId.north.steps[1].visit && !st().done.north) cancelWait('청화호수를 떠나 다른 곳을 살폈다. 기다림이 끊겼다.');
+      here = { key: id, hash: location.hash }; setTimeout(tick, 500);
+    }
     if (type === 'storyBattle' && id?.win && open()) {
       for (const q of QUESTS) {
         const s = stepOf(q);
@@ -435,7 +453,7 @@
   window.addEventListener('biryeong:routes', () => { redraw(); setTimeout(tick, 300); });
   window.addEventListener('biryeong:saved', () => setTimeout(tick, 500));
 
-  window.BiryeongBeastEvent = { open, finished, title: TITLE, board, trackerBox, tick, quests: QUESTS, rules: RULES, state: st, _here: (k) => { here = k ? { key: k, hash: location.hash } : null; } };
+  window.BiryeongBeastEvent = { open, finished, title: TITLE, board, trackerBox, tick, quests: QUESTS, rules: RULES, state: st, choose, busy: () => !!waitOf('north') && !st().done.north && open(), cancelWait, _here: (k) => { here = k ? { key: k, hash: location.hash } : null; } };
   setTimeout(() => { waitLoop(); tick(); }, 1500);
   setInterval(() => { if (!document.hidden) tick(); }, 2500); // 본편 장면이 먼저 나온 뒤에도 이어지게
 })();

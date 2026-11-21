@@ -17,6 +17,20 @@
   background: transparent; color: var(--c-paper); font-family: var(--ui-font-family); font-size: 14px; line-height: 1.5;
   text-align: left; image-rendering: auto; transition: none;
 }
+/* vD.06.1 화이트 모드: 아주 희미한 녹색이 도는 백색 + 녹색 · 적색 강조 */
+html[data-theme="light"] & {
+  --c-ink: #f2f7f0; --c-ink-raised: #fbfdf9; --c-ink-muted: #e8f0e5;
+  --c-gold: #2f7a4c; --c-gold-dim: #9cc4a8; --c-gold-fill: #3a8a58;
+  --c-crimson: #c9485b; --c-paper: #1f3527; --c-mana: #2f7fa8; --c-spirit: #c99a1c;
+  --c-shade: #7fa889; --c-edge: #1f3527;
+  --facet-main: #3a8a58; --facet-beast: #c9485b;
+  --panel-from: #fbfdf9; --panel-to: #f4f8f1; --panel-border: rgb(58 138 88 / .3); --stage-glow: #fbfdf9; --stage-base: #eef4eb;
+  --scrim: rgb(31 53 39 / 0.45); --dot: rgb(111 166 118 / .2);
+  --loc-mainHall: #2f7fa8; --loc-annex: #7a6a3c; --loc-dorm: #6f5fb5; --loc-gym: #c9485b; --loc-shrine: #b8860b; --loc-infirmary: #2f8f5f;
+  --pixel-frame: #3a8a58; --pixel-frame-cool: #2f7fa8; --pixel-red: #c9485b;
+  color: var(--c-paper);
+}
+html[data-theme="light"] & .flat-btn:not(:disabled) :is(.text-gold, .text-paper, [class*="text-paper/"]) { color: var(--c-ink-raised); }
 .font-serif, .font-myeongjo { font-family: var(--ui-font-family); }
 h1, h2, h3, h4 { letter-spacing: 0; }
 &#playPortal { position: static; }

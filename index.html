@@ -9,29 +9,32 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-kopub@1.0">
-  <link rel="stylesheet" href="styles.css?v=D.06">
-  <link rel="stylesheet" href="play/play.css?v=D.06">
-  <script src="game-data.js?v=D.06" defer></script>
-  <script src="config.js?v=D.06" defer></script>
-  <script src="auth.js?v=D.06" defer></script>
-  <script src="titles.js?v=D.06" defer></script>
-  <script src="titles2.js?v=D.06" defer></script>
-  <script src="story.js?v=D.06" defer></script>
-  <script src="play/play.js?v=D.06" defer></script>
-  <script src="story-data.js?v=D.06" defer></script>
-  <script src="sync.js?v=D.06" defer></script>
-  <script src="codex-data.js?v=D.06" defer></script>
-  <script src="app.js?v=D.06" defer></script>
-  <script src="quest.js?v=D.06" defer></script>
-  <script src="opening.js?v=D.06" defer></script>
-  <script src="server.js?v=D.06" defer></script>
-  <script src="market.js?v=D.06" defer></script>
-  <script src="cafe.js?v=D.06" defer></script>
-  <script src="adapt.js?v=D.06" defer></script>
-  <script src="beast-event.js?v=D.06" defer></script>
-  <script src="community.js?v=D.06" defer></script>
-  <script src="party.js?v=D.06" defer></script>
-  <link rel="stylesheet" href="community.css?v=D.06">
+  <link rel="stylesheet" href="styles.css?v=D.06.1">
+  <link rel="stylesheet" href="play/play.css?v=D.06.1">
+  <link rel="stylesheet" href="theme-light.css?v=D.06.1">
+  <script>try { if (localStorage.getItem('biryeong-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (_) {}</script>
+  <script src="game-data.js?v=D.06.1" defer></script>
+  <script src="config.js?v=D.06.1" defer></script>
+  <script src="auth.js?v=D.06.1" defer></script>
+  <script src="titles.js?v=D.06.1" defer></script>
+  <script src="titles2.js?v=D.06.1" defer></script>
+  <script src="story.js?v=D.06.1" defer></script>
+  <script src="play/play.js?v=D.06.1" defer></script>
+  <script src="story-data.js?v=D.06.1" defer></script>
+  <script src="sync.js?v=D.06.1" defer></script>
+  <script src="codex-data.js?v=D.06.1" defer></script>
+  <script src="app.js?v=D.06.1" defer></script>
+  <script src="quest.js?v=D.06.1" defer></script>
+  <script src="opening.js?v=D.06.1" defer></script>
+  <script src="server.js?v=D.06.1" defer></script>
+  <script src="market.js?v=D.06.1" defer></script>
+  <script src="cafe.js?v=D.06.1" defer></script>
+  <script src="adapt.js?v=D.06.1" defer></script>
+  <script src="beast-event.js?v=D.06.1" defer></script>
+  <script src="bgm.js?v=D.06.1" defer></script>
+  <script src="community.js?v=D.06.1" defer></script>
+  <script src="party.js?v=D.06.1" defer></script>
+  <link rel="stylesheet" href="community.css?v=D.06.1">
 </head>
 <body>
   <div class="world-dots" aria-hidden="true"></div>
@@ -49,11 +52,23 @@
         <button class="chip-button" id="onlineBtn" type="button">접속자 확인하기 <span>◉</span></button>
         <button class="chip-button chip-gold" id="journalBtn" type="button" title="내 프로필 열기">나의 기록 <span id="journalCount">人</span></button>
         <button class="chip-button" id="accountBtn" type="button" title="로그아웃">로그아웃 <span id="accountName"></span></button>
-        <div class="font-control" id="fontControl">
-          <button class="chip-button font-toggle" id="fontToggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="fontMenu" title="글꼴 선택">가 <span>글꼴 ▾</span></button>
-          <div class="font-menu" id="fontMenu" hidden role="group" aria-label="글꼴 선택">
-            <div class="font-menu-header"><span>화면 글꼴 · 3종</span><button type="button" class="font-menu-close" id="fontClose" aria-label="글꼴 메뉴 닫기">✕</button></div>
-            <p>갈무리 · KoPub 돋움 · KoPub 바탕</p>
+        <div class="font-control" id="themeControl">
+          <button class="chip-button font-toggle" id="themeToggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="themeMenu" title="테마 관리">彩 <span>테마 관리 ▾</span></button>
+          <div class="font-menu theme-menu" id="themeMenu" hidden role="group" aria-label="테마 관리">
+            <div class="font-menu-header"><span>테마 관리</span><button type="button" class="font-menu-close" id="fontClose" aria-label="테마 관리 닫기">✕</button></div>
+            <p class="theme-label">화면</p>
+            <div class="theme-modes" id="themeModes">
+              <button type="button" class="theme-mode" data-theme-pick="dark"><b>다크 모드</b><small>감청 바탕 · 금빛 강조</small></button>
+              <button type="button" class="theme-mode" data-theme-pick="light"><b>화이트 모드</b><small>옅은 녹백 바탕 · 녹 · 적 강조</small></button>
+            </div>
+            <p class="theme-label">소리</p>
+            <div class="theme-sound">
+              <div class="theme-row"><span>♪ 음악</span><button type="button" class="theme-switch" id="musicSwitch" aria-pressed="true">켜짐</button></div>
+              <label class="theme-row theme-vol"><span>음악 크기</span><input type="range" id="musicVol" min="0" max="100" step="5" aria-label="음악 크기"><small id="musicVolText"></small></label>
+              <div class="theme-row"><span>♫ 효과음</span><button type="button" class="theme-switch" id="sfxSwitch" aria-pressed="true">켜짐</button></div>
+              <small class="font-note">음악 — 커뮤: 국악 · 일반 전투 · 보스 전투. 이야기를 보는 동안에는 잠시 멈췄다가 이어진다.</small>
+            </div>
+            <p class="theme-label">글꼴 · 갈무리 · KoPub 돋움 · KoPub 바탕</p>
             <div id="fontOptions" class="font-options"></div>
             <div class="font-preview" id="fontPreview">秘靈 · 비령 가나다 123</div>
             <small class="font-note" id="fontNotice"></small>

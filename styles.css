@@ -946,3 +946,14 @@ body.is-opening{overflow:hidden}
 .ev-rules{margin:6px 0 4px;padding-left:0;list-style:none;font-size:12.5px;line-height:1.9}
 .ev-rules .is-open{color:#f3dfb2}.ev-rules .is-locked{color:#6f7f86}
 .scene-name-note.is-warn{color:#ff9a7a}
+/* vD.06.1 테마 관리 */
+.theme-label{margin:12px 0 6px!important;font-size:11px;letter-spacing:.08em;color:#d4b078!important}
+.theme-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.theme-mode{display:flex;flex-direction:column;gap:2px;padding:8px;text-align:left;background:#0a1321;border:1px solid #455769;color:#efe6ce;cursor:pointer}
+.theme-mode small{font-size:10px;color:#a0b2b3}
+.theme-mode[aria-pressed="true"]{border-color:#d4b078;box-shadow:inset 0 0 0 1px #d4b078}
+.theme-sound{display:grid;gap:6px}
+.theme-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#efe6ce}
+.theme-switch{min-width:54px;padding:3px 8px;font-size:11px;background:#0a1321;border:1px solid #455769;color:#a0b2b3;cursor:pointer}
+.theme-switch[aria-pressed="true"]{background:#d4b078;border-color:#d4b078;color:#0b1522}
+.theme-vol input{flex:1;accent-color:#d4b078}.theme-vol small{width:34px;text-align:right;font-size:10px;color:#a0b2b3}
