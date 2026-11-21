@@ -29,6 +29,10 @@ export const STORY_FOES = {
   waiting: { pattern: 'forms', hp: 1.25, drop: ['st-waiting-bead', 1], rules: ['정신오염에 따라 모습이 바뀐다 — 20 미만 자비형(공격이 멈추고 스스로 낫는다) · 50 미만 복수형(준 피해의 25%를 돌려받는다) · 그 이상 공포형(공격 · 부적이 막힌다).', '[쪽지를 읽어 준다] 기도 쪽지 묶음이 있으면 한 번 — 그것이 한 턴 멈추고, 세 턴 동안 모습의 힘이 꺼진다.'],
     say: { start: '…기다렸어. 아주 오래. 누구를 기다렸는지는 잊었지만.', read: '돌아와… 돌아와… 그건 내가 쓴 글씨가 아니야.' } },
   echo: { pattern: null, hp: 1, drop: null, rules: ['예측이 남긴 찌꺼기. 별다른 수는 없다.'] },
+  // vD.06 이벤트 「학생 괴담 수칙」 — 남: 여우불 · 야광귀 무리(1~2단계 일반 사이) / 마지막: 번진 먹(추가전투 1단계 보스급, StoryParty 의 'smear' 패턴)
+  evfox: { pattern: null, hp: 1.35, drop: null, rules: ['주작의 빛에 몰려든 여우불과 야광귀가 한 무리로 덤빈다. 별다른 수는 없다.'] },
+  smear: { pattern: 'smear', hp: 1.9, atk: 1.15, drop: null, rules: ['번진 먹은 이름 없는 새끼 신수들에게서 먹을 끌어와 받는 피해가 줄어 있다(×0.55).', '두 라운드마다 새끼 하나를 노린다 — 그 라운드에 [이름을 부른다]를 고르면 그 새끼는 다시 노려지지 않고, 번진 먹이 크게 약해진다(받는 피해 +0.2 · 공격 −10%씩).', '놓치면 먹이 몸을 불릴 뿐, 새끼가 먹히지는 않는다.'],
+    say: { start: '다섯⋯ 이름 없는 다섯⋯ 이것들만 먹으면⋯ 이번에야말로⋯⋯!' } },
   // vD.02.2 3장 「사찰귀」 — 3단계 보스 수준(아이템과 영능력을 함께 써야 한다) · vD.02.4 3인 전투(체력은 3인 배율이 따로 붙어 2.4 → 1.6)
   sachal: { pattern: null, hp: 1.6, atk: 1.2, drop: null, rules: ['3단계 보스 수준의 상대 — 체력이 아주 많고 한 방이 아프다. 아이템과 영능력을 함께 써야 이길 수 있다.'] },
   // vD.03 4장 「오류(誤謬)」 — 3인 전투(StoryParty)의 'oracle' 패턴
@@ -53,7 +57,7 @@ export const STORY_FOES = {
   final: { pattern: 'phases', phases: { 1: ['eyes', 'rewind', 'voices'], 2: ['heads', 'roots', 'alternate'], 3: ['ward', 'fog', 'voices'] }, hp: 1.6, drop: ['st-final-knot', 1], rules: ['체력 66% · 33%에서 형태를 바꾼다. 고른 진영에 따라 지금까지 만난 신탁들의 모습을 차례로 빌린다.'],
     say: { start: '(수천 개의 기도와 대답이 한꺼번에) 너희는 무엇을 약속하겠느냐.', shift: '형태가 바뀐다 —' } },
 }
-const PATTERN_NAME = { names: '이름 부르기', calm: '진정', roots: '뿌리', forms: '모습', rewind: '되감기', oracle: '신탁', eyes: '눈', heads: '두 머리', voices: '목소리', alternate: '번갈아 오는 신탁', fog: '안개', ward: '부모들의 자리' }
+const PATTERN_NAME = { smear: '번진 먹', names: '이름 부르기', calm: '진정', roots: '뿌리', forms: '모습', rewind: '되감기', oracle: '신탁', eyes: '눈', heads: '두 머리', voices: '목소리', alternate: '번갈아 오는 신탁', fog: '안개', ward: '부모들의 자리' }
 
 /** 이 상대를 이기면 열리는 전리품 제작법 */
 export const bossRecipes = (key) => STORY_RECIPES.filter((r) => r.unlock === `boss:${key}`)

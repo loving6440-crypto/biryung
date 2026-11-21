@@ -58,6 +58,11 @@ function npcMembers(me, enemy) {
   }))
 }
 const isNpc = (id) => String(id).startsWith('npc-')
+// vD.06 이벤트 「학생 괴담 수칙」 마지막 — 번진 먹이 노리는 새끼 신수 다섯
+// [아이디, 이름, 부르는 말, 이름+이/가, 이름+을/를]
+export const SMEAR_KIDS = [['cheongnyong', '새끼 청룡', '청룡아', '새끼 청룡이', '새끼 청룡을'], ['baekho', '새끼 백호', '백호야', '새끼 백호가', '새끼 백호를'], ['jujak', '새끼 주작', '주작아', '새끼 주작이', '새끼 주작을'], ['hyeonmu', '새끼 현무', '현무야', '새끼 현무가', '새끼 현무를'], ['gumiho', '새끼 구미호', '구미호야', '새끼 구미호가', '새끼 구미호를']]
+const kidOf = (id) => SMEAR_KIDS.find((k) => k[0] === id) || [id, id, id, id, id]
+const smearMul = (st) => 0.55 + 0.2 * (st.named?.length || 0)
 const shuffle = (arr, seed) => { const a = [...arr]; let x = seed * 9301 + 49297; for (let i = a.length - 1; i > 0; i--) { x = (x * 9301 + 49297) % 233280; const j = Math.floor((x / 233280) * (i + 1)); [a[i], a[j]] = [a[j], a[i]] } return a }
 const nameOptions = (st, round) => { const wi = (round + st.hits) % 3; return shuffle([NAME_RIGHT, NAME_WRONG[wi], NAME_WRONG[(wi + 1) % 3]], round + st.hits) }
 const pct = (mb, p) => Math.max(1, Math.ceil(mb.enemy.hp * p))
@@ -100,6 +105,7 @@ function newMB(enemy, members, size = 3, limit = false) {
   mb.story = { p, key: enemy.story?.key, hits: 0, broken: false, calm: 0, asked: 0, askedBy: {}, shown: false, roots: 3, baseAtk: mb.enemy.atk, has: enemy.story?.has || {}, form: taint < 20 ? 'mercy' : taint < 50 ? 'revenge' : 'fear', taint, freeze: 0, read: false }
   if (p === 'forms') noteMB(mb, `${mb.enemy.name}의 모습 — ${FORM_NAME[mb.story.form]} (정신오염 ${taint})`)
   // vD.03 4장 오류: [신탁] 첫 차례는 시곗바늘을 23시 17분으로 뛰어넘기는 데 쓴다(그 뒤 공격력 ×2) · [절대 신탁] 세 라운드마다 그 라운드에 받은 피해를 되돌린다
+  if (p === 'smear') { Object.assign(mb.story, { named: [], aim: null, wait: 1 }); noteMB(mb, `[${mb.enemy.name}] 다섯⋯ 이름 없는 다섯⋯ — 먹이 보관소 안의 새끼 신수들을 더듬는다.`) }
   if (p === 'oracle') { mb.story.jump = false; mb.story.rStart = mb.ehp; noteMB(mb, `[${mb.enemy.name}] 시곗바늘을 쥔다 — 첫 차례에 23시 17분으로 뛰어넘을 셈이다.`) }
   openingInitiative(mb)
   if (p === 'oracle' && mb.queue?.length) mb.queue = ['none', ...mb.queue.slice(1)]
@@ -118,6 +124,7 @@ function resolveWithStory(mb, actorId, offensive) {
     let mult = 1, why = ''
     if (st.p === 'names' && st.broken) { mult = 2; why = '방어가 무너진 명부의 귀신' }
     if (st.p === 'roots') { mult = st.roots > 0 ? 1 - 0.2 * st.roots : 1.3; why = st.roots > 0 ? `뿌리 ${st.roots}개가 받아 낸다` : '뿌리째 드러난 당산신' }
+    if (st.p === 'smear') { mult = smearMul(st); why = st.named.length < 5 ? `이름 없는 새끼들에게서 먹을 끌어온다(불린 이름 ${st.named.length}/5)` : '이름을 모두 빼앗긴 먹' }
     if (mult !== 1) {
       const want = Math.round(dealt * mult)
       mb.ehp = Math.max(0, Math.min(mb.enemy.hp, before - want))
@@ -157,6 +164,19 @@ function resolveWithStory(mb, actorId, offensive) {
     st.rStart = mb.ehp
     if (mb.round % 3 === 0 && !mb.over) noteMB(mb, '⚠ 이번 라운드가 끝나면 [절대 신탁] — 이 라운드에 준 피해는 되돌아간다. 막기 · 회복 · 준비가 낫다.')
   }
+  // vD.06 번진 먹: 두 라운드마다 새끼 하나를 노린다 — 그 라운드에 [이름을 부른다]면 그 새끼는 다시 노려지지 않고 먹이 크게 약해진다.
+  //       놓치면 먹이 몸을 불릴 뿐 새끼가 먹히지는 않는다(전투가 길어질 뿐).
+  if (st?.p === 'smear' && mb.round > round0 && !mb.over) {
+    if (st.aim) {
+      const h = Math.min(mb.enemy.hp - mb.ehp, pct(mb, 0.06)); mb.ehp += h
+      noteMB(mb, `번진 먹이 ${kidOf(st.aim)[4]} 놓쳤다. 새끼는 보관소 구석으로 숨었지만, 먹이 몸을 불린다. 체력 +${h}`)
+      st.aim = null; st.wait = 1
+    } else if ((st.wait = (st.wait || 1) - 1) <= 0) {
+      const left = SMEAR_KIDS.filter((k) => !st.named.includes(k[0]))
+      if (left.length) { const k = left[mb.round % left.length]; st.aim = k[0]; st.wait = 2; noteMB(mb, `✦ 번진 먹이 「${k[1]}」에게 손을 뻗는다! 이번 라운드에 [이름을 부른다]로 지켜 주자.`) }
+    }
+  }
+  if (st?.p === 'smear') mb.enemy.atk = Math.max(1, Math.round(st.baseAtk * (1 - 0.1 * st.named.length)))
   if (st?.p === 'roots' && st.roots > 0 && mb.round > round0 && !mb.over) {
     const h = Math.min(mb.enemy.hp - mb.ehp, pct(mb, 0.04 * st.roots))
     if (h > 0) { mb.ehp += h; noteMB(mb, `뿌리가 마을의 불행을 빨아올린다. ${mb.enemy.name} 체력 +${h}`) }
@@ -203,6 +223,15 @@ function storyAct(mb, id, act, arg) {
     m.mp -= c; st.roots -= 1
     noteMB(mb, `[${m.name}] 금줄 하나를 끊었다. 뿌리 하나가 흙 속에서 말라 간다. (남은 뿌리 ${st.roots})`)
     if (!st.roots) noteMB(mb, '✦ 당산신이 뿌리째 드러났다! 받는 피해 +30%.')
+  } else if (st.p === 'smear' && act === 'call') {
+    if (!st.aim) return { error: '지금 노려지는 새끼가 없다.' }
+    const k = kidOf(st.aim)
+    st.named.push(st.aim); st.aim = null; st.wait = 2
+    const d = Math.min(mb.ehp, pct(mb, 0.1)); mb.ehp -= d
+    noteMB(mb, `[${m.name}] "${k[2]}!" — 이름이 불린 ${k[3]} 몸에 붙은 먹을 털어 낸다. 번진 먹이 크게 흔들린다. (피해 ${d} · 불린 이름 ${st.named.length}/5)`)
+    if (st.named.length >= 5) noteMB(mb, '✦ 다섯 모두의 이름이 불렸다! 번진 먹이 더는 숨을 곳이 없다 — 받는 피해가 크게 늘고 공격이 약해진다.')
+    mb.enemy.atk = Math.max(1, Math.round(st.baseAtk * (1 - 0.1 * st.named.length)))
+    if (mb.ehp <= 0) { win(mb); return { ok: true } }
   } else return { error: '쓸 수 없는 행동이다.' }
   m.act = { action: 'item' } // 턴만 넘긴다
   resolveWithStory(mb, id, false)
@@ -252,6 +281,11 @@ function StoryPanel({ story, round, me, myTurn, onStory, hasPortrait = false }) 
   } else if (story.p === 'oracle') {
     const left = 3 - ((round - 1) % 3) - 1
     meter = <p>시각 {story.jump ? '23:17 · 공격력 ×2' : '23:05 · 첫 차례에 시간이 뛴다'} · {left === 0 ? <b style={{ color: '#ff9a7a' }}>이번 라운드 끝에 되감는다 — 준 피해가 되돌아간다</b> : `되감기까지 ${left}라운드`}</p>
+  } else if (story.p === 'smear') {
+    const named = story.named || []
+    meter = <div><p>불린 이름 {'●'.repeat(named.length)}{'○'.repeat(Math.max(0, 5 - named.length))} · 번진 먹이 받는 피해 ×{smearMul(story).toFixed(2)}</p>
+      {story.aim ? <p style={{ color: '#ff9a7a' }}>✦ 번진 먹이 「{kidOf(story.aim)[1]}」에게 손을 뻗고 있다 — 이번 라운드에 이름을 불러 주자.</p> : <p style={{ color: '#b9b1a1' }}>지킨 새끼: {named.length ? named.map((x) => kidOf(x)[1]).join(' · ') : '아직 없다'}</p>}</div>
+    if (story.aim) acts.push(btn('call', `"${kidOf(story.aim)[2]}!" 이름을 부른다`, '그 새끼를 지킨다 · 턴을 쓴다'))
   } else if (story.p === 'roots') {
     meter = <p>뿌리 {'♣'.repeat(story.roots)}{'·'.repeat(3 - story.roots)} {story.roots ? `· 받는 피해 −${story.roots * 20}% · 라운드마다 회복` : '· 뿌리째 드러남(받는 피해 +30%)'}</p>
     acts.push(btn('cut', '금줄을 끊는다', `의지력 ${cutCost(me)} · 뿌리 하나 · 턴을 쓴다`, undefined, !story.roots))

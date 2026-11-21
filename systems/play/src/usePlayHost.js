@@ -11,6 +11,7 @@ import { cook } from '@vault/game/cooking.js'
 import { markLineSeen } from '@vault/game/npcLines.js'
 import { canAddInventory, claimPending, limitNewGains } from '@vault/game/inventoryCapacity.js'
 import { LOST_FIND_CHANCE, LOST_FIND_ITEMS } from './lostFind.js'
+import * as Beasts from './beasts.js' // vD.05 신수들의 터: 새끼 신수 기르기
 import { protectBags, putInBag, takeFromBag, bagCount, bagRoom, bagContents, BAG_SLOTS } from '@vault/game/bag.js'
 import { STAT_KEYS, STAT_META, STAT_MAX, STAT_UPGRADE_COST_PER_POINT } from '@vault/game/constants.js'
 import { LESSON_WAIT_MINUTES } from '@vault/game/courseInfo.js'
@@ -1084,6 +1085,33 @@ export function usePlayHost() {
   }
 const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQuest?.extraTier?.()) || 1))
   setAilmentSource(() => playerRef.current) // vC.06 혼자 하는 전투의 라운드 피해가 지금 걸린 몸의 이상을 읽는다
+  // vD.05 신수들의 터 — BeastCare.jsx 가 부른다. 상태는 player.beasts(계정 기록과 함께 저장)
+  const beastAct = (kind, a = {}) => {
+    const cur = playerRef.current, now = Date.now()
+    if (!cur) return null
+    let r
+    if (kind === 'adopt') r = Beasts.adopt(cur, a.kind, a.name, now, { force: !!a.fate }) // vD.06 이벤트 마지막에 고른 운명의 신수는 자람 조건 없이 맡는다
+    else if (kind === 'active') r = Beasts.setActive(cur, a.id)
+    else if (kind === 'feed') r = countOfId(a.item) > 0 ? Beasts.feed(cur, a.id, a.item, now) : { error: '그 먹이가 소지품에 없다.' }
+    else if (kind === 'pet') r = Beasts.pet(cur, a.id, now)
+    else if (kind === 'play') r = Beasts.play(cur, a.id, now)
+    else if (kind === 'trip') r = Beasts.sendTrip(cur, a.id, a.trip, now)
+    else if (kind === 'collect') {
+      r = Beasts.collectTrip(cur, a.id, now)
+      if (!r.error && r.gain && !canAddInventory(cur.inventory || {}, r.gain)) r = { error: '소지품이 가득 차서 물어 온 것을 받을 수 없다. 자리를 비우고 다시 맞이하자.' }
+    } else if (kind === 'greet') { r = Beasts.greet(cur, now); if (!r) return null }
+    else return null
+    if (r.error) { notify(r.error); return { error: r.error } }
+    const next = r.player, inv = { ...(next.inventory || {}) }
+    for (const [id, n] of Object.entries(r.take || {})) { inv[id] = (inv[id] || 0) - n; if (inv[id] <= 0) delete inv[id] }
+    for (const [id, n] of Object.entries(r.gain || {})) if (itemOf(id)) inv[id] = (inv[id] || 0) + n
+    commit({ ...next, inventory: inv })
+    if (r.log) addLog(r.log)
+    if (r.gain) addLog(`[신수들의 터] 물어 온 것: ${Object.entries(r.gain).map(([id, n]) => `${itemOf(id)?.name ?? id} ×${n}`).join(', ')}`)
+    if (r.reward) { const nm = r.player.beasts.list.find((b) => b.id === a.id)?.name ?? ''; grant({ ...r.reward, log: `[신수들의 터] 「${nm}」${Beasts.josa(nm, '이', '가')} ${r.grew}${Beasts.josa(r.grew, '이', '가')} 되었다! 관리인이 보상을 건넨다.` }) }
+    persist()
+    return { line: r.line, grew: r.grew || null, gain: r.gain || null, reward: r.reward || null }
+  }
   bridge.api = player ? {
     upgradeStat, openInventory: () => setInvOpen(true), grant, get player() { return playerRef.current }, statCost: (key) => (playerRef.current?.stats?.[key] ?? 1) * STAT_UPGRADE_COST_PER_POINT, statMax: admin ? 999 : STAT_MAX,
     save: persist, storyBattle, storyHelp, storySize, roomFight, adminEdit, psychicDefs: () => PSYCHICS.map(({ id, name, label, stolen, always }) => ({ id, name: name || label || id, stolen: !!stolen, always: !!always })), ailmentDefs: () => AILMENTS.map(({ id, name, hanja, max, minutes, heavy, effect }) => ({ id, name, hanja, max, minutes, heavy, effect })), enemyName: (id) => enemyById(id)?.name ?? id, spendMp, effStats: () => effStats, giveAway,
@@ -1104,6 +1132,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     itemName: (id) => itemOf(id)?.name ?? id, count: countOfId,
     // vD.03 벼룩시장: 물건 설명 · 소지품 칸 · 장착 중인 것
     itemInfo: (id) => { const it = itemOf(id); return it ? { id: it.id, name: it.name, kind: it.kind, desc: it.desc || '', effectText: it.effectText || '', price: it.price ?? null, story: !!(it.storyOnly || String(it.id).startsWith('st-') || (it.tags || []).includes('본편')) } : null },
+    beastView: () => Beasts.view(playerRef.current), beastAct, beastFoods: () => [...new Set([...Beasts.FOODS, ...Beasts.KIND_IDS.flatMap((k) => Beasts.KINDS[k].likes)])].filter((id) => countOfId(id) > 0).map((id) => ({ id, name: itemOf(id)?.name ?? id, n: countOfId(id) })),
     canAdd: (items) => canAddInventory(playerRef.current?.inventory || {}, items), equippedIds: () => Object.values(equipOf(playerRef.current) || {}).filter(Boolean), equippedBase: () => baseIdOf(equipOf(playerRef.current).weapon ?? '') || null,
     tutorialCount: () => Object.keys(playerRef.current?.tutorialDone ?? {}).length, // 본편: [전투 안내] 몇 단계까지 마쳤나
     heirloomEnh: () => { const cur = playerRef.current; const id = cur?.heirloomWeapon; return id ? enhTotal(cur, id) : 0 }, // 본편: 유품 무구 강화 수

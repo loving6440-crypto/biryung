@@ -469,6 +469,17 @@ export function itemMatches(item, query0) {
   { file: 'game/items.js', edits: [['export const START_MONEY = 50', 'export const START_MONEY = 200']] },
   // ── vD.04 우정 편지: 선물용 도구 — [사용]을 누르면 쓰임새를 알려 준다 ──
   { file: 'game/items.js', edits: [["item.id === 'lost-key' ? '본관 3층의 다른 학년 물품보관소에서 [몰래 열어보기]를 하면 쓰인다(1회용)' :", "item.id === 'lost-key' ? '본관 3층의 다른 학년 물품보관소에서 [몰래 열어보기]를 하면 쓰인다(1회용)' : item.id === 'friendship-letter' ? '선물용 도구다. 접속자 목록에서 다른 학생에게 [선물]로 보내면 그 사람과 특별한 연을 맺게 된다.' :"]] },
+  // ── vD.05 신수들의 터: '아직 만들어지지 않은 시스템' 자리에 아기 신수 돌보기(BeastCare.jsx) ──
+  { file: 'game/hike.js', edits: [["choices: [{ id: 'beastKeep', name: '신수 맡기기', notice: '아직 만들어지지 않은 시스템' }],", "widget: 'beastCare',"]] },
+  { file: 'ui/components/locations/Hike.jsx', edits: [
+    ["import { GoblinToday, RicePouch } from '../ExploreWidgets'", "import { GoblinToday, RicePouch } from '../ExploreWidgets'\nimport BeastCare from '@story/BeastCare.jsx'"],
+    ["    if (node.widget === 'goblinToday') return <GoblinToday player={player} />", "    if (node.widget === 'goblinToday') return <GoblinToday player={player} />\n    if (node.widget === 'beastCare') return <BeastCare />"],
+  ] },
+  // ── vD.06 신수들의 터: 이벤트 「학생 괴담 수칙」이 공개되기 전에는 「아직 공개되지 않았다」만 보인다(관리자 도구 › 스토리에서 공개 · 닫기) ──
+  { file: 'ui/components/locations/Hike.jsx', edits: [
+    ["<Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />",
+     "{spot.id === 'beastGround' && globalThis.BiryeongBeastEvent && !globalThis.BiryeongBeastEvent.open() ? <p className=\"font-serif text-paper/70\" data-beast-locked=\"\">아직 공개되지 않았다.</p> : <Scene key={`${spot.id}:${visit}`} root={spot} ctx={ctx} scope={hikeSpotKey(pathId, spot.id, branchId)} onHome={home} renderWidget={renderWidget} />}"],
+  ] },
   // ── vC.05 막기: 1d(호전)이 아니라 1d(인내)만큼 더 막는다. 반격(호전이 상대 공격력보다 높을 때 · 최대 굴림일 때)의 세기는 그대로 호전으로 굴린다 ──
   {
     file: 'game/battle.js',
@@ -731,7 +742,23 @@ export function applyPatches(relPath, text) {
     }
   }
   if (relPath.replace(/\\/g, '/').endsWith('ui/components/BattleTutorial2.jsx')) text = tutorVoice(text)
+  if (relPath.replace(/\\/g, '/').endsWith('game/explore.js')) text = awardText(text)
   return text
+}
+
+/**
+ * vD.04.4 본관 1층 상장 거치대 [상장을 열람한다]: 보관고에 남은 옛 헌정 문구를 묶음에 싣지 않는다.
+ * 화면에는 조사 시트 글(josa-overrides.json)이 덮어 보이지만, 묶음 파일 안에도 옛 글이 남지 않게 같은 글로 바꿔 둔다.
+ */
+function awardText(text) {
+  const J = JSON.parse(readFileSync(new URL('../biryeong/josa-overrides.json', import.meta.url), 'utf8'))
+  const find = (o) => (Array.isArray(o) ? o.map(find).find(Boolean) : o && typeof o === 'object' ? (o.path?.join('/') === 'f1/awards/awardOpen' ? o.texts?.[0] : Object.values(o).map(find).find(Boolean)) : null)
+  const put = find(J)
+  if (!put) throw new Error('상장 글을 조사 시트에서 찾지 못했다 (josa-overrides.json f1/awards/awardOpen)')
+  const re = /'안녕하세요! 저는 게임의 제작자(?:[^'\\]|\\.)*'/g
+  const n = (text.match(re) || []).length
+  if (n !== 1) throw new Error(`상장 글 자리를 찾지 못했다 (explore.js, ${n}곳)`)
+  return text.replace(re, () => JSON.stringify(put))
 }
 
 /**

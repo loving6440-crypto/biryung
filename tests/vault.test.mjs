@@ -327,7 +327,7 @@ test('v1.7: 배포되는 파일 어디에도 옛 이름이 없다 · 도감 자�
   const window = {}
   new Function('window', readFileSync(new URL('../codex-data.js', import.meta.url), 'utf8'))(window)
   const C = window.BIRYEONG_CODEX
-  assert17.equal(C.items.length, 478) // vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
+  assert17.equal(C.items.length, 479) // vD.06 괴담 수칙서 · vC.06: 몸의 이상을 낫게 하는 물건 28가지; assert17.equal(C.psychics.filter((p) => !p.stolen).length, 13); assert17.equal(C.psychics.filter((p) => p.stolen).length, 69); assert17.ok(C.enemies.length >= 62)
   // 「」 는 본편 장면 · 유품 이름에만 쓴다(v1.9.7). 개척 영물 · 요괴 이름은 짧은 획득처에 넣지 않는다.
   for (const i of C.items) { assert17.ok(i.from, i.id); for (const part of i.from.split(' / ')) assert17.ok(!/「/.test(part) || /^본편/.test(part), `${i.id} 획득처에 영물 · 요괴 이름이 들어갔다: ${part}`) }
   assert17.ok(C.enemies.some((e) => e.specials.length === 2), '영능력이 둘인 적')
@@ -889,10 +889,10 @@ test('vD.04: 육조 스탯 마우스오버 설명 6개', () => {
 
 test('vD.04.1: 우정 편지 매점 10냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
   const { NEW_STORE, retuneItems } = await import('../systems/play/src/itemRetune.js')
-  assert.equal(NEW_STORE['friendship-letter'].price, 10)
+  assert.equal(NEW_STORE['friendship-letter'].price, 30)
   assert.equal(NEW_STORE['friendship-letter'].effectText, '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.')
   const [x] = retuneItems([{ id: 'friendship-letter', kind: 'material', tags: ['재료'], price: null, desc: '누군가들이 주고받은 편지. 다른 사람의 인연이 담겨있다.', effect: {} }])
-  assert.ok(x.price === 10 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
+  assert.ok(x.price === 30 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
   assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/hunt-extra.txt'), 'utf8').includes('friendship-letter'))
   const R = await import('../systems/biryeong/reskin.data.js')
   const recs = [...R.NEW_RECIPES.W, ...R.NEW_RECIPES.K, ...R.STORY_RECIPES]
@@ -938,4 +938,84 @@ test('vD.04.3: 부하 줄이기 — 사진은 따로 · throttle 은 WAL 없이 
   assert.ok(au.includes('const idle = () =>') && au.includes('if (meta.ph === ph) delete prof.photo') && au.includes('!idle()) pushSave'))
   assert.ok(readFileSync(join(ROOT, 'party.js'), 'utf8').includes("(Auth.idle?.() && !room) ? 120000 : 25000"))
   assert.ok(readFileSync(join(ROOT, 'market.js'), 'utf8').includes('!Auth.idle?.()) load(); }, 45000)'))
+})
+
+test('vD.04.4: 사이트로 나가는 파일에 원작 제작진 헌정 문구가 남지 않는다(상장 거치대)', () => {
+  const dec = (s) => s.replace(/\\u([0-9A-Fa-f]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+  const files = ['play/play.js', 'game-data.js', 'codex-data.js', 'story-data.js', 'index.html', 'app.js', 'quest.js']
+  for (const f of files) {
+    const s = dec(readFileSync(join(ROOT, f), 'utf8'))
+    for (const w of ['Terrarium', '팬케이크', '에스티아', '초록동색', '금유성', '오단애']) assert.ok(!s.includes(w), `${f}: ${w}`)
+  }
+  assert.ok(dec(readFileSync(join(ROOT, 'play/play.js'), 'utf8')).includes('일상과 미지의 경계에 선 우리들은'))
+})
+
+test('vD.05 · vD.06: 신수들의 터 — 어린 신수 맡기 · 시간 따라 배고픔 · 돌보기 · 심부름 · 자라기', async () => {
+  const B = await import('../systems/play/src/beasts.js')
+  const t0 = Date.UTC(2026, 10, 21, 3)
+  assert.deepEqual(B.KIND_IDS, ['cheongnyong', 'baekho', 'jujak', 'hyeonmu', 'gumiho'])
+  let p = { inventory: {} }
+  assert.ok(B.adopt(p, 'baekho', '   ', t0).error)
+  assert.ok(B.adopt(p, 'baekho', '호랑<이>', t0).error) // vD.06 한글만
+  assert.ok(B.adopt(p, 'baekho', '호랑이호랑', t0).error) // 네 글자까지
+  let r = B.adopt(p, 'baekho', '호랑이', t0); p = r.player
+  const id = p.beasts.list[0].id
+  assert.equal(p.beasts.list[0].name, '호랑이'); assert.equal(p.beasts.active, id)
+  assert.ok(B.adopt(p, 'jujak', '불새', t0).error) // 다 자라기 전엔 하나만
+  // 시간: 10시간 → 배부름 -30, 기분 -20
+  const v = B.view(p, t0 + 10 * 3600e3).list[0]
+  assert.equal(v.full, 50); assert.equal(v.mood, 60); assert.equal(v.stageName, '어린'); assert.equal(v.label, '어린 백호'); assert.equal(v.next.label, '성장기 백호')
+  // 좋아하는 먹이는 더
+  r = B.feed(p, id, 'pebble', t0); assert.ok(r.player.beasts.list[0].full === 100 && r.take.pebble === 1 && r.player.beasts.list[0].bond === 8)
+  assert.ok(B.feed(p, id, 'crystal', t0).error) // 먹지 않는 것
+  r = B.pet(p, id, t0); p = r.player; assert.ok(B.pet(p, id, t0 + 1000).error) // 1시간 쿨
+  // 심부름
+  r = B.sendTrip(p, id, 'long', t0); p = r.player
+  assert.ok(B.collectTrip(p, id, t0 + 3600e3).error)
+  let k = 0; const rnd = () => [0.01, 0.5][k++ % 2]
+  r = B.collectTrip(p, id, t0 + 8 * 3600e3 + 1, rnd)
+  assert.ok(Object.values(r.gain).reduce((a, n) => a + n, 0) >= 8 && r.gain.crystal >= 1 && !r.player.beasts.list[0].trip)
+  // 유대 1000 → 성수 · 보상 · 다른 아이 맡기
+  p = { ...r.player, beasts: { ...r.player.beasts, list: [{ ...r.player.beasts.list[0], bond: 998, pet: 0 }] } }
+  const p450 = { ...p, beasts: { ...p.beasts, list: [{ ...p.beasts.list[0], bond: 448 }] } }
+  const r450 = B.pet(p450, id, t0 + 9 * 3600e3); assert.equal(r450.grew, '성장기 백호'); assert.deepEqual(r450.reward, { money: 50, spirit: 30 })
+  assert.ok(B.adopt(r450.player, 'jujak', '불새', t0 + 9 * 3600e3).error) // 성수 전에는 다른 아이 못 맡는다
+  assert.ok(B.adopt(r450.player, 'jujak', '불새', t0 + 9 * 3600e3, { force: true }).player) // 이벤트의 운명의 신수는 맡는다
+  r = B.pet(p, id, t0 + 9 * 3600e3); assert.equal(r.grew, '성수 백호'); assert.deepEqual(r.reward, { money: 100, spirit: 50 })
+  assert.equal(B.STAGES.length, 3); assert.equal(B.rename, undefined) // 이름은 바꿀 수 없다
+  assert.ok(B.view(r.player, t0 + 9 * 3600e3).canAdopt)
+  assert.ok(B.adopt(r.player, 'jujak', '불새', t0 + 9 * 3600e3).player)
+  // 하루 첫 방문 인사는 하루 한 번
+  const g = B.greet(r.player, t0 + 9 * 3600e3); assert.ok(g && g.player); assert.equal(B.greet(g.player, t0 + 9 * 3600e3 + 60e3), null)
+})
+
+test('vD.05: 신수들의 터 화면이 산 탐사에 붙는다 · 우정 편지 30냥', () => {
+  const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
+  assert.ok(pt.includes("\"widget: 'beastCare',\"") && pt.includes("import BeastCare from '@story/BeastCare.jsx'"))
+  assert.ok(readFileSync(join(ROOT, 'systems/play/src/usePlayHost.js'), 'utf8').includes('beastView: () => Beasts.view(playerRef.current), beastAct'))
+})
+
+test('vD.06: 스토리 시트 반영 — 훈련관 세 줄 · 사감→연호수 · 고친 대사', () => {
+  const ch1 = JSON.parse(readFileSync(join(ROOT, 'story-chapters/ch1.json'), 'utf8'))
+  const all = ch1.scenes.flatMap((s) => s.lines)
+  const i = all.findIndex((l) => l.x === '이 경험이 다 너희들을 각종 사고로부터 지켜줄 거야.')
+  assert.ok(i >= 0 && all[i + 1].w === '훈련관' && all[i + 1].x.startsWith('우리 같은 ‘일반인’들은') && all[i + 3].x.startsWith('그러지 않으면'))
+  assert.ok(all.some((l) => l.w === '연호수' && l.x === '그 침대? 원래 비어 있었어. …비어 있었지?'))
+  assert.ok(all.some((l) => l.x === '호수 선배, 의외로 착할지도 모르겠어요.') && !all.some((l) => /씹 답답해/.test(l.x || '')))
+  const ch4 = readFileSync(join(ROOT, 'story-chapters/ch4.json'), 'utf8'); assert.ok(ch4.includes('FM 새끼') && !ch4.includes('FH 새끼'))
+  assert.ok(readFileSync(join(ROOT, 'story-data.js'), 'utf8').includes('전국에서 실종 신고가 잇따르고'))
+  const ch2 = readFileSync(join(ROOT, 'story-chapters/ch2.json'), 'utf8'); assert.ok(ch2.includes('돌아가도록 도와 주는 게 맞을 것 같아'))
+})
+
+test('vD.06: 이벤트 「학생 괴담 수칙」 — 관리자 공개 · 신수들의 터 잠금 · 번진 먹 패턴', () => {
+  const ev = readFileSync(join(ROOT, 'beast-event.js'), 'utf8')
+  for (const id of ['intro', 'east', 'west', 'south', 'north', 'center', 'final']) assert.ok(ev.includes(`id: '${id}'`), id)
+  assert.ok(ev.includes("const FLAG = 'BEAST_EVENT'") && ev.includes("bring: { 'lake-water': 9 }") && ev.includes('bring: { nail: 3 }') && ev.includes('wait: WAIT_MS'))
+  assert.ok(ev.includes("key: 'beast'") && ev.includes('6: \'이름 없는 것에게는 이름을 불러 주어라\''))
+  const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
+  assert.ok(q.includes("sync.adminRoute(adminCode(), 'BEAST_EVENT'") && q.includes('최초에 이름을 정하면 이름을 바꿀 수 없습니다. 확인하셨습니까?'))
+  assert.ok(readFileSync(join(ROOT, 'index.html'), 'utf8').includes('beast-event.js?v=D.06'))
+  const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8'); assert.ok(pt.includes('data-beast-locked') && pt.includes('아직 공개되지 않았다.'))
+  const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8'); assert.ok(sp.includes("st.p === 'smear' && act === 'call'"))
+  const bc = readFileSync(join(ROOT, 'systems/play/src/BeastCare.jsx'), 'utf8'); assert.ok(!bc.includes('이름 바꾸기') && !bc.includes('아기 ') && bc.includes('NAME_NOTICE'))
 })

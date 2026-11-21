@@ -25,7 +25,15 @@ ws = wb['스토리 스크립트']
 
 # ── 원고 읽기 ──
 rows, cur = [], {'ch': '', 'scene': ''}
+# vD.06 시트 119~121행(훈련관 대사 3줄)이 새로 들어왔다 — 아래 표들은 예전 행 번호로 적혀 있으니, 새 줄은 118.1~118.3, 그 뒤는 3을 빼서 맞춘다
+INSERTED = [(119, 3)]   # (새로 들어온 첫 행, 줄 수)
+def legacy(i):
+    for at, n in reversed(INSERTED):
+        if i >= at + n: i -= n
+        elif i >= at: return round(at - 1 + (i - at + 1) / 10, 1)
+    return i
 for i, r in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+    i = legacy(i)
     _, vol, ch, scene, char, text, trig, act, memo = (list(r) + [None] * 11)[:9]
     if ch: cur['ch'] = str(ch).split('\n')[0].strip()
     if scene: cur['scene'] = str(scene).strip()

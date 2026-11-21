@@ -64,6 +64,7 @@
     const rBefore = JSON.stringify(routes); Object.keys(routes).forEach((k) => delete routes[k]); Object.assign(routes, R);
     const before = Object.keys(loaded).sort().join(',') + rBefore, after = Object.keys(got).sort().join(',') + JSON.stringify(routes);
     Object.keys(loaded).forEach((k) => delete loaded[k]); Object.assign(loaded, got); rebuild();
+    if (before !== after) window.dispatchEvent(new CustomEvent('biryeong:routes')); // vD.06 이벤트 공개 · 닫기를 다른 모듈에 알린다
     if (before !== after) { drawTracker(); if (/^#\/zone\/north/.test(location.hash) || /^#\/admin\/story/.test(location.hash)) App.route(); else later(); }
   }
   // vC.01: 2분마다 · 가려진 탭은 묻지 않는다 · 다시 보이면 곧바로 한 번
@@ -166,7 +167,7 @@
       .replace(re(''), n);
   }
   function fill(text) {
-    return josaFill(josaFill(String(text ?? ''), 'OO', playerName()), '△△', godName())
+    return josaFill(josaFill(josaFill(String(text ?? ''), 'OO', playerName()), '△△', godName()), '■■', String(save().story.beastName || '').trim() || '이름')
       .replace(/\{유품\}/g, heir()?.name || '유품').replace(/\{무구\}/g, heir() ? itemName(heir().weapon) : '무구');
   }
 
@@ -447,7 +448,7 @@
   }
   function drawTracker() {
     const side = document.getElementById('questTracker');
-    if (side) { side.replaceChildren(trackerBox()); const hb = helpButton(); if (hb) side.append(hb); }
+    if (side) { side.replaceChildren(trackerBox()); const ev = window.BiryeongBeastEvent?.trackerBox?.(); if (ev) side.append(ev); const hb = helpButton(); if (hb) side.append(hb); } // vD.06 이벤트 진행도 함께
     document.querySelectorAll('.quest-inline').forEach((el) => el.replaceChildren(trackerBox()));
     const b = document.getElementById('statusQuest'); if (b) b.textContent = progressText();
   }
@@ -558,7 +559,7 @@
     for (let i = from; i < to; i++) { const ln = scene.lines[i]; if (ln.op && !replay && scene.id === 'P-1') continue; list.push([i, ln]); }
     let at = 0, typing = null;
     const win = h('div', 'scene-win');
-    const head = h('div', 'scene-head'); head.append(h('span', '', `${scene.ch ? `${scene.ch}장` : '프롤로그'} · ${scene.title}`), h('small', '', `${scene.place} · ${scene.time}`));
+    const head = h('div', 'scene-head'); head.append(h('span', '', `${scene.label || (scene.ch ? `${scene.ch}장` : '프롤로그')} · ${scene.title}`), h('small', '', `${scene.place} · ${scene.time}`));
     const body = h('div', 'scene-body'), foot = h('div', 'scene-foot');
     win.append(head, body, foot);
     L.className = 'scene-layer'; L.replaceChildren(win); L.hidden = false; document.body.classList.add('is-scene'); drawTracker();
@@ -635,7 +636,7 @@
       body.append(box); nextBtn('닫는다');
     }
     function choice(ln, key) {
-      const already = q.picked[key];
+      const already = q.picked[key] || (replay && ln.id ? q.flags[ln.id] : 0); // vD.06 시트에 줄이 늘어 자리가 밀려도 다시 보기에서 고른 것이 보이게
       if (already || replay) {
         if (already) body.append(h('p', 'scene-chosen', `고른 것 — ${fill(ln.o[already - 1])}`)); else body.append(h('p', 'scene-chosen', '(고르지 않은 갈림)'));
         nextBtn('다음'); return;
@@ -656,6 +657,7 @@
     // vD.02.2 이름 지어 주기(3장): 처음엔 「무명」이 적혀 있다. 지우고 새로 적으면 그 이름이 이후 △△ 자리에 들어간다.
     function nameStep(ln, key) {
       const st = save().story;
+      if (ln.key === 'beast') { beastNameStep(ln, key); return; }
       if (q.picked[key] || replay) {
         body.append(h('p', 'scene-chosen', `부른 이름 — ${st.godName ? godName() : (replay ? '(아직 부르지 않았다)' : godName())}`));
         nextBtn('다음'); return;
@@ -670,11 +672,32 @@
       foot.append(btn('solid-btn scene-next', '이 이름으로 부른다', go));
       inp.focus(); inp.select();
     }
+    // vD.06 이벤트 「학생 괴담 수칙」: 운명의 신수에게 이름 — 한글 네 글자까지 · 한 번 정하면 바꿀 수 없다(확인을 한 번 더 받는다)
+    function beastNameStep(ln, key) {
+      const st = save().story;
+      if (q.picked[key] || replay) { body.append(h('p', 'scene-chosen', `부른 이름 — ${st.beastName || '(아직 부르지 않았다)'}`)); nextBtn('다음'); return; }
+      const box = h('div', 'vn-choice vn-name');
+      box.append(h('p', 'scene-question', fill(ln.q)), h('p', 'scene-name-note', fill(ln.x || '한글로 네 글자까지 지을 수 있다.')));
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'scene-name-input'; inp.maxLength = 6; inp.value = st.beastName || ''; inp.placeholder = '한글 네 글자까지'; inp.setAttribute('aria-label', '신수에게 지어 줄 이름'); inp.dataset.beastFateName = '';
+      const warn = h('p', 'scene-name-note is-warn', ''); box.append(inp, warn); body.append(box);
+      const ask = () => {
+        const v = inp.value.replace(/\s+/g, '');
+        if (!/^[가-힣]{1,4}$/.test(v)) { warn.textContent = '이름은 한글로 네 글자까지 지을 수 있다.'; inp.focus(); return; }
+        body.replaceChildren(); foot.replaceChildren();
+        const c = h('div', 'vn-choice vn-name'); c.append(h('p', 'scene-question', `「${v}」`), h('p', 'scene-name-note', '최초에 이름을 정하면 이름을 바꿀 수 없습니다. 확인하셨습니까?')); body.append(c);
+        const yes = btn('solid-btn scene-next', '확인했다', () => { st.beastName = v; q.picked[key] = 1; persist(); at += 1; show(); }); yes.dataset.beastFateYes = '';
+        foot.append(btn('ghost-btn', '다시 짓는다', () => { body.replaceChildren(); foot.replaceChildren(); beastNameStep(ln, key); }), yes); yes.focus();
+      };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ask(); } });
+      foot.append(btn('solid-btn scene-next', '이 이름으로 부른다', ask));
+      inp.focus();
+    }
     function pick(ln, key, n) {
       // 같은 선택이 다시 나와도 처음 고른 것이 남는다
       q.picked[key] = n; q.pick[scene.id] = n; if (q.flags[ln.id] == null) q.flags[ln.id] = n;
       if (ln.id === HEIR_CHOICE) { save().story.heirloom = HEIRS[n - 1]?.weapon || null; App.mark('heirloomChosen'); if (!q.keep.includes('부모의 유품')) q.keep.push('부모의 유품'); }
-      const cs = claims(); if (ln.id && !cs.sent[ln.id]) { cs.sent[ln.id] = n; Sync()?.choice(ln.id, n); }
+      const cs = claims(); if (ln.id && !scene.event && !cs.sent[ln.id]) { cs.sent[ln.id] = n; Sync()?.choice(ln.id, n); } // vD.06 이벤트의 선택은 서버에 올리지 않는다
       persist(); at += 1; show();
     }
     // 장의 첫 장면을 처음 열 때: 권 · 장 표제
@@ -690,12 +713,12 @@
 
   /* ───────── 산문 너머 ───────── */
   function renderBoard(tab) {
-    const body = App.body; const cur = ['quests', 'places', 'record', 'world'].includes(tab) ? tab : 'quests';
+    const body = App.body; const EV = window.BiryeongBeastEvent, evOn = !!EV?.open(); const cur = ['quests', 'places', 'record', 'world', ...(evOn ? ['event'] : [])].includes(tab) ? tab : 'quests';
     App.addTo('pages', 'story');
     if (!App.profile()) { body.append(App.needProfile()); return; }
-    App.setTabs(App.tabs, [{ id: 'quests', label: '이야기' }, { id: 'places', label: '바깥 지역' }, { id: 'record', label: '나의 기록' }, { id: 'world', label: '모두의 선택' }], cur, (id) => go(`#/zone/north/${id}`));
+    App.setTabs(App.tabs, [{ id: 'quests', label: '이야기' }, ...(evOn ? [{ id: 'event', label: '이벤트' }] : []), { id: 'places', label: '바깥 지역' }, { id: 'record', label: '나의 기록' }, { id: 'world', label: '모두의 선택' }], cur, (id) => go(`#/zone/north/${id}`));
     const now = h('div', 'quest-inline'); body.append(h('p', 'panel-label', '지금 할 일'), now, h('div', 'panel-rule'));
-    if (cur === 'quests') boardQuests(body); else if (cur === 'places') boardPlaces(body); else if (cur === 'record') boardRecord(body); else boardWorld(body);
+    if (cur === 'event') EV.board(body); else if (cur === 'quests') boardQuests(body); else if (cur === 'places') boardPlaces(body); else if (cur === 'record') boardRecord(body); else boardWorld(body);
     drawTracker();
   }
   function boardQuests(body) {
@@ -882,6 +905,25 @@
     drawNpc(Number(routeStore().NPC_QUESTS?.option) === 1);
     if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'NPC_QUESTS') : null; if (Array.isArray(r)) drawNpc(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
 
+    // vD.06 이벤트 「학생 괴담 수칙」 공개 · 닫기: 닫혀 있으면 이벤트도 신수들의 터도 「아직 공개되지 않았다」.
+    body.append(h('p', 'panel-label', '이벤트 공개 — 학생 괴담 수칙 · 신수들의 터'));
+    const evBox = h('div', 'story-route'); evBox.dataset.beastEventAdmin = ''; body.append(evBox);
+    const drawEv = (open) => {
+      evBox.replaceChildren(h('p', 'story-route-state', open ? '지금 공개되어 있다. 학생들은 산문 › 이벤트에서 「학생 괴담 수칙」을 진행하고, 마치면 신수들의 터에서 신수를 기른다.' : '지금 닫혀 있다. 이벤트 탭이 보이지 않고, 신수들의 터는 「아직 공개되지 않았다」로 뜬다.'));
+      const setEv = async (on) => {
+        const iso = new Date().toISOString(), all = routeStore(); all.BEAST_EVENT = { option: on ? 1 : null, openAt: on ? iso : null }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
+        if (server) { const r = await sync.adminRoute(adminCode(), 'BEAST_EVENT', on ? 1 : null, on ? iso : null); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
+        if (on) routes.BEAST_EVENT = 1; else delete routes.BEAST_EVENT;
+        toast('스토리 관리', on ? '이벤트 「학생 괴담 수칙」을 공개했다.' : '이벤트를 닫았다. (진행한 기록은 남는다)'); refreshChapters(); drawEv(on); drawTracker();
+      };
+      const acts = h('div', 'story-admin-acts');
+      if (!open) { const b = btn('solid-btn codex-use', '이벤트 공개', () => { if (window.confirm('이벤트 「학생 괴담 수칙」과 신수들의 터를 모든 학생에게 공개할까요?')) setEv(true); }); b.dataset.beastEventOpen = ''; acts.append(b); }
+      else { const b = btn('ghost-btn codex-use', '이벤트 닫기', () => { if (window.confirm('이벤트를 닫을까요? 이벤트 탭과 신수들의 터가 다시 「아직 공개되지 않았다」로 바뀐다.')) setEv(false); }); b.dataset.beastEventClose = ''; acts.append(b); }
+      evBox.append(acts);
+    };
+    drawEv(Number(routeStore().BEAST_EVENT?.option) === 1);
+    if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'BEAST_EVENT') : null; if (Array.isArray(r)) drawEv(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
+
     body.append(h('p', 'panel-label', '선택 집계 · 누가 무엇을 골랐나'));
     const votes = h('div', 'story-votes'); body.append(votes); votes.append(para('불러오는 중…'));
     const drawVotes = (rows) => {
@@ -942,7 +984,7 @@
   }
 
   const peek = () => { const scene = current(); const st = scene && !busy ? activeStep(scene) : null; return { id: scene?.id || null, step: st ? Q().step : -1, w: st?.w || '', at: st ? atPlace(st.w) : false, needs: st ? needState(scene, st).map((n) => ({ raw: n.raw, type: n.type, arg: n.arg, have: n.have, count: n.count, done: n.done })) : [], busy, open: Object.keys(loaded).map(Number) }; };
-  window.BiryeongQuest = { extraTier: () => Math.max(1, Math.min(10, Number(routes.EXTRA_TIER) || 1)), routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
+  window.BiryeongQuest = { playScene: (sc, onEnd) => { busy = true; playLines(sc, 0, sc.lines.length, () => { busy = false; onEnd && onEnd(); later(); }, false); }, sceneOpen: () => busy, at: (w) => atPlace(w), hashOf, toast: (a, b) => toast(a, b), card: (c) => card(c), fill: (t) => fill(t), extraTier: () => Math.max(1, Math.min(10, Number(routes.EXTRA_TIER) || 1)), routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
   refreshChapters();
   App.route();
   drawTracker();

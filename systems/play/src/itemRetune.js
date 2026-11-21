@@ -75,7 +75,7 @@ export const STORE_PRICES = {
 }
 // vD.04 매점에 새로 들이는 물건(원래 값이 없던 것) — 값 · 종류 · 태그 · 효과 글을 정한다. 설명(desc)은 그대로.
 export const NEW_STORE = {
-  'friendship-letter': { price: 10, kind: 'tool', tags: ['도구', '선물용'], effectText: '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.' },
+  'friendship-letter': { price: 30, kind: 'tool', tags: ['도구', '선물용'], effectText: '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.' },
 }
 // vD.03 실제 성능에 맞춘 글 · 태그(효과는 그대로 두고 보이는 것만 고친다)
 //   effectText · desc: 덮어쓴다 · addTags: 없으면 더한다 · party: 일행 전용 여부
