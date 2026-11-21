@@ -14,7 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SRC = os.path.join(ROOT, 'styles.css')
 OUT = os.path.join(ROOT, 'theme-light.css')
 P = 'html[data-theme="light"]'
-SKIP_SEL = re.compile(r'hero|zone-art|zone-card|canopy|opening|is-red|lantern|pt-seal|portrait|vn-flash|fx-')
+SKIP_SEL = re.compile(r'hero|zone-|pxwall|obang|canopy|opening|is-red|lantern|pt-seal|portrait|vn-flash|fx-')
 COLOR_PROPS = re.compile(r'^(--[\w-]+|color|background(-color|-image)?|border(-(top|right|bottom|left))?(-color)?|outline(-color)?|box-shadow|text-shadow|fill|stroke|caret-color|accent-color|text-decoration(-color)?|column-rule(-color)?|scrollbar-color)$')
 TOKEN = re.compile(r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b|rgba?\([^)]*\)')
 

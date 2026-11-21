@@ -1913,8 +1913,10 @@ begin
 end $$;
 
 -- 연결 확인(사이트가 서버에 닿는지 · 이 판의 표가 깔렸는지)
+-- vD.06.2 서버 기록을 통째로 지운 때(reset_all.sql 이 적는다) — 브라우저가 보고 자기 쪽의 옛 기록도 지운다
+alter table biryeong_private.maint add column if not exists wiped_at timestamptz;
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$
-  select jsonb_build_object('ok', true, 'version', 'D.04.3', 'admin_code_set', exists (select 1 from admin_secret)) $$;
+  select jsonb_build_object('ok', true, 'version', 'D.06.2', 'admin_code_set', exists (select 1 from admin_secret), 'wiped_at', (select wiped_at from maint where id = 1)) $$;
 
 do $$ declare f record; begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'bry\_%' loop

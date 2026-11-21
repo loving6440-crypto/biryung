@@ -121,8 +121,28 @@
     set(PENDING_KEY(id), text); set(CLOUD_KEY(id), JSON.stringify({ at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) })); // vD.04.3 받은 사진은 다시 올리지 않는다
     return 'pulled';
   }
+  /* vD.06.2 서버 기록을 통째로 지웠을 때(supabase/reset_all.sql) 이 브라우저에 남은 옛 계정 · 기록 · 접속 표도 함께 지운다.
+   * 지우지 않으면 같은 아이디 · 비밀번호로 들어올 때 이 브라우저의 옛 기록이 서버로 다시 올라간다. 화면 설정(테마 · 글꼴 · 소리)은 남긴다. */
+  const WIPE_KEY = 'biryeong-wiped-at';
+  const KEEP_KEY = /^biryeong-(theme|ui-font|music|music-vol|sfx|chat-sound|wiped-at)$/;
+  let wipeP = null;
+  function wipeCheck() {
+    if (!SERVER) return Promise.resolve(false);
+    return (wipeP ||= rpc('bry_status').then((st) => {
+      const t = Date.parse(st?.wiped_at || ''); if (!t) return false;
+      const seen = Number(get(WIPE_KEY) || 0); if (seen >= t) return false;
+      const old = seen > 0 || Object.values(readAcc().users || {}).some((u) => !u.createdAt || u.createdAt < t);
+      if (old) {
+        const keys = []; try { for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)); } catch (_) { /* 저장소 없음 */ }
+        keys.filter((k) => k && k.startsWith('biryeong') && !KEEP_KEY.test(k)).forEach(del);
+      }
+      set(WIPE_KEY, String(t));
+      return old;
+    }).catch(() => false));
+  }
   /* 서버 로그인 · 등록. 이 브라우저에만 있던 계정은 같은 비밀번호로 로그인하면 서버에 올라간다. */
   async function serverEnter(mode, idRaw, pw, code) {
+    await wipeCheck();
     const id = norm(idRaw);
     let r;
     try {
@@ -155,6 +175,7 @@
   }
   /* 들어와 있는 동안: 계정 상태(정지 · 관리자)를 서버와 맞추고, 기록을 주기적으로 올린다. */
   async function serverBoot() {
+    if (await wipeCheck()) { location.reload(); return; } // 서버가 비워졌다 → 이 브라우저의 옛 기록도 비우고 처음 화면으로
     const id = session(), t = token(id); if (!t) return;
     try {
       const me = (await rpc('bry_me', { p_token: t })).user;
@@ -252,6 +273,7 @@
     if (token()) { serverBoot(); return; }
     del(SES_KEY); relogin = true; // 서버가 붙기 전에 만든 계정: 한 번 더 로그인하면 서버로 올라간다
   }
+  wipeCheck(); // 로그인 화면이 뜨는 동안 미리 맞춰 둔다
 
   /* ── 로그인 화면 ── */
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
