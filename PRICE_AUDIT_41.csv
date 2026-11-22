@@ -1,0 +1,42 @@
+﻿아이템 ID,아이템명,수정 시트 상점가(냥),기존 정적 화면가(냥),변경 여부
+picnic,사과맛 피크닉,20,15,수정
+chocolate,가나다 초콜릿,35,25,수정
+ramen,컵라면,20,-,일치
+dumpling,만두,30,-,일치
+chewy,마이쮸,20,-,일치
+energy,에너지드링크,80,-,일치
+cone-icecream,콘 아이스크림,25,-,일치
+bag-snack,봉지 과자,40,-,일치
+slice-cake,조각 케이크,40,-,일치
+firecracker,폭죽,90,-,일치
+twin-pop,쌍쌍바,25,-,일치
+hotbar,핫바,120,-,일치
+brush,붓,25,-,일치
+hanji,한지,12,-,일치
+friendship-letter,우정 편지,100,30,수정
+carving-knife,조각칼,25,-,일치
+pouch,주머니,20,-,일치
+inkstick,먹,25,-,일치
+seed-cherry-tomato,방울토마토 씨앗,3,-,일치
+seed-carrot,당근 씨앗,3,-,일치
+seed-lettuce,상추 씨앗,3,-,일치
+seed-potato,감자 씨앗,3,-,일치
+seed-cabbage,배추 씨앗,3,-,일치
+seed-spinach,시금치 씨앗,3,-,일치
+seed-soybean,콩 씨앗,3,-,일치
+wheat-seed,밀 씨앗,3,-,일치
+barley-seed,보리 씨앗,3,-,일치
+bag,가방,300,-,일치
+st-tangerine,귤,30,10,수정
+st-seaweed,마른 미역,15,12,수정
+nurse-antivenom,해독 앰플,40,-,일치
+nurse-gauze,멸균 거즈 세트,35,-,일치
+nurse-burn-band,화상 밴드,30,-,일치
+nurse-hotpack,핫팩,25,-,일치
+nurse-cold-medicine,종합 감기약,35,-,일치
+nurse-glucose,포도당 캔디,25,-,일치
+nurse-salt-pouch,정화 소금 봉투,40,-,일치
+nurse-itch-cream,가려움 연고,30,-,일치
+nurse-charcoal-tab,활성탄 정제,40,-,일치
+nurse-pain-patch,파스,30,-,일치
+nurse-firstaid,응급 처치 상자,150,-,일치
