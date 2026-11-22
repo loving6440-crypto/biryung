@@ -41,16 +41,17 @@
     return res.status === 204 || (method !== 'GET' && !read) ? null : res.json();
   }
   const quiet = (p) => p.catch((error) => { console.warn('[비령] 서버 전송 실패(게임은 계속된다)', error.message); return null; });
-  const upsert = (table, row, onConflict) => quiet(call(`${table}?on_conflict=${onConflict}`, { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' }));
+  const token = () => Auth?.token?.() || null;
+  const authenticated = (name, args) => token() ? quiet(call(`rpc/${name}`, { method:'POST', body: { p_token: token(), ...args }, read:true })) : Promise.resolve(null);
   const now = () => new Date().toISOString();
 
   let chapterMem = null; // 받아 둔 장 본문(이 화면에서)
   window.BiryeongSync = {
     enabled, playerId,
     // 최초 1회만: 이미 올린 분기는 다시 보내도 서버가 처음 표를 지킨다(ignore-duplicates · 계정당 첫 표만 남기는 서버 규칙)
-    choice: (branch, option) => (enabled ? quiet(call(`story_choices?on_conflict=player_id,branch`, { method: 'POST', body: { player_id: playerId(), account: account(), branch, option, updated_at: now() }, prefer: 'resolution=ignore-duplicates,return=minimal' })) : null),
-    contrib: (event, amount = 1) => (enabled ? quiet(call('story_contrib', { method: 'POST', body: { player_id: playerId(), account: account(), event, amount }, prefer: 'return=minimal' })) : null),
-    progress: (scenes) => (enabled ? upsert('story_progress', { player_id: playerId(), account: account(), scenes, updated_at: now() }, 'player_id') : null),
+    choice: (branch, option) => (enabled ? authenticated('bry_story_choice', { p_branch: branch, p_option: option }) : null),
+    contrib: (event, amount = 1) => (enabled ? authenticated('bry_story_contrib', { p_event: event, p_amount: amount }) : null),
+    progress: (scenes) => (enabled ? authenticated('bry_story_progress', { p_scenes: scenes }) : null),
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),
     // v1.8 본편 장 공개: 공개된 장만 서버가 내준다(행 수준 보안). 관리자 쓰기는 관리자 코드를 받는 함수(RPC)로만.
     // vC.01 부하 줄이기: 먼저 「장 번호 · 고친 시각」만 묻고(수백 바이트), 바뀐 장의 본문만 받아 이 브라우저에 넣어 둔다.
@@ -74,7 +75,7 @@
     adminRoutes: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_routes', { method: 'POST', body: { p_code: code }, read: true }); } catch (e) { return { error: e.message }; } },
     adminRoute: async (code, flag, option, openAt) => { if (!enabled) return null; try { await call('rpc/story_admin_route', { method: 'POST', body: { p_code: code, p_flag: flag, p_option: option, p_open_at: openAt } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
     adminNames: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_names', { method: 'POST', body: { p_code: code }, read: true }); } catch (_) { return []; } },
-    adminChoices: async () => (enabled ? call('story_choices?select=account,branch,option,updated_at,player_id&order=updated_at.desc') : []),
+    adminChoices: async (code) => (enabled ? call('rpc/story_admin_choices', { method:'POST', body:{ p_code:code }, read:true }) : []),
     contribTotals: async () => (enabled ? call('story_contrib_totals?select=event,total,players') : []),
   };
 })();

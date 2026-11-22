@@ -57,3 +57,13 @@
 Table Editor 에서 보려면 왼쪽 위 schema 를 `public` 에서 `biryeong_private` 로 바꾼다.
 
 GitHub 의 `ADMIN_CODE` 는 서버가 없을 때만 쓰는 임시 방편이다. Supabase 를 연결하면 관리자 여부는 서버(`admin_secret` 에 넣은 코드)가 정한다.
+
+
+## D.06.6 보안 패치 필수 사항
+
+- **기존 DB**: Supabase SQL Editor에서 `supabase/security_patch_D.06.6.sql` **1회 실행**. 신규 DB는 전체 `supabase/schema.sql`을 실행하면 패치까지 포함됩니다. **ZIP만 서버에 올려서는 기존 Supabase 정책이 바뀌지 않습니다.**
+- 기존 공개 `story_choices`/`story_contrib`/`story_progress`/`cloud_saves` 권한이 닫힙니다. 새 사이트는 `bry_story_choice`, `bry_story_contrib`, `bry_story_progress` RPC를 사용합니다. 이전 화면 코드와 혼용하면 직접 저장이 실패할 수 있으므로 HTML/JS를 함께 배포해야 합니다.
+- 투표 원본(계정/선택/식별자)은 관리자 코드 검증을 거친 `story_admin_choices` RPC로만 조회됩니다. 일반 이용자는 집계(view)만 볼 수 있습니다.
+- SQL Editor에 설정하는 관리자 코드는 **서로 다른 서비스에 재사용하지 않는 24자 이상의 무작위 문자열**을 권장합니다. 관리자 코드 검증 함수의 조회 요청량 제한이 어려운 만큼 별도 프록시/WAF도 권장합니다.
+- 마켓/선물과 게임 진행 기록은 일부 클라이언트 생성 값에 의존합니다. 서버가 소지품·냥·전투 결과를 독립 검증하는 구조로 바꾸기 전까지는 **게임 재화의 부정 생성/조작을 완전히 막을 수 없습니다**.
+- 이 SQL 파일은 기존 데이터를 지우지 않지만, 운영 DB는 적용 전 백업해야 합니다.

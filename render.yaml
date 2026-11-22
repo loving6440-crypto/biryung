@@ -11,6 +11,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DB_POOL_SIZE
+        value: "5"
       - key: DATABASE_URL
         sync: false
       - key: BIRYEONG_ADMIN_USERNAME

@@ -34,6 +34,7 @@ export function bryHead(es0, head, ehp, name) {
     else { intent = 'none'; notes.push(`${name}은(는) 가위에 눌려 꼼짝 못 한다.`); es.brySleep = { ...es.brySleep, n: es.brySleep.n - 1, hp: ehp }; if (es.brySleep.n <= 0) delete es.brySleep }
   }
   if (es.bryHan && ATK.includes(intent)) { hurt(es.bryHan.d, `들러붙은 한이 ${name}의 움직임을 갉는다. 피해 {d}.`); tick('bryHan') }
+  if (es.bryFogPoison && intent === 'guard') { const cur = es.bryPoison || { s:0,d:0 }; es.bryPoison = {s:Math.min(5,cur.s+1),d:Math.max(cur.d,es.bryFogPoison)}; notes.push(`독안개 속에서 방어하다 독이 ${es.bryPoison.s}겹 쌓였다.`) }
   if (es.bryFog && intent === 'guard') hurt(es.bryFog.d, `웅크린 ${name}이(가) 독안개를 들이마신다. 피해 {d}.`)
   if (es.bryFog) tick('bryFog')
   if (es.bryThirst && intent === 'special') { hurt(es.bryThirst, `메마른 목으로 영능력을 쓰려던 ${name}이(가) 피를 토한다. 피해 {d}.`); delete es.bryThirst }
@@ -46,6 +47,8 @@ export function bryHead(es0, head, ehp, name) {
   if (es.bryDodge && intent === 'jab') { intent = 'none'; notes.push(`여우 둔갑에 ${name}의 약공이 허공을 가른다.`); tick('bryDodge') }
   if (es.bryBlind) { if (ATK.includes(intent) && R() < es.bryBlind.c) { intent = 'none'; notes.push(`날개에 덮여 앞이 안 보이는 ${name}의 공격이 빗나간다.`) } tick('bryBlind') }
   if (es.bryNumb) { if (intent !== 'none' && R() < es.bryNumb.c) { intent = 'none'; notes.push(`꽃가루에 저린 ${name}이(가) 움직이지 못한다.`) } tick('bryNumb') }
+  es.bryAttackHalfAct=es.bryAttackHalf>0
+  if (es.bryAttackHalf > 0) { es.bryAttackHalf -= 1; if (!es.bryAttackHalf) delete es.bryAttackHalf }
   if (es.brySilence > 0) {
     if (intent === 'special') { intent = 'jab'; notes.push(`영능력이 봉해진 ${name}은(는) 약공밖에 하지 못한다.`) }
     es.brySilence -= 1
@@ -59,11 +62,18 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
   const def = H.PSYCHICS.find((p) => p.id === id)
   const k = def?.k
   if (!k) return { state, events: [{ kind: 'warn', text: '쓸 수 없는 영능력이다.' }], mpCost: 0, invalid: true }
-  const mpCost = H.mpCostOf(stats, k.mp || 0)
+  const mpCost = k.allyAttacksBuff ? Math.min(80, Math.max(0,Math.floor(ctx.targetAttacks||0))*5) : H.mpCostOf(stats,k.mp || 0)
   if (mpCost > mpNow0) return { state, events: [{ kind: 'warn', text: `의지력이 모자라 쓸 수 없다! (필요 ${mpCost}, 지금 ${mpNow0})` }], mpCost: 0, invalid: true }
+  if (k.partyOnly && !ctx.selfId) return { state, events: [{kind:'warn',text:'일행 전투에서만 사용할 수 있는 영능력이다.'}], mpCost:0, invalid:true }
+  if (k.onceBattle && (s.stealUses?.[id]||0)) return { state, events:[{kind:'warn',text:'이 영능력은 전투당 한 번만 사용할 수 있다.'}],mpCost:0,invalid:true }
+  if ((k.firstTurnStatBuff || k.firstTurnProtect) && (s.myTurns||0)>1) return { state,events:[{kind:'warn',text:'첫 턴에만 사용할 수 있다.'}],mpCost:0,invalid:true }
+  if (k.reviveAlly && !ctx.targetDown) return {state,events:[{kind:'warn',text:'전투불능인 아군을 지정해야 한다.'}],mpCost:0,invalid:true}
+  if (k.allyAttacksBuff && (!ctx.target || ctx.target===ctx.selfId)) return {state,events:[{kind:'warn',text:'자신이 아닌 일행을 지정해야 한다.'}],mpCost:0,invalid:true}
+  if (k.mimicEnemy && !H.PSYCHICS.some(p=>p.stolen && p.id!==id && p.src?.includes(s.enemy?.id))) return {state, events:[{kind:'warn',text:'현재 적에게서 모방 가능한 탈취 후 영능력을 찾지 못했다. 의지력과 턴은 소모하지 않았다.'}],mpCost:0,invalid:true}
   const bits = []
   const out = {}
   const es = { ...(s.es || {}) }
+  if (k.onceBattle) s.stealUses = {...(s.stealUses || {}),[id]:1}
   const hpMax = s.phpMax || H.maxHp(stats)
   const maxRoll = 2 * Math.max(1, Math.floor(stats.aggression || 0)) + Math.floor(stats.insight || 0) + 1
   const roll = (m) => Math.max(1, Math.ceil(H.attackRoll(stats, rng, true).dmg * m * H.atkMult(stats)))
@@ -143,6 +153,8 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     if (k.rat) { es.bryRats = { n: k.rat[0], d: atkRoll(k.rat[1]), fl: s.enemy.boss ? k.rat[2] / 2 : k.rat[2] }; bits.push(`쥐 떼를 풀었다 — 상대 차례마다 ${k.rat[0]}번 문다(${es.bryRats.d} 피해, 움찔 ${es.bryRats.fl}%)`) }
     if (k.han) { es.bryHan = { n: k.han[0], d: atkRoll(k.han[1]) }; bits.push(`한을 들러붙였다 — 상대가 공격할 때마다 ${es.bryHan.d} 피해(${k.han[0]}번)`) }
     if (k.psn) { const cur = es.bryPoison || { s: 0, d: 0 }; es.bryPoison = { s: Math.min(k.psn[1], cur.s + 1), d: Math.max(cur.d, atkRoll(k.psn[0])) }; bits.push(`독이 ${es.bryPoison.s}겹 쌓였다(상대 차례마다 ${es.bryPoison.d}×${es.bryPoison.s} 피해, 싸움이 끝날 때까지)`) }
+    if (k.poisonOnGuard) { es.bryFogPoison = atkRoll(0.05); bits.push('앞으로 방어 태세를 취할 때마다 독이 1겹 쌓인다') }
+    if (k.enemyAtkHalf) { es.bryAttackHalf = k.enemyAtkHalf; bits.push(`적의 공격력이 ${k.enemyAtkHalf}라운드 동안 절반이 된다`) }
     if (k.fogg) { es.bryFog = { n: k.fogg[0], d: atkRoll(k.fogg[1]) }; bits.push(`독안개를 깔았다 — ${k.fogg[0]}턴 동안 상대가 웅크리면 ${es.bryFog.d} 피해`) }
     if (k.wk) { es.bryWeak = Math.max(es.bryWeak || 0, k.wk); bits.push(`상대의 기운을 뺐다 — ${k.wk}턴 동안 강공 · 영능력 · 단체 공격 · 기 모으기가 약공이 된다`) }
     if (k.expose) { es.bryExpose = Math.max(es.bryExpose || 0, k.expose); bits.push(`병을 옮겼다 — ${k.expose}턴 동안 상대가 웅크리지 못한다`) }
@@ -171,7 +183,7 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     const left = spiritLeft()
     const take = Math.floor(left / k.sp)
     es.brySpirit = left - take
-    if (take > 0) { out.spiritSteal = take; bits.push(`상대의 영력 ${take}을(를) 앗아왔다(남은 영력 ${es.brySpirit})`) } else bits.push('앗아올 영력이 남아 있지 않았다')
+    if (take > 0) { if (k.spiritToMp) out.spiritMp = take; else out.spiritSteal = take; bits.push(`상대의 영력 ${take}을(를) 앗아왔다(남은 영력 ${es.brySpirit})`) } else bits.push('앗아올 영력이 남아 있지 않았다')
   }
   let heal = 0
   if (k.ls && dealt) heal += Math.ceil(dealt * k.ls)
@@ -211,6 +223,7 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
       bits.push(`되비춰 체력 +${Math.max(0, s.php - before)}, 상대 체력 -${Math.max(0, ebefore - s.ehp)}`)
     } else bits.push('되비출 것이 없었다(내가 더 멀쩡하다)')
   }
+  if (k.hpSacrificePair) { const pay = Math.min(Math.max(0,s.php-1), Math.ceil(hpMax*0.1)+Math.ceil(s.php*0.1)); s.php-=pay; bits.push(`최대·현재 체력 각 10%에 상당하는 체력 ${pay}을 바쳤다`) }
   if (k.cl) {
     const had = Object.keys(s.ps || {}).length || s.curse > 0
     s.ps = {}
@@ -223,7 +236,41 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
   if (k.st && alive) {
     const chance = Math.floor(s.enemy.boss ? k.st / 2 : k.st)
     const d = 1 + Math.floor(rng() * 100)
-    if (d <= chance) { s.queue = ['stun', ...(s.queue ?? []).slice(1)]; bits.push(`상대의 다음 행동을 봉쇄했다 (확률 ${chance}%, d100 = ${d})`) } else bits.push(`상대가 풀려났다 (확률 ${chance}%, d100 = ${d})`)
+    if (d <= chance) { s.queue = Array.from({length:k.stunTurns||1},()=> 'stun').concat((s.queue??[]).slice(k.stunTurns||1)); bits.push(`상대의 다음 행동을 봉쇄했다 (확률 ${chance}%, d100 = ${d})`) } else bits.push(`상대가 풀려났다 (확률 ${chance}%, d100 = ${d})`)
+  }
+  if (k.randomAilments) {
+    const pool = ['poison','blind','paralyze','plague','burn','fear','vulnerable','confuse'];
+    for (let i=0;i<k.randomAilments;i++) {
+      const j=Math.floor(rng()*pool.length), key=pool.splice(j,1)[0];
+      s.ps={...(s.ps||{}),[key]:(s.ps?.[key]||0)+2};
+      if(key==='poison') s.ps.poisonDie=Math.max(1,s.ps.poisonDie||2);
+      if(key==='paralyze') s.ps.paralyzeChance=30;
+      if(key==='plague') s.ps.plagueDie=Math.max(1,s.ps.plagueDie||2);
+      if(key==='burn') s.ps.burnPct=0.06;
+      bits.push(`상태이상 ${key} 획득`);
+    }
+  }
+  if(k.editEnemyQueue || k.deleteOneAction) {
+    const q=[...(s.queue||[])];
+    while(q.length<5) q.push(H.rollIntent(q[q.length-1]??null,rng,s.party,!!s.enemy.boss));
+    s.known=Math.max(s.known||0,5)
+    if(k.deleteOneAction) {
+      const choices=q.slice(0,5).map((v,i)=> v==='special'?-1:i).filter(i=>i>=0);
+      const at=Number.isInteger(ctx.queueIndex)&&choices.includes(ctx.queueIndex)?ctx.queueIndex:choices[0];
+      if(at!=null) { q[at]='stun'; bits.push(`${at+1}번째 행동을 삭제했다`) }
+    } else {
+      const changes=Array.isArray(ctx.queueEdits)?ctx.queueEdits:[];
+      const allowed=['jab','charge','smash','guard'];
+      if(!changes.length) { bits.push('적의 5행동을 확인했다. 교체할 행동을 고르지 않으면 예측만 적용된다') }
+      changes.forEach((ch)=>{const i=Math.floor(Number(ch?.index)); if(i<0||i>=5||q[i]==='special'||!allowed.includes(ch?.intent)||ch.intent==='charge'&&i===4)return; q[i]=ch.intent; if(ch.intent==='charge')q[i+1]='smash';bits.push(`${i+1}번째 행동을 ${ch.intent}(으)로 변경`) });
+    }
+    s.queue=q;
+  }
+  if(k.copyDebuffs) {
+    const debuffs=['poison','blind','paralyze','plague','burn','fear','vulnerable','confuse','healBlock','weaponSeal','statDown','costUp','mpTax'];
+    const found=debuffs.filter(key=>s.ps?.[key]>0);
+    if(found.length) { es.bryCopiedDebuffs={...(es.bryCopiedDebuffs||{}),...Object.fromEntries(found.map(k=>[k,s.ps[k]]))}; es.bryWeak=Math.max(es.bryWeak||0,Math.max(...found.map(k=>s.ps[k])));if(s.ps.poison>0)es.bryPoison={s:Math.min(5,s.ps.poison),d:Math.max(1,s.ps.poisonDie||1)};if(s.ps.burn>0)es.bryBurn=Math.max(1,Math.floor((s.phpMax||100)*(s.ps.burnPct||.06)));if(s.ps.blind>0)es.bryBlind={n:s.ps.blind,c:50};if(s.ps.paralyze>0)es.bryNumb={n:s.ps.paralyze,c:s.ps.paralyzeChance||30};bits.push(`${found.join('·')}의 불리한 기운을 상대에게도 옮겼다`) }
+    else bits.push('옮길 불리한 효과가 없다');
   }
   if (k.gs && alive) {
     const q = [...(s.queue ?? [])]
@@ -247,6 +294,16 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     s.known = reveal
     bits.push(k.rvAdd ? `${k.rvAdd}턴을 더 간파했다(앞으로 ${reveal}턴)` : `앞으로 ${k.rv}턴을 간파했다`)
   }
+  if (k.reviveAlly) { out.reviveTarget=ctx.target; bits.push('전투불능인 아군을 체력 20·의지력 0으로 일으킨다') }
+  if (k.fatalPrevent) { out.fatalPrevent=true; if(!ctx.selfId) {s.bryFatalPrevent=true;s.bryFatalPreventTurns=2} bits.push('일행 전체에 치명타 생존 가호를 건다') }
+  if (k.shareRemainingMp) { out.shareRemainingMp=true; bits.push('의지력 절반을 바쳐 나를 제외한 일행 전체를 회복시킨다') }
+  if (k.allyAttacksBuff) { out.allyAttackBuff={target:ctx.target,attacks:Math.min(16,ctx.targetAttacks||0)};bits.push(`아군의 과거 일반공격 ${ctx.targetAttacks||0}회에 따른 공격력 증가`) }
+  if (k.firstTurnStatBuff) { const stat=H.STAT6.includes(ctx.statKey)?ctx.statKey:'aggression';out.statBuff={target:ctx.target||ctx.selfId,stat,n:3,amount:5};if(!ctx.selfId)s.ps={...(s.ps||{}),bryBuff:3,bryBuffStat:stat,bryBuffAmount:5};bits.push(`${stat} 3라운드 +5`) }
+  if (k.firstTurnProtect) { out.firstTurnProtect=true;bits.push('이번 전투에서 일행의 피해를 대신 받는다') }
+  if (k.redirectNext) { out.redirectNext=ctx.target||ctx.selfId;bits.push('적의 다음 공격 대상을 지정했다') }
+  if (k.extraTurns) { out.extraTurns=k.extraTurns;bits.push('즉시 추가 행동 2회') }
+  if (k.reflectNextRaw) {out.reflectNextRaw=true;s.bryReflectNextRaw=true;bits.push('다음 공격의 원래 피해를 되돌릴 준비를 했다')}
+  if (k.mimicEnemy) { const copy=H.PSYCHICS.find(p=>p.stolen && p.id!==id && p.src?.includes(s.enemy?.id)); out.borrowedPsychic=copy.id;s.bryMimic=copy.id;bits.push(`${copy.label} 영능력을 이번 전투 중 취득했다`) }
   if (k.ch) {
     const used = s.stealUses?.[`${id}:ch`] || 0
     const before = s.charms ?? H.CHARMS
@@ -257,7 +314,7 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
       bits.push('부적 한 장을 되찾았다')
     }
   }
-  let gain = (k.g || 0) + (out.swallowed ? 15 : 0)
+  let gain = (k.g || 0) + (out.spiritMp || 0) + (out.swallowed ? 15 : 0)
   if (k.gsp) {
     const left = spiritLeft()
     const got = Math.min(k.gsp[1], Math.floor(left * k.gsp[0]))
@@ -265,6 +322,7 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     gain += got
     if (!got) bits.push('되찾을 영력이 남아 있지 않았다')
   }
+  if (k.shareRemainingMp) out.shareMpAmount=Math.floor(mpNow0*0.5)
   if (gain) {
     const cap = Number(ctx.mpMax ?? globalThis.__BRY_MPMAX) || Infinity
     gain = Math.max(0, Math.min(gain, cap - (mpNow0 - mpCost)))
@@ -278,6 +336,6 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     s.over = 'win'
     ev.push({ kind: 'end', text: `${s.enemy.name}이(가) 쓰러졌다.` })
   }
-  const { paid: _p, swallowed: _s, extraMp = 0, ...rest } = out
-  return { state: s, events: ev, mpCost: mpCost + extraMp - gain, ...rest }
+  const { paid: _p, swallowed: _s, spiritMp:_sm, extraMp = 0, ...rest } = out
+  return { state: s, events: ev, mpCost: mpCost + extraMp - gain + (out.shareMpAmount||0), ...rest }
 }

@@ -1,4 +1,5 @@
 import { query, pool } from './db.mjs';
+import { clientIp, permittedOrigin, isHttps, limit } from './security.mjs';
 import {
   COOKIE_NAME, SESSION_AGE_MS, COLORS,
   validateUsername, normalizeUsername, validatePassword,
@@ -13,14 +14,8 @@ const publicFields = 'u.id AS author_id,u.username,u.display_name,u.bio,u.avatar
 const profileFields = 'id,username,display_name,bio,avatar_symbol,accent,role,created_at';
 const postFields = `p.id,p.body,p.created_at,${publicFields},(SELECT COUNT(*)::int FROM biryeong_post_replies r WHERE r.post_id=p.id) AS reply_count`;
 const memoFields = `m.id,m.title,m.body,m.created_at,${publicFields},(SELECT COUNT(*)::int FROM biryeong_memo_comments c WHERE c.memo_id=m.id) AS comment_count`;
-const rateBuckets = new Map();
 function rateLimit(key, max = 40, windowMs = 60000) {
-  const now = Date.now();
-  let slot = rateBuckets.get(key);
-  if (!slot || slot.until < now) slot = { count:0, until:now + windowMs };
-  if (++slot.count > max) fail(429,'too_many_requests');
-  rateBuckets.set(key, slot);
-  if (rateBuckets.size > 5000) for (const [k,v] of rateBuckets) if (v.until < now) rateBuckets.delete(k);
+  if (!limit(key, max, windowMs)) fail(429,'too_many_requests');
 }
 function json(res,status,data,headers={}) {
   res.writeHead(status,{ 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff', ...headers });
@@ -41,14 +36,8 @@ async function currentUser(req) {
 }
 function requireUser(user) { if (!user) fail(401,'login_required'); return user; }
 function requireAdmin(user) { requireUser(user); if (!adminCanAudit(user)) fail(403,'forbidden'); }
-function sameOrigin(req) {
-  const origin=req.headers.origin;
-  if (!origin) return true; // non-browser clients; JSON-only, SameSite cookies
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
-  try { return new URL(origin).origin === new URL(`${String(proto).split(',')[0]}://${String(host).split(',')[0]}`).origin; } catch { return false; }
-}
-const isSecure = req => Boolean(req.socket.encrypted || String(req.headers['x-forwarded-proto'] || '').split(',')[0] === 'https');
+const sameOrigin = req => permittedOrigin(req);
+const isSecure = req => isHttps(req);
 async function startSession(user,res,req) {
   const token = newSessionToken();
   await query('INSERT INTO biryeong_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[tokenHash(token),user.id,new Date(Date.now()+SESSION_AGE_MS)]);
@@ -69,8 +58,9 @@ export async function handleCommunity(req,res,url) {
     if (!pool) fail(503,'database_not_configured');
     const method=req.method;
     const path=url.pathname.replace(/\/$/,'');
-    const clientIP=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'unknown').split(',')[0].trim();
-    if (method!=='GET') { if(!sameOrigin(req)) fail(403,'bad_origin'); rateLimit(`write:${clientIP}`); }
+    const clientIP=clientIp(req);
+    rateLimit(`community:${clientIP}`,120,60000);
+    if (method!=='GET' && method!=='HEAD') { if(!sameOrigin(req)) fail(403,'bad_origin'); rateLimit(`write:${clientIP}`,45,60000); }
     let user;
     if (path==='/api/community/register' && method==='POST') {
       rateLimit(`register:${clientIP}`,8,3600000);
@@ -95,6 +85,7 @@ export async function handleCommunity(req,res,url) {
       json(res,200,{user:session.user},session.headers); return true;
     }
     user=await currentUser(req);
+    if (user) rateLimit(`member:${user.id}`,100,60000);
     if (path==='/api/community/me' && method==='GET') {json(res,200,{user:user||null});return true;}
     if (path==='/api/community/logout' && method==='POST') {
       const token=parseCookie(req.headers.cookie);
@@ -137,6 +128,7 @@ export async function handleCommunity(req,res,url) {
     if(postReplyMatch){
       const postId=positiveId(postReplyMatch[1]);if(!postId)fail(400,'invalid_id');
       if(method==='GET'){
+        rateLimit(`replyread:${user.id}`,30,60000);
         const target=await query(`SELECT ${postFields} FROM biryeong_posts p JOIN biryeong_users u ON u.id=p.author_id WHERE p.id=$1`,[postId]);
         if(!target.rows.length)fail(404,'not_found');
         const replies=await query(`SELECT r.id,r.post_id,r.body,r.created_at,${publicFields} FROM biryeong_post_replies r JOIN biryeong_users u ON u.id=r.author_id WHERE r.post_id=$1 ORDER BY r.id ASC LIMIT 200`,[postId]);
@@ -164,6 +156,7 @@ export async function handleCommunity(req,res,url) {
     if (commentMatch) {
       const memoId=positiveId(commentMatch[1]);if(!memoId)fail(400,'invalid_id');
       if (method==='GET') {
+        rateLimit(`commentread:${user.id}`,30,60000);
         const memo=await query(`SELECT ${memoFields} FROM biryeong_memos m JOIN biryeong_users u ON u.id=m.author_id WHERE m.id=$1`,[memoId]);
         if(!memo.rows[0])fail(404,'not_found');
         const comments=await query(`SELECT c.id,c.memo_id,c.parent_id,c.body,c.created_at,${publicFields} FROM biryeong_memo_comments c JOIN biryeong_users u ON u.id=c.author_id WHERE c.memo_id=$1 ORDER BY c.id ASC LIMIT 300`,[memoId]);
@@ -209,6 +202,7 @@ export async function handleCommunity(req,res,url) {
       const id=positiveId(dmMatch[1]);if(!id)fail(400,'invalid_id');
       await threadForRead(id,user);
       if(method==='GET') {
+        rateLimit(`dmread:${user.id}`,45,60000);
         const after=positiveId(url.searchParams.get('after'));
         const before=positiveId(url.searchParams.get('before'));
         if(after && before)fail(400,'invalid_cursor');

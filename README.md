@@ -1,3 +1,11 @@
+# D.06.6 보안·부하 개선
+
+원본 D.06.5의 화면과 게임 데이터를 유지하며 Node 서버 및 Supabase 연결 보호를 보강한 배포본입니다.
+
+**기존 Supabase DB에 반드시 `supabase/security_patch_D.06.6.sql`을 1회 실행해야 권한 변경이 실제 적용됩니다.** 전체 실행 안내는 `SECURITY_D.06.6.md`를 참조하세요.
+
+---
+
 # 秘靈 · 비령 v0.9 — 한 사이트로 잇기 · 세계관 개변 · 스토리 퀘스트
 
 ## v0.9 변경
@@ -129,7 +137,7 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 | 표(엑셀) | `npm run sheets` → `biryeong_tables.xlsx` (systems/sheets) — 아이템 도트 그림 포함 |
 | 아이템 도트(v1.1) | `systems/biryeong/pixels.txt`(아이템 id|틀|색) · `pixel-templates.txt` · `pixel-templates-2.txt` — 같은 도트를 두 아이템이 쓰면 빌드가 멈춘다 |
 
-임시 관리자 코드는 `biryeong-admin-2046` 이다(`config.js`). 서버에 `ADMIN_CODE` 를 넣은 뒤에는 `adminCodeHash` 를 비워 임시 코드를 없앤다.
+D.06.6 이후 기본 임시 관리자 코드는 제거되었다. 관리자 승격은 서버(Supabase RPC 또는 독립 Node 서버)를 통한 검증만 사용한다.
 
 ## v1.8 (2026-11-16) — 본편 스크립트 v4
 
@@ -156,7 +164,7 @@ Pages 는 정적 호스팅이라 **지도 · 화면은 보이지만 가입 · �
 - 오프닝(`opening.js`): 명부 등록 직후 · 프로필이 없는 계정에 한 번, 화면 전체 연출 8컷 → 「내 프로필 만들기」. 프로필 화면에서 다시 보기.
 - 지도: 지금 있는 곳의 지도만(본관 · 별관 · 뒷산 · 사당), 눌러서 옮겨 가기 없음, 마지막으로 들른 곳(`counts.lastSpot`)이 「지금 여기」.
 - 오방 지도 사당 그림: `assets/center_scene.png` (`systems/art/center_scene.py` 로 그린다).
-- 관리자 코드: 배포가 `secrets.ADMIN_CODE || vars.ADMIN_CODE` 를 읽고, config.js · auth.js 를 판 번호로 새로 읽게 한다. `config.js` 의 `adminCodeFrom` 이 'github' 이면 GitHub 코드가 들어간 것.
+- 관리자 코드: D.06.6 이후 GitHub Pages에는 코드 및 SHA-256 해시를 주입하지 않는다. Supabase 관리자 코드는 비공개 서버 스키마에서만 검증한다.
 - 아이템 시트 v3 반영: `systems/biryeong/item-edits.txt`(보관고 아이템 위에 덮는 해설 · 효과) — 붉은여우 부적은 `party` + `effect.borrowPsychic`(다인 전투 규칙 `game/mbattle.js` 패치). 칭호 이름 40개 · 업적 이름 1개는 titles.js · titles2.js 에 바로 고쳤다.
 
 ## v1.5 (2026-11-15) — 아이템마다 제작법 하나

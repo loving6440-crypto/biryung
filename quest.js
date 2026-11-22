@@ -980,7 +980,7 @@
       return rows;
     };
     const loadVotes = (rows) => (server ? sync.adminRoutes(adminCode()).then((r) => { srvRoutes = Array.isArray(r) ? r : []; drawVotes(rows); }).catch(() => drawVotes(rows)) : drawVotes(rows));
-    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices()).then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
+    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices(adminCode())).then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
     else { drawVotes(localVotes()); votes.prepend(para('서버 연결 전 — 이 브라우저에 있는 계정들의 선택만 모았다.')); }
   }
 

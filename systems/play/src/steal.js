@@ -1,3 +1,4 @@
+import { WORKBOOK_STOLEN } from './userWorkbookData.js'
 import { reconceptPractice, PRACTICE_RECONCEPT } from './practiceEnemies.js'
 // 비령 vB.03 — 적의 영능력 빼앗기.
 //
@@ -37,27 +38,27 @@ const T = {
   'geuseundae#2': { mp: 40, m: 1.2, gsp: [0.5, 20] },
   'mongdangbi#1': { mp: 25, cl: 1 },
   'yagwanggwi#1': { mp: 15, m: 1, ch: 1, chU: 3 },
-  'dalgyal-gwisin#1': { mp: 15, dz: 'guard', dc: 70 },
-  'dungap-jwi#1': { mp: 15, m: 0.4, n: 2, p: 1, rat: [3, 0.35, 20] },
+  'dalgyal-gwisin#1': { mp: 10, dz: 'guard', dc: 70 },
+  'dungap-jwi#1': { mp: 20, m: 0.4, n: 2, p: 1, rat: [3, 0.35, 20] },
   'kim-seobang#1': { mp: 20, m: 0.6, p: 1, pc: 0.18, gbr: 1 },
   'kim-seobang#2': { mp: 20, m: 0.7, nr: [1, 4] },
   'mangtae-halabeom#1': { mp: 15, m: 1, p: 1, rb: 3 },
-  'mongdal-gwisin#1': { mp: 15, m: 0.6, han: [3, 0.4] },
-  'dokgak-gwi#1': { mp: 20, m: 0.8, n: 2, jx: 1.6 },
+  'mongdal-gwisin#1': { mp: 30, m: 0.6, han: [3, 0.4] },
+  'dokgak-gwi#1': { mp: 10, m: 0.8, n: 2, jx: 1.6 },
   'gaekgwi#1': { mp: 20, swap: 1 },
   'jangsanbeom#1': { mp: 20, qs: 1, rv: 2 },
-  'jangsanbeom#2': { mp: 20, m: 1, p: 1, rv: 3, kn: 6 },
+  'jangsanbeom#2': { mp: 10, m: 1, p: 1, rv: 3, kn: 6 },
   'heokkaebi#1': { mp: 15, rv: 4, fz: 50 },
-  'daemang#1': { mp: 20, m: 1, p: 1, ls: 1 },
-  'songaksi#1': { mp: 15, m: 0.6, wk: 2 },
-  'imae-mangryang#1': { mp: 20, m: 1, oe: 1 },
-  'cheonnyeon-jine#1': { mp: 20, m: 0.5, p: 1, psn: [0.25, 5] },
+  'daemang#1': { mp: 30, m: 1, p: 1, ls: 1 },
+  'songaksi#1': { mp: 50, m: 0.6, wk: 2 },
+  'imae-mangryang#1': { mp: 10, m: 1, oe: 1 },
+  'cheonnyeon-jine#1': { mp: 10, m: 0.5, p: 1, psn: [0.25, 5] },
   'cheonnyeon-jine#2': { mp: 20, gd: 1, fogg: [3, 1.5] },
   'changgwi#1': { mp: 20, m: 1, p: 1, hx: 1.5 },
   'myogwi#1': { mp: 20, m: 0.8, pmax: 0.05 },
   'jeokwi#1': { mp: 20, m: 1.2, expose: 3 },
-  'agwi#1': { mp: 20, m: 1.5, p: 1, ex: 0.4 },
-  'geumdwaeji#1': { mp: 25, m: 1, chg: 3 },
+  'agwi#1': { mp: 50, m: 1.5, p: 1, ex: 0.4 },
+  'geumdwaeji#1': { mp: 50, m: 1, chg: 3 },
   'geumdwaeji#2': { mp: 0, g: 25, sh: 0.08, spb: 5 },
   'gildal#1': { mp: 15, dodge: 2 },
   'jigwi#1': { mp: 20, m: 1.5, sh: 0.05, rage: 2 },
@@ -96,6 +97,37 @@ const T = {
   'docheol#1': { mp: 35, m: 2.2, p: 1, sil: 4 },
   'docheol#2': { mp: 35, m: 1.2, p: 1, eatch: 0.8 },
 }
+
+
+// D.06.7 — 업로드된 수정 시트의 실제 효과값. 기존 스킬 ID/습득 조건은 유지.
+Object.assign(T, {
+    'scarecrow#1': { mp:20, g:30 },
+    'snake#1': { mp:15, st:100 },
+    'foxfire#1': { mp:10, m:3, p:1, sf:0.20 },
+    'bulgasari#1': { mp:40, sp:3, spiritToMp:true },
+    'geuseundae#1': { mp:40, m:3, p:1, sil:5 },
+    'geuseundae#2': { mp:0, shareRemainingMp:true },
+    'yagwanggwi#1': { mp:15, mimicEnemy:true, onceBattle:true },
+    'dalgyal-gwisin#1': { mp:10, randomAilments:2, st:100, stunTurns:2 },
+    'dungap-jwi#1': { mp:20, m:0.4, n:3, st:10 },
+    'kim-seobang#1': { mp:20, m:1, pmax:0.10 },
+    'mangtae-halabeom#1': { mp:0, allyAttacksBuff:true, partyOnly:true },
+    'mongdal-gwisin#1': { mp:30, enemyAtkHalf:5 },
+    'dokgak-gwi#1': { mp:10, extraTurns:2 },
+    'jangsanbeom#1': { mp:20, rv:5, editEnemyQueue:true },
+    'jangsanbeom#2': { mp:10, redirectNext:true },
+    'heokkaebi#1': { mp:15, rv:5, deleteOneAction:true },
+    'daemang#1': { mp:30, m:1, p:1, ls:1 },
+    'songaksi#1': { mp:50, firstTurnStatBuff:true },
+    'imae-mangryang#1': { mp:10, firstTurnProtect:true, partyOnly:true },
+    'cheonnyeon-jine#1': { mp:10, m:0.5, p:1, psn:[0.05,5] },
+    'cheonnyeon-jine#2': { mp:20, poisonOnGuard:true },
+    'myogwi#1': { mp:20, gd:1, reflectNextRaw:true },
+    'jeokwi#1': { mp:20, copyDebuffs:true },
+    'agwi#1': { mp:50, reviveAlly:true, onceBattle:true, partyOnly:true },
+    'geumdwaeji#1': { mp:50, fatalPrevent:true, onceBattle:true },
+    'geumdwaeji#2': { mp:0, hpSacrificePair:true, g:25 },
+})
 
 // vC.01: 표(빼앗은 영능력 탭)에서 고쳐 받은 이름. 적이 쓰는 영능력의 이름은 그대로 두고, 빼앗아 내 것이 된 판의 이름만 바뀐다.
 export const STOLEN_NAMES = { "steal-scarecrow": "귀혼", "steal-snake": "목조르기", "steal-foxfire": "화염파", "steal-bulgasari-2": "화염의 이치", "steal-geuseundae": "부처님 손 위", "steal-geuseundae-2": "진리의 어둠", "steal-mongdangbi": "빗자루 바람", "steal-yagwanggwi": "그림자의 끈", "steal-dalgyal-gwisin": "황홀예찬", "steal-dungap-jwi": "서생원", "steal-kim-seobang": "씨름", "steal-mongdal-gwisin": "한붙음", "steal-jangsanbeom-2": "목소리를 듣거라", "steal-heokkaebi": "허상진화", "steal-daemang": "상혼", "steal-songaksi": "목울림", "steal-imae-mangryang": "산으로 물으로", "steal-cheonnyeon-jine": "만년독", "steal-changgwi": "범 내려온다", "steal-myogwi": "낫을 드시오", "steal-jeokwi": "돌림병", "steal-agwi": "승자독식", "steal-geumdwaeji": "금빛의 갈기", "steal-geumdwaeji-2": "금빛의 울림", "steal-gildal": "등잔 밑이 어둡다", "steal-gumiho-2": "환상수", "steal-yeou-nui": "정든 얼굴이 오셨소", "steal-chokru-gwi": "뼛가루 붙이기", "steal-bulgae": "해와 달", "steal-yeoksin": "역병의 신", "steal-yeoksin-2": "금강불괴", "steal-geuseunsae": "천상의 날개", "steal-hwama": "몸을 태우는 불꽃", "steal-yacha-nachal": "손바닥놀이", "steal-hanbal": "목구멍의 거미", "steal-gangcheol": "메마른 바람", "steal-gwimok": "나무껍질의 향", "steal-baekgwi": "백귀야행", "steal-samdugumi": "셋이서 하나", "steal-samdugumi-2": "발치에 감긴 한", "steal-baekgol-janggun": "진형 형성", "steal-yohwa": "꽃가루", "steal-daein": "열 손이 한 손", "steal-jihaguk-daejeok": "아군의 아군은 적", "steal-doul": "나를 보시오", "steal-geoul-gwi": "나와 나의 연쇄", "steal-hondon": "야차", "steal-docheol": "결계장승" }
@@ -210,10 +242,11 @@ export function stolenPsychics(enemies) {
       const k = T[s.key]
       const from = s.id === `${STEAL_PREFIX}curse` ? `${PRACTICE_RECONCEPT.wonhon.name} · 개척 요괴` : e.name
       const need = e.boss ? `${e.name}(보스)를 20번 쓰러뜨릴 때마다 두 영능력 중 하나씩(20번 · 40번)` : `${eul(from)} ${STEAL_NEED}번 쓰러뜨린다`
+      const workbook = WORKBOOK_STOLEN[s.id]
       out.push({
-        id: s.id, label: STOLEN_NAMES[s.id] ?? sp?.label ?? '빼앗은 영능력', stolen: true, from, boss: !!e.boss, tier: e.tier ?? 1, src: s.id === `${STEAL_PREFIX}curse` ? [...CURSE_FROM] : [e.id],
-        note: `${from}에게서 빼앗은 영능력. ${sp?.note ?? ''}`.trim(),
-        detail: stealDetail(k), mp: k.mp, cond: `빼앗기 — ${need}.`, use: true, k,
+        id: s.id, label: workbook?.label ?? STOLEN_NAMES[s.id] ?? sp?.label ?? '빼앗은 영능력', stolen: true, from, boss: !!e.boss, tier: e.tier ?? 1, src: s.id === `${STEAL_PREFIX}curse` ? [...CURSE_FROM] : [e.id],
+        note: workbook?.note ?? `${from}에게서 빼앗은 영능력. ${sp?.note ?? ''}`.trim(),
+        detail: workbook?.detail ?? stealDetail(k), mp: k.mp, cond: workbook?.cond ?? `빼앗기 — ${need}.`, use: true, k,
       })
     }
   }

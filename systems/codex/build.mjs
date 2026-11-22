@@ -73,6 +73,8 @@ for (const s of Object.values(HUNT_SITES)) {
   const e = s.ghost?.enemy
   if (e) for (const rw of s.ghost.rewardItems ?? []) (drops[e.id] ??= new Set()).add(rw.item)
 }
+const { WORKBOOK_ENEMY_SKILL_NAMES: __skillNames } = await import(join(ROOT, 'systems/play/src/userWorkbookData.js'))
+for(const e of ALL_ENEMIES){const ren=__skillNames[e.id];if(ren)for(const k of ['special','special2'])if(e[k]?.label===ren.before)e[k]={...e[k],label:ren.after}}
 const special = (sp, e, two) => ({ name: sp.label, note: swap(sp.note || ''), rate: `발동 확률 ${SPECIAL_PERCENT}% (상대 턴마다 d10 = 10${two ? ', 두 가지 중 하나' : ''})` })
 const enemies = yogoeList().map(({ enemy: e, group, where }) => ({
   id: e.id, name: e.name, tier: e.tier, tierLabel: `${TIER_HANJA[e.tier - 1] ?? e.tier}단계`, group: group.replace(/ \(.*\)$/, ''), where, boss: !!e.boss, party: e.partySize || 1,

@@ -1,8 +1,8 @@
 /* 秘靈 · 비령 — 사이트 설정. 서버(Render)를 붙이면 여기만 고친다.
  *   api            서버 주소(예: 'https://biryeong.onrender.com'). 같은 서버에서 화면까지 내보내면 ''(빈 값) 그대로 두고 sameOrigin 을 true 로.
  *   sameOrigin     화면을 서버(Render)가 직접 내보낼 때 true — 관리자 코드를 서버의 ADMIN_CODE 환경변수로 확인한다.
- *   adminCodeHash  서버가 없을 때 쓰는 임시 관리자 코드의 SHA-256. 서버가 붙으면 '' 로 비워 둔다.
- *                  GitHub 배포 때 ADMIN_CODE(Secret/Variable)가 있으면 그 코드의 SHA-256 으로 바뀐다. 임시 코드는 README 에만 적어 둔다.
+ *   adminCodeHash  보안상 기본 비활성화. 공개 정적 사이트에서는 관리자 자격을 확인할 수 없다.
+ *                  관리자 권한은 Supabase의 bry_claim_admin 또는 서버 측 검증으로만 판단한다.
  */
 window.BIRYEONG_CONFIG = {
   api: '',
@@ -10,8 +10,8 @@ window.BIRYEONG_CONFIG = {
   // 본편 퀘스트의 서버 부분(Supabase). 비워 두면 이 브라우저의 값만 쓴다. 연결 순서: supabase/README.md
   supabaseUrl: '',
   supabaseAnonKey: '',
-  adminCodeFrom: 'temp', // GitHub 배포가 ADMIN_CODE 를 넣으면 'github' 로 바뀐다
-  adminCodeHash: 'e910fb815e02e1eb5530b7a19c60a25585e832fa30b18947c5c9c32d086a4f73',
+  adminCodeFrom: 'server', // 공개 정적 사이트는 관리자 코드 검증을 제공하지 않는다
+  adminCodeHash: '', // 노출되는 공개 해시로 관리자 인증하지 않는다
 };
 
 /* 얼굴 그림(프사): 화자 이름 → 그림 주소. 메인 인물(윤진서 · 연호수 · △△ · 비 · 서창현)은 여기 적으면 대사마다 저절로 붙는다(없으면 빈 액자).

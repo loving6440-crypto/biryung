@@ -146,7 +146,6 @@ export const SOURCE_PATCHES = [
       ["    boss: !!mb.enemy.boss,\n    rage: mb.rage || 0,", "    boss: !!mb.enemy.boss,\n    bringLimit: !!(mb.enemy.boss || mb.enemy.bringLimit),\n    rage: mb.rage || 0,"],
       // vC.07.6 빼앗은 영능력 · 일행 전투: 저주 털어내기(cl) · 쓸수록 세지는 것(es) · 부적 되찾기 횟수(chU)가 판에 남고, 의지력 회복은 그 사람의 최대치까지
       ["  barrierBroken: !!m.barrierBroken,\n})", "  barrierBroken: !!m.barrierBroken,\n  stealUses: m.stealUses || {},\n})"],
-      ["selfId: m.id, amount: act.amount,", "selfId: m.id, mpMax: m.mpMax, amount: act.amount,"],
       ["  m.bound = r.state.bound\n", "  m.bound = r.state.bound\n  if (act.action === 'psychic' && String(act.psychic).startsWith('steal-')) { m.curse = r.state.curse ?? m.curse; m.stealUses = r.state.stealUses ?? m.stealUses }\n"],
     ],
   },
@@ -156,7 +155,7 @@ export const SOURCE_PATCHES = [
       ["(!view.boss || me?.psychicBring?.includes('spirit-barrier'))", "(!view.bringLimit || me?.psychicBring?.includes('spirit-barrier'))"],
       ["      {view.boss && (\n", "      {view.bringLimit && (\n"],
       ["          보스 전투 — 가져온 아이템만 쓸 수 있다", "          보스 전투 — 가져온 아이템 · 영능력만 쓸 수 있다"],
-      ["p.default || !view.boss || !Array.isArray(me?.psychicBring)", "p.default || !view.bringLimit || !Array.isArray(me?.psychicBring)"],
+      ["p.id===me?.borrowedPsychic || !view.boss || !Array.isArray(me?.psychicBring)", "p.id===me?.borrowedPsychic || !view.bringLimit || !Array.isArray(me?.psychicBring)"],
     ],
   },
   // ── vD.01 금역 [산 탐사] → [뒷산 탐사] ──
@@ -536,7 +535,9 @@ export function itemMatches(item, query0) {
   {
     file: 'game/battle.js',
     edits: [
-      ["import { BESTIARY } from './bestiary.js'", "import { BESTIARY } from './bestiary.js'\nimport { stolenPsychics, STEAL_PREFIX } from '@story/steal.js'\nimport { stolenTurn as __stolenTurn, bryHead as __bryHead } from '@story/steal-turn.js'\nexport { __bryHead as bryHead }"],
+      ["import { BESTIARY } from './bestiary.js'", "import { BESTIARY } from './bestiary.js'\nimport { stolenPsychics, STEAL_PREFIX } from '@story/steal.js'\nimport { WORKBOOK_ENEMY_SKILL_NAMES as __USER_ENEMY_NAMES } from '@story/userWorkbookData.js'\nimport { stolenTurn as __stolenTurn, bryHead as __bryHead } from '@story/steal-turn.js'\nexport { __bryHead as bryHead }"],
+      ["export const ALL_ENEMIES = [...ENEMIES, ...BESTIARY_ENEMIES]", "export const ALL_ENEMIES = [...ENEMIES, ...BESTIARY_ENEMIES]\nfor (const __e of ALL_ENEMIES) { const __n = __USER_ENEMY_NAMES[__e.id]; if(!__n) continue; for (const __k of ['special','special2']) if(__e[__k]?.label===__n.before) __e[__k]={...__e[__k],label:__n.after} }"],
+
       ["  special: { label: '영능력', note: '상대마다 다른 비기.' },", "  special: { label: '영능력', note: '상대마다 다른 비기.' },\n  stun: { label: '행동불능', note: '몸이 묶여 아무것도 하지 못한다.' },"],
       // 상대 차례의 머리(혼자 싸울 때): 스며드는 피해 · 행동불능 · 영능력 봉인
       ["  let intent0 = s.queue[0]\n", "  let intent0 = s.queue[0]\n  if (solo) { const __h = __bryHead(s.es, intent0, s.ehp, s.enemy.name); s.es = __h.es; s.ehp = __h.ehp; for (const __t of __h.notes) ev.push({ kind: 'warn', text: __t }); if (__h.intent !== intent0) { intent0 = __h.intent; s.queue[0] = intent0 } } else if (intent0 === 'stun') { intent0 = 'none'; s.queue[0] = 'none' }\n"],
@@ -547,8 +548,6 @@ export function itemMatches(item, query0) {
   {
     file: 'game/mbattle.js',
     edits: [
-      ["  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic)) return { error: 'bad-psychic' }", "  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic) && !String(act.psychic).startsWith('steal-')) return { error: 'bad-psychic' }"],
-      ["    members: mb.members.map((m) => ({\n      id: m.id,\n      name: m.name,\n      agility: m.stats.agility,", "    members: mb.members.map((m) => ({\n      id: m.id,\n      name: m.name,\n      spiritStolen: m.spiritStolen || 0,\n      agility: m.stats.agility,"],
       ["import { enemyById, effectHitsAll,", "import { bryHead as __bryHead } from '@story/steal-turn.js'\nimport { enemyById, effectHitsAll,"],
       ["  const gim = bossGimmick(mb, mb.queue[0])\n  let intent = gim.intent\n", "  const gim = bossGimmick(mb, mb.queue[0])\n  let intent = gim.intent\n  { const __h = __bryHead(mb.es, intent, mb.ehp, mb.enemy.name); mb.es = __h.es; mb.ehp = __h.ehp; intent = __h.intent; for (const __t of __h.notes) evs.push(...addLog(mb, [{ kind: 'warn', text: __t }], 'enemy')) } // vC.01\n"],
       ["    if (r.earthReduction != null) mb.earthReduction", "    if (r.spiritSteal) m.spiritStolen = (m.spiritStolen || 0) + r.spiritSteal // vC.01 앗아온 영력은 사람마다 모았다가 끝날 때 준다\n    if (r.splash) for (const __o of mb.members) if (__o.id !== m.id && __o.status === 'alive' && __o.php > 1) __o.php = Math.max(1, __o.php - r.splash) // vC.01 화염파: 아군도 함께 맞는다\n    if (r.earthReduction != null) mb.earthReduction"],
@@ -692,10 +691,8 @@ export function itemMatches(item, query0) {
     edits: [
       ["  // 초보용 고독: 앞으로 3라운드 적이 받는 피해 +20% (보스 포함).\n  if (e.enemyVulnerability) {",
        "  if (e.borrowPsychic) {\n    if (!mb.members.some((x) => x.id !== m.id && x.status === 'alive' && x.psychics?.length)) return { error: '영능력을 빌릴 일행이 없다.' }\n    m.borrowPsychic = (m.borrowPsychic || 0) + e.borrowPsychic\n    addLog(mb, [{ kind: 'info', text: `${m.name}의 붉은여우 부적! 이번 전투에서 일행의 영능력을 한 번 빌려 쓸 수 있다.` }], m.id)\n    return { ok: true }\n  }\n  // 초보용 고독: 앞으로 3라운드 적이 받는 피해 +20% (보스 포함).\n  if (e.enemyVulnerability) {"],
-      ["  if (a === 'psychic' && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic)) return { error: 'not-brought' }",
-       "  const __borrow = a === 'psychic' && (m.borrowPsychic || 0) > 0 && !(m.psychics || []).includes(act.psychic) && mb.members.some((x) => x.id !== m.id && x.status === 'alive' && (x.psychics || []).includes(act.psychic))\n  if (a === 'psychic' && !__borrow && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic)) return { error: 'not-brought' }"],
-      ["    target: a === 'psychic' && ['karmic-recompense', 'echo-form', 'warding-scripture'].includes(act.psychic) && typeof act.target === 'string' ? act.target : undefined,\n  }\n  return { ok: true }",
-       "    target: a === 'psychic' && ['karmic-recompense', 'echo-form', 'warding-scripture'].includes(act.psychic) && typeof act.target === 'string' ? act.target : undefined,\n  }\n  if (__borrow) { m.borrowPsychic -= 1; m.act.borrowed = true; addLog(mb, [{ kind: 'info', text: `[${m.name}] 일행의 영능력을 빌려 쓴다.` }], m.id) }\n  return { ok: true }"],
+      ["  if (a === 'psychic' && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic) && m.borrowedPsychic !== act.psychic) return { error: 'not-brought' }",
+       "  const __borrow = a === 'psychic' && (m.borrowPsychic || 0) > 0 && !(m.psychics || []).includes(act.psychic) && mb.members.some((x) => x.id !== m.id && x.status === 'alive' && (x.psychics || []).includes(act.psychic))\n  if (a === 'psychic' && !__borrow && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic) && m.borrowedPsychic !== act.psychic) return { error: 'not-brought' }"],
     ],
   },
   // ── v1.3 보스 고유 패턴: 단독 전투 화면에 이야기 전투 훅(systems/play/src/storyBoss.js)을 끼운다 ──

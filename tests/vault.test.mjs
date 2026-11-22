@@ -502,7 +502,7 @@ test('vB.03: 본편 보상 · 서버 선택은 최초 1회만 · 관리자 기�
   assert.match(sql, /create trigger story_choice_first before insert on public\.story_choices/)
   assert.match(sql, /drop policy if exists choices_update/)
   assert.ok(!/if a\.role = 'admin' then return jsonb_build_object\('ok', true, 'recorded', false/.test(sql))
-  assert.match(readFileSync(join(ROOT, 'sync.js'), 'utf8'), /resolution=ignore-duplicates/)
+  assert.match(readFileSync(join(ROOT, 'sync.js'), 'utf8'), /bry_story_choice/)
 })
 
 test('vB.04: 오방색 배치 · 영능력 도감 양식 · 하루 영력 전투 3번(냥은 제한 없음)', async () => {
@@ -611,7 +611,7 @@ test('vC.06: 몸의 이상 · 동아리 활동 · 인물의 부탁 · 실습장 
   // 무거운 이상 둘을 한 번에 낫게 하는 물건은 없다
   for (const it of A.AIL_ITEMS) if ((it.effect.cureAil || []).length > 1) assert.ok(it.effect.cureAil.every((id) => !A.AIL[id].heavy), it.name)
   const codex = readFileSync(join(ROOT, 'codex-data.js'), 'utf8')
-  assert.ok(codex.includes('먹구렁이에게서 빼앗은 영능력') && codex.includes('무쇠 장승') && !codex.includes('을(를) 30번'))
+  assert.ok(codex.includes('승자독식') && codex.includes('무쇠 장승') && !codex.includes('을(를) 30번'))
   const patches = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
   assert.ok(patches.includes('__ailRound()') && patches.includes('__ailStat(player, now)') && patches.includes('<NpcQuests place='))
   // 인물의 부탁: 셋이 15건씩, 사당에는 없다
@@ -684,7 +684,7 @@ test('vC.07.6: 보스 전투 준비(출발 뒤 아이템 3 · 영능력 2) · �
   assert.ok(sp.includes('<BattleBag') && sp.includes('mates={view.members.filter') && sp.includes('mb.acks = {') && !sp.includes('function ItemPicker'))
   assert.ok(sp.includes('fx: weaponFx(player)') && sp.includes('bringLimit: !!limit'))
   const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
-  assert.ok(pt.includes('mb.enemy.bringLimit') && pt.includes('stealUses: m.stealUses || {}') && pt.includes('mpMax: m.mpMax, amount: act.amount'))
+  assert.ok(pt.includes('mb.enemy.bringLimit') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('stealUses: m.stealUses || {}') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('mpMax:m.mpMax') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('amount: act.amount'))
 })
 
 test('vD.01: 뒷산 탐사 · 얼굴 그림 매끈하게 · 퀘스트 잔상 · 띠링 · 우편함 · 상태 설명 · 옆 창 일행 대화', () => {
@@ -887,12 +887,12 @@ test('vD.04: 육조 스탯 마우스오버 설명 6개', () => {
   for (const t of ['교육자들은 우선 눈을 크게 뜰 것을 1원칙으로', '제어할 수 없는 돌발 행동 확률도', '시간을 들여 얻는 보상이 늘어납니다', '영력 활용이 효율적으로', '반 박자 빠를 수 있는 법칙', '개척 중 전투를 확률적으로 피하게']) assert.ok(app.includes(t), t)
 })
 
-test('vD.04.1: 우정 편지 매점 10냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
+test('vD.06.7: 우정 편지 매점 100냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
   const { NEW_STORE, retuneItems } = await import('../systems/play/src/itemRetune.js')
-  assert.equal(NEW_STORE['friendship-letter'].price, 30)
+  assert.equal(NEW_STORE['friendship-letter'].price, 100)
   assert.equal(NEW_STORE['friendship-letter'].effectText, '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.')
   const [x] = retuneItems([{ id: 'friendship-letter', kind: 'material', tags: ['재료'], price: null, desc: '누군가들이 주고받은 편지. 다른 사람의 인연이 담겨있다.', effect: {} }])
-  assert.ok(x.price === 30 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
+  assert.ok(x.price === 100 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
   assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/hunt-extra.txt'), 'utf8').includes('friendship-letter'))
   const R = await import('../systems/biryeong/reskin.data.js')
   const recs = [...R.NEW_RECIPES.W, ...R.NEW_RECIPES.K, ...R.STORY_RECIPES]

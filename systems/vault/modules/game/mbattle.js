@@ -31,7 +31,7 @@ export const hasActiveSpiritBarrier = (member, enemy) =>
   (!enemy?.boss || (Array.isArray(member.psychicBring) && member.psychicBring.includes('spirit-barrier')))
 
 /** 영력결계 상태에서도 스스로 또는 아군을 대상으로 쓰는 영능력은 사용할 수 있다. */
-export const BARRIER_ALLY_SKILLS = ['survival', 'echo-form', 'falling-light', 'karmic-recompense', 'warding-scripture', 'earth-step', 'seven-stars']
+export const BARRIER_ALLY_SKILLS = ['survival', 'echo-form', 'falling-light', 'karmic-recompense', 'warding-scripture', 'earth-step', 'seven-stars','steal-agwi','steal-geumdwaeji','steal-geuseundae-2','steal-mangtae-halabeom','steal-songaksi','steal-imae-mangryang','steal-myogwi','steal-dokgak-gwi']
 
 /** 클라이언트가 보낸 스탯을 안전한 정수로 고친다. */
 export function cleanStats(raw = {}) {
@@ -88,6 +88,7 @@ export function makeMember({ id, name, stats, fx, trinket, special, hp, hpMax, m
     passiveOff: Array.isArray(passiveOff) ? passiveOff.filter((x) => x === 'spirit-barrier') : [], // 이번 전투에서 끈 패시브 영능력 (v79.0.7)
     lbPick: false, // 언어장벽으로 20턴을 간파한 뒤, 바꿀 턴을 고르는 중 (v79.0.7)
     act: null, // 이번 라운드에 고른 행동 { action, scanAmount?, psychic?, forced? }
+    attackCount:0, stealUses:{}, statBuffs:[], fatalPrevent:false, reflectNextRaw:false, borrowedPsychic:null,
     ps: {}, // v-B.05 상태 이상(battle.js PS_INFO): 남은 턴 수
     banished: 0, // 백귀행렬에 끌려가 빠져 있는 남은 라운드
     barrierBroken: false,
@@ -163,6 +164,7 @@ const viewOfMember = (mb, m) => ({
   fireBuffed: !!m.fireBuffed,
   ps: m.ps || {},
   es: mb.es || {},
+  stealUses: m.stealUses || {},
   lies: mb.lies,
   starBonus: m.starBonus || 0,
   pstun: m.stun || 0,
@@ -268,11 +270,12 @@ export function submit(mb, id, act) {
   const barrierActive = hasActiveSpiritBarrier(m, mb.enemy)
   if (barrierActive && act?.buff) return { error: '영력결계가 발동 중이면 효험을 사용할 수 없다.' }
   if (a === 'psychic' && barrierActive && !BARRIER_ALLY_SKILLS.includes(act.psychic)) return { error: '영력결계가 발동 중이면 적 대상 영능력을 사용할 수 없다.' }
-  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic)) return { error: 'bad-psychic' }
+  if (a === 'psychic' && !PSYCHIC_IDS.includes(act.psychic) && !String(act.psychic).startsWith('steal-')) return {error:'bad-psychic'}
+  if (a === 'psychic' && String(act.psychic).startsWith('steal-') && !(m.psychics||[]).includes(act.psychic) && m.borrowedPsychic !== act.psychic && !((m.borrowPsychic || 0)>0 && mb.members.some(x=>x.id!==m.id&&x.status==='alive'&&(x.psychics||[]).includes(act.psychic)))) return {error:'not-owned'}
   // 그슨대 [내리누르기]: 봉인된 동안은 영능력(효험 포함)을 쓸 수 없다.
   if ((m.psySeal || 0) > 0 && (a === 'psychic' || act?.buff)) return { error: `영능력이 봉인되어 있다. (남은 ${m.psySeal}라운드)` }
   // 보스 전투: 미리 가져가기로 고른 영능력(최대 2개)만 쓸 수 있다. (v71)
-  if (a === 'psychic' && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic)) return { error: 'not-brought' }
+  if (a === 'psychic' && mb.enemy.boss && Array.isArray(m.psychicBring) && !m.psychicBring.includes(act.psychic) && m.borrowedPsychic !== act.psychic) return { error: 'not-brought' }
   // 언어장벽 (v79.0.7): 1단계 간파는 턴을 쓰지 않는다. 20턴을 드러낸 뒤 같은 턴에 바꿀 턴을 골라 다시 제출한다(이때 턴이 끝난다).
   // 몇 번째 라운드든, 일행 중 몇 번째 순서든 자기 차례면 언제든 쓸 수 있다.
   if (m.lbPick && !(a === 'psychic' && act.psychic === 'language-barrier')) return { error: '언어장벽: 먼저 바꿀 턴을 골라 확정해야 한다.' }
@@ -296,8 +299,12 @@ export function submit(mb, id, act) {
     amount: a === 'psychic' && act.psychic === 'warding-scripture' ? Math.max(1, Math.floor(act.amount ?? 10)) : undefined,
     rerolls: a === 'psychic' && act.psychic === 'language-barrier' ? (Array.isArray(act.rerolls) ? act.rerolls.slice(0,3) : []) : undefined,
     sacrifice: a === 'psychic' && act.psychic === 'monkey-paw' ? Math.max(0, Math.floor(act.sacrifice ?? 0)) : undefined,
-    target: a === 'psychic' && ['karmic-recompense', 'echo-form', 'warding-scripture'].includes(act.psychic) && typeof act.target === 'string' ? act.target : undefined,
+    target: a === 'psychic' && ['karmic-recompense', 'echo-form', 'warding-scripture','steal-agwi','steal-songaksi','steal-mangtae-halabeom','steal-jangsanbeom-2'].includes(act.psychic) && typeof act.target === 'string' ? act.target : undefined,
+    statKey:a==='psychic' && act.psychic==='steal-songaksi' && ['insight','aggression','endurance','control','agility','comprehension'].includes(act.statKey)?act.statKey:undefined,
+    queueIndex:a==='psychic' && act.psychic==='steal-heokkaebi' && Number.isInteger(act.queueIndex) && act.queueIndex>=0 && act.queueIndex<5 ? act.queueIndex:undefined,
+    queueEdits:a==='psychic' && act.psychic==='steal-jangsanbeom' && Array.isArray(act.queueEdits)?act.queueEdits.slice(0,5).filter(x=>Number.isInteger(x?.index)&&x.index>=0&&x.index<5&&['jab','guard','charge','smash'].includes(x?.intent)):undefined,
   }
+  if (typeof __borrow !== 'undefined' && __borrow) {m.borrowPsychic -= 1;m.act.borrowed = true;addLog(mb,[{kind:'info',text:`[${m.name}] 일행의 영능력을 빌려 쓴다.`}],m.id)}
   return { ok: true }
 }
 
@@ -587,11 +594,12 @@ export function resolveTurn(mb, rng = Math.random) {
   let targetId = null
   if (act.action === 'psychic') {
     // 업인과보·형상 기억의 대상: 지정했고 아직 살아 있으면 그 사람, 아니면 자기 자신.
-    targetId = act.target && mb.members.some((x) => x.id === act.target && x.status === 'alive') ? act.target : m.id
+    const isRevive = act.psychic === 'steal-agwi'
+    targetId = act.target && mb.members.some((x) => x.id === act.target && (x.status === 'alive' || (isRevive && (x.status === 'down' || x.pendingDeath)))) ? act.target : (isRevive ? null : m.id)
     r = psychicTurn(
       v,
       act.psychic ?? 'survival',
-      { stats: m.stats, mp: m.mp, boost: m.boost, aura, buff: act.buff, sacrifice: act.sacrifice, target: targetId, selfId: m.id, amount: act.amount, rerolls: act.rerolls, baseAggression: m.baseAggression },
+      { stats: m.stats, mp: m.mp, mpMax:m.mpMax, boost: m.boost, aura, buff: act.buff, sacrifice: act.sacrifice, target: targetId, selfId: m.id, targetDown:!!mb.members.find(x=>x.id===targetId&&(x.status==='down'||x.pendingDeath)),targetAttacks:mb.members.find(x=>x.id===targetId)?.attackCount||0,statKey:act.statKey,queueEdits:act.queueEdits,queueIndex:act.queueIndex, amount: act.amount, rerolls: act.rerolls, baseAggression: m.baseAggression },
       rng,
     )
   } else {
@@ -634,6 +642,8 @@ export function resolveTurn(mb, rng = Math.random) {
   }
   m.ps = r.state.ps || {}
   mb.es = r.state.es || {}
+  if(mb.es.brySpirit!=null)mb.espirit=Math.min(mb.espirit,mb.es.brySpirit)
+  if(act.action==='attack')m.attackCount=(m.attackCount||0)+1
   banishCheck(mb, m, Math.max(0, mb.ehp - r.state.ehp))
   if (act.action === 'psychic') {
     // r.state.fallingLight 는 '일행 중 누군가 내려쬐는 빛을 걸어 뒀다'를 가리키는 공유 신호라(viewOfMember 가 매번
@@ -643,6 +653,31 @@ export function resolveTurn(mb, rng = Math.random) {
     if (r.state.karmicTarget) mb.karmicTarget = targetId
     // 형상 기억: 자기 자신이면 r.state.php 가 이미 100으로 반영되어 아래에서 그대로 적용되지만,
     // 다른 일행을 대상으로 골랐으면 그 사람의 체력은 이 함수가 알지 못하므로 여기서 직접 100으로 맞춘다.
+    // D.06.7 수정 시트: 탈취 영능력의 실제 일행 전투 효과.
+    if (r.reviveTarget) {
+      const ally = mb.members.find(x => x.id===r.reviveTarget && (x.status==='down'||x.pendingDeath));
+      if (ally) { ally.status='alive';ally.pendingDeath=false;ally.php=Math.min(ally.phpMax,20);ally.mp=0;ally.stun=0; addLog(mb,[{kind:'warn',text:`[${ally.name}] 되살아났다! 체력 ${ally.php}, 의지력 0.`}],m.id) }
+    }
+    if (r.fatalPrevent) for (const x of aliveOf(mb)) {x.fatalPrevent=true;x.fatalPreventTurns=2}
+    if (r.shareRemainingMp) for(const x of aliveOf(mb)) if(x.id!==m.id) x.mp=Math.min(x.mpMax,x.mp+Math.floor(x.mp*0.5))
+    if (r.allyAttackBuff) {
+      const target=mb.members.find(x=>x.id===r.allyAttackBuff.target && x.status==='alive');
+      if(target) { const amt=Math.max(0,r.allyAttackBuff.attacks)*target.stats.aggression; target.stats.aggression+=amt;target.permanentBuff=(target.permanentBuff||0)+amt }
+    }
+    if (r.statBuff) {
+      const target=mb.members.find(x=>x.id===r.statBuff.target && x.status==='alive');
+      const allowed=['insight','aggression','endurance','control','agility','comprehension'];
+      if(target && allowed.includes(r.statBuff.stat)) {
+        const amt=r.statBuff.amount;target.stats[r.statBuff.stat]+=amt;
+        target.statBuffs ||= [];target.statBuffs.push({stat:r.statBuff.stat,amount:amt,rounds:r.statBuff.n});
+      }
+    }
+    if (r.firstTurnProtect) mb.protector=m.id
+    if (r.redirectNext) mb.redirectNext=r.redirectNext
+    if (r.reflectNextRaw) m.reflectNextRaw=true
+    if (r.borrowedPsychic) m.borrowedPsychic=r.borrowedPsychic
+    if (r.extraTurns) mb.order.splice(mb.turnIdx+1,0,...Array(Math.min(2,r.extraTurns)).fill(m.id))
+    if (r.state.stealUses) m.stealUses=r.state.stealUses
     if (r.earthReduction != null) mb.earthReduction = Math.max(mb.earthReduction || 0, r.earthReduction)
     if (r.starBonus) { m.starBonus = r.starBonus; m.stats.aggression += r.starBonus }
     if (r.healMpTarget) {
@@ -804,6 +839,7 @@ function roundHurt(mb, m, raw, text, evs, blockHalf = false) {
     delete m.ps.sleep
     lines.push({ kind: 'warn', text: `[${m.name}] 아픔에 번쩍 정신이 들었다! 가위눌림에서 깨어났다.` })
   }
+  if (m.php <= 0 && m.fatalPrevent) {m.fatalPrevent=false;m.php=16;lines.push({kind:'warn',text:`[${m.name}] 금돼지의 가호로 체력 16을 남겼다.`})}
   if (m.php <= 0) downOrPending(mb, m, lines)
   evs.push(...addLog(mb, lines, 'enemy'))
   return d
@@ -876,6 +912,8 @@ function enemyPhase(mb, rng) {
   const ctxOf = {} // 대상별 추가 ctx (차례로 줄어드는 피해, 싸움 붙이기 등)
   let partyNote = null
   // 내려쬐는 빛: 다음 적의 공격(단일·단체 모두, 영능력 포함)을 무조건 자신에게 맞게 한다 — 실제로 공격이 들어오는 턴에만 소모된다.
+  if(mb.protector && mb.members.some(x=>x.id===mb.protector && x.status==='alive' && x.php>0))mb.fallingLight=mb.protector
+  if(mb.redirectNext && ['jab','smash','special','group'].includes(intent)){mb.fallingLight=mb.redirectNext; mb.redirectNext=null}
   const flTarget = mb.fallingLight && mb.members.find((x) => x.id === mb.fallingLight && x.status === 'alive' && x.php > 0 && !(x.banished > 0))
   const markT = mb.es?.mark && alive.find((x) => x.id === mb.es.mark.id)
   const unshielded = alive.filter((x) => !hasActiveSpiritBarrier(x, mb.enemy))
@@ -1084,7 +1122,10 @@ function enemyPhase(mb, rng) {
     // 대상 면역일 때 생긴 내부 '행동이 무효화' 안내는 적 전체가 공격을 취소한 것으로 오해될 수 있으므로 숨긴다.
     let tevs = (blocksGroupSpecial ? r.events.filter(e => !/행동이 무효화/.test(e.text || '')) : r.events)
       .map((e) => (e.kind === 'warn' || e.kind === 'end' ? { ...e, kind: e.kind === 'end' ? 'warn' : e.kind, text: `[${t.name}] ${e.text}` } : (group || targets.length > 1) && e.kind === 'enemy' ? { ...e, text: `[${t.name}] ${e.text}` } : e))
-    const downed = r.state.pendingDeath || r.state.over === 'lose'
+    let downed = r.state.pendingDeath || r.state.over === 'lose'
+    if (downed && t.fatalPrevent) { t.fatalPrevent=false;t.php=16;t.pendingDeath=false;t.status='alive';downed=false;tevs=[{kind:'warn',text:`[${t.name}] 금돼지의 가호로 체력 16으로 살아남았다.`}]; }
+    if(t.reflectNextRaw && prevPhp>t.php){t.reflectNextRaw=false;const reflected=Math.max(1,Number(r.state.bryLastRaw)||Math.ceil(prevPhp-t.php));mb.ehp=Math.max(0,mb.ehp-reflected);tevs=[...tevs,{kind:'warn',text:`[${t.name}] 묘귀의 반격! 받은 원 피해에 준하는 ${reflected}을(를) 적에게 돌려주었다.`}]}
+
     if (downed && (t.revive || t.headband)) {
       const text = spendRevive(t)
       t.php = 1
@@ -1128,6 +1169,10 @@ function enemyPhase(mb, rng) {
       }
     }
   }
+  for(const x of mb.members) if(x.fatalPreventTurns>0){x.fatalPreventTurns-=1;if(!x.fatalPreventTurns)x.fatalPrevent=false}
+  for (const x of mb.members) if(Array.isArray(x.statBuffs)) x.statBuffs=x.statBuffs.filter(b=>{
+    b.rounds-=1;if(b.rounds<=0){x.stats[b.stat]-=b.amount;return false}return true
+  })
   for (const m of mb.members) m.guard = false
   // 뼈 맞추기: 쓰러져도 한 번은 일어선다.
   if (mb.ehp <= 0) {
@@ -1313,6 +1358,9 @@ export function viewOf(mb, extra = {}) {
     members: mb.members.map((m) => ({
       id: m.id,
       name: m.name,
+      borrowedPsychic: m.borrowedPsychic||null,
+      stealUses: m.stealUses || {},
+      spiritStolen: m.spiritStolen || 0,
       agility: m.stats.agility,
       php: m.php,
       phpMax: m.phpMax,

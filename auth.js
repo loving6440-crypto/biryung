@@ -5,7 +5,7 @@
  *   biryeong-save-v1:<아이디>  그 계정의 기록(프로필 · 진행). 예전 판의 기록(biryeong-save-v1)은 처음 만든 계정이 이어받는다.
  *
  * 로그인 화면: 로고 자리의 갈무리9 '비령' 글자를 다섯 번 누르면 관리자 코드 칸이 나온다.
- *   관리자 코드 확인 — 서버가 있으면 POST {api}/api/admin/verify (서버의 ADMIN_CODE 환경변수와 비교), 없으면 config.js 의 adminCodeHash.
+ *   관리자 코드 확인 — 서버의 관리자 코드 검증 API / Supabase RPC에서만 수행. 공개 정적 해시는 사용하지 않는다.
  *
  * window.BiryeongAuth = { session(), saveKey(), isAdmin(), logout(), list(), resetPassword(id, pw), remove(id), setAdmin(id, on) }
  * 나중에 서버 로그인으로 바꿀 때는 이 파일의 register · login · verifyAdminCode 만 서버 호출로 바꾸면 된다.
@@ -149,7 +149,7 @@
       if (mode === 'join') r = await rpc('bry_register', { p_username: id, p_password: pw });
       else {
         r = await rpc('bry_login', { p_username: id, p_password: pw });
-        if (r.error === 'user_not_found') {
+        if (r.error === 'user_not_found' || r.error === 'invalid_credentials') {
           const u = readAcc().users[id];
           if (u && u.hash === hashPw(u.salt, pw)) r = await rpc('bry_register', { p_username: id, p_password: pw });
           else return { error: ERR.invalid_credentials };
@@ -219,9 +219,11 @@
       try {
         const res = await fetch(`${CONFIG.api}/api/admin/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
         if (res.ok) return !!(await res.json()).ok;
-      } catch (_) { /* 서버에 닿지 않으면 아래 임시 코드로 */ }
+      } catch (_) { return false; } // 서버 오류일 때 정적 해시로 인증을 우회하지 않음
+      return false;
     }
-    return !!CONFIG.adminCodeHash && sha256(code) === CONFIG.adminCodeHash;
+    // 순수 정적 페이지의 관리 권한은 보안 경계가 될 수 없다.
+    return false;
   }
 
   // vD.04.3 자리를 비웠는가: 마지막으로 누르거나 움직인 뒤 지난 시간. 켜 두고 자리를 비운 화면은 서버에 덜 묻는다.

@@ -4,7 +4,12 @@ const { Pool } = pg;
 export let pool = null;
 export async function initDatabase() {
   if (!process.env.DATABASE_URL) return false;
-  pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DB_POOL_SIZE || 10), connectionTimeoutMillis: 8000, idleTimeoutMillis: 30000 });
+  const asked=Number(process.env.DB_POOL_SIZE || 5);
+  const max=Number.isFinite(asked) ? Math.min(15,Math.max(2,Math.floor(asked))) : 5;
+  pool = new Pool({connectionString:process.env.DATABASE_URL,max,connectionTimeoutMillis:5000,
+    idleTimeoutMillis:20000,statement_timeout:12000,query_timeout:15000,
+    idle_in_transaction_session_timeout:10000,maxUses:5000});
+  pool.on('error',(err)=>console.error('[biryeong postgres idle connection]',err.message));
   await pool.query('SELECT 1');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS biryeong_users (

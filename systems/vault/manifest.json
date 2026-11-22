@@ -1616,8 +1616,8 @@
       "kind": "game-logic",
       "path": "modules/game/battle.js",
       "origin": "src/game/battle.js",
-      "bytes": 126574,
-      "sha256": "a53c5e39e3c41c227bb9398c810a5f0ef87a69ebf51f651a206908df8d4730e1",
+      "bytes": 127716,
+      "sha256": "d438b91a508dbca5cd036e29a61b7f9ea8ba2e111bd2dc43498d739e9085132d",
       "c01Sha256": "c52201844c7f1e40853493325bc53f63a91491a17f43f17be4ba5f7b197f4f24",
       "deps": [
         "game/bestiary"
@@ -3527,8 +3527,8 @@
       "kind": "game-logic",
       "path": "modules/game/mbattle.js",
       "origin": "src/game/mbattle.js",
-      "bytes": 77533,
-      "sha256": "195daffed5297878b6cba86a1f5496a0754713520f625cffff54fc91cbd970eb",
+      "bytes": 82747,
+      "sha256": "75923282146c9155606136e355d967c19436017f6fff568f84af84bedf8f0c1a",
       "c01Sha256": "195daffed5297878b6cba86a1f5496a0754713520f625cffff54fc91cbd970eb",
       "deps": [
         "game/battle",
@@ -6853,8 +6853,8 @@
       "kind": "ui-component",
       "path": "modules/ui/components/locations/Battle.jsx",
       "origin": "src/components/locations/Battle.jsx",
-      "bytes": 54061,
-      "sha256": "b3a49499d6f8429c1d36114183b67be5b503d6807ed17004057436dd612b21b2",
+      "bytes": 55222,
+      "sha256": "83342bfacc3b0d59964b6aba753d587b62487527dc12b7e1ce817d6346d3b6cd",
       "c01Sha256": "a58b5329a24b35cfa5d7f37b2a9a9b297de68605a5b9a1b17830e67e0bac0d09",
       "deps": [
         "game/battle",
@@ -7213,8 +7213,8 @@
       "kind": "ui-component",
       "path": "modules/ui/components/locations/MultiBattle.jsx",
       "origin": "src/components/locations/MultiBattle.jsx",
-      "bytes": 39220,
-      "sha256": "ebebbe2e31559e0f5b2488d0cb965e46b7dfb43f4dc5f0c03f73fed5f4f9ad34",
+      "bytes": 42599,
+      "sha256": "3c340d65bd522b8a963555206fa993dc3016c698e43e6d99a9388613fa14fc91",
       "c01Sha256": "4abcb433b8411bf6bc9281cd4e20d8a381d719cc462faefd83baa04e467678c9",
       "deps": [
         "game/battle",

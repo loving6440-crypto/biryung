@@ -1,3 +1,4 @@
+import { WORKBOOK_PSYCHICS } from './userWorkbookData.js'
 // 비령 vD.03.2 — 기본 영능력의 상세(detail)를 실제 계산에 맞춘다.
 // 보관고(battle.js)의 글은 그대로 두고, 실행 화면(reskin.js)과 도감(codex/build.mjs)에서 덮어쓴다.
 // 빼앗은 영능력(steal-…)의 글은 steal.js 의 stealDetail 이 칸마다 만든다.
@@ -33,9 +34,12 @@ export const PSYCHIC_DETAIL_FIX = {
 /** 영능력 목록(PSYCHICS 또는 도감 자료)에 덮어쓴다. label 대신 id 로 찾는다. */
 export function applyPsychicFix(list) {
   for (const p of list) {
-    const f = PSYCHIC_DETAIL_FIX[p.id]
+    const f = WORKBOOK_PSYCHICS[p.id] ?? PSYCHIC_DETAIL_FIX[p.id]
     if (!f) continue
     if (f.note) p.note = f.note
+    if (f.cond) p.cond = f.cond
+    if (f.label) p.label = f.label
+    if (f.mp !== undefined && f.mp !== null) p.mp = f.mp
     if (f.detail) p.detail = f.detail
   }
   return list
