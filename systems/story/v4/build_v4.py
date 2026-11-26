@@ -16,29 +16,28 @@
   · 연출(FX)은 줄 번호(시트의 행)로 붙인다 — 화면 효과 · 배경 · 장면 그림. 글자로는 나오지 않는다.
 """
 import json, os, re, sys
-import openpyxl
+from xlsx_plain import read_rows
+from align_story import row_alignment
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-wb = openpyxl.load_workbook(os.path.join(HERE, 'script_v4.xlsx'), data_only=True)
-ws = wb['스토리 스크립트']
+SOURCE = os.environ.get('BIRYEONG_STORY_SOURCE', os.path.join(HERE, 'script_v5.xlsx'))
+old_rows = read_rows(os.path.join(HERE, 'script_v4.xlsx'), '스토리 스크립트')
+new_rows = read_rows(SOURCE, '스토리 스크립트')
+row_map, alignment_stats = row_alignment(old_rows, new_rows)
 
-# ── 원고 읽기 ──
+# Preserve every revised screenplay cell in the requested B2:B851 chapter range.
+# Old numeric row IDs are applied only to matched original rows, to keep existing
+# choices, scene triggers, rewards, FX, and branching semantics stable.
 rows, cur = [], {'ch': '', 'scene': ''}
-# vD.06 시트 119~121행(훈련관 대사 3줄)이 새로 들어왔다 — 아래 표들은 예전 행 번호로 적혀 있으니, 새 줄은 118.1~118.3, 그 뒤는 3을 빼서 맞춘다
-INSERTED = [(119, 3)]   # (새로 들어온 첫 행, 줄 수)
-def legacy(i):
-    for at, n in reversed(INSERTED):
-        if i >= at + n: i -= n
-        elif i >= at: return round(at - 1 + (i - at + 1) / 10, 1)
-    return i
-for i, r in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
-    i = legacy(i)
+for raw_i, r in new_rows:
+    if raw_i < 2 or raw_i > 851 or raw_i not in row_map: continue
+    i = row_map[raw_i]
     _, vol, ch, scene, char, text, trig, act, memo = (list(r) + [None] * 11)[:9]
     if ch: cur['ch'] = str(ch).split('\n')[0].strip()
     if scene: cur['scene'] = str(scene).strip()
     if not any([char, text, trig, act]): continue
-    rows.append(dict(row=i, ch=cur['ch'], scene=cur['scene'], char=str(char or '').strip(), text=str(text or '').strip(), trig=str(trig or '').strip(), act=str(act or '').strip()))
+    rows.append(dict(row=i, source_row=raw_i, ch=cur['ch'], scene=cur['scene'], char=str(char or '').strip(), text=str(text or '').strip(), trig=str(trig or '').strip(), act=str(act or '').strip()))
 
 CH_NO = {'프롤로그': 0, '1장': 1, '2장': 2, '3장': 3, '4장': 4}
 SCENE_META = {  # 장면: (id, 곳, 때, 배경)
@@ -98,7 +97,7 @@ TEXT_FIX = {319: ('서울에 사는', '강릉에 사는'),  # 바깥 지역 서�
             527: ('3레벨 보스 수준의 적. 난이도가 상당히 어렵다. 아이템/영능력 일부를 사용해야 클리어가 가능하다.', '3단계 보스 수준의 상대. 아이템과 영능력을 함께 써야 이길 수 있다.')}
 ACT_FIX = {469: ('무당을 꽉', '무구를 꽉')}
 # 전투 설명 줄을 통째로 바꾼다(시트의 설명은 연출 메모를 겸한다 — 화면에는 실제 규칙을 적는다)
-RULE_SET = {752: '23시 17분의 예언을 지키려는 예측이 형상화된 것. [신탁] 첫 차례에 시곗바늘을 23시 17분으로 뛰어넘긴다 — 그 뒤로 공격력이 2배가 된다. [절대 신탁] 세 라운드마다 23시 17분으로 되감아, 그 라운드에 받은 피해를 모두 되돌린다.'}
+RULE_SET = {}  # 최신 스토리 시트의 4장 보스 영능력 설명을 원문 그대로 쓴다
 GRADE_ROWS = {635: [1]}   # 4장: 1학년에게만 나오는 줄(시트 행동지문 칸의 메모)
 MASK_FACE = {'비'}        # 4장: 「비의 모습이 등장했다」는 지문 · 명령이 나오기 전까지 얼굴을 단색 인장으로 가린다   # 3장 행동지문 오타  # 전투 안내에 정답(이름)을 적지 않는다
 
@@ -157,6 +156,7 @@ TRIG = {
     '메인스토리 전투': dict(w='out:cheongam/altar', alt={'C2-3': {1: ['battle:effigy'], 2: ['battle:dangsan'], 3: ['battle:dangsan']}}, a='당산나무 아래에서 싸운다', p='청암리 › 당산나무 아래 제단',
                          alt_a={'C2-3': {1: '발인을 지키는 액막이 인형 무리를 막는다 — 올해 발인만 멈춘다', 2: '당산신 본체 — 신이 당신을 시험한다', 3: '당산신 본체 — 신을 몰아낸다'}}),
     # vD.02.2 3장
+    '생활관 - 별관 - 강당 이동': dict(w='annex/explore', n=[V('annex:f1:auditorium')], a='별관 1층 강당으로 간다', p='강학당 › 별관 탐사 › 1층 › 강당'),
     '강학당 - 별관 - 강당으로 이동': dict(w='annex/explore', n=[V('annex:f1:auditorium')], a='별관 1층 강당으로 간다', p='강학당 › 별관 탐사 › 1층 › 강당'),
     '뒷산 - 중앙길 - 사찰로 이동': dict(w='gym/hike', n=[V('gym:center:climb:temple')], a='뒷산 중앙길의 사찰로 간다', p='비령산 금역 › 뒷산 › 중앙길 › 산 오르기 › 사찰'),
     '뒷산 - 중앙길 - 둘레길': dict(w='gym/hike', n=[V('gym:center:loop:outside')], a='뒷산 중앙길의 둘레길로 간다', p='비령산 금역 › 뒷산 › 중앙길 › 둘레길 › 교외'),
@@ -360,7 +360,7 @@ TITLES = [['st-ch0', '입소생', '본편 프롤로그를 지나 비령산 학�
 
 recipe_result = {l.split('|')[0]: l.split('|')[3] for l in open(os.path.join(ROOT, 'systems/biryeong/story-recipes.txt'), encoding='utf8') if l.strip() and not l.startswith('#')}
 meta = {
-    'version': 'v4', 'volumes': VOLUMES, 'chapters': CHAPTERS, 'regions': REGIONS,
+    'version': 'v5', 'volumes': VOLUMES, 'chapters': CHAPTERS, 'regions': REGIONS,
     'foes': {k: {'tier': t, 'i': i, 'name': n, 'blurb': b} for k, (t, i, n, b) in FOES.items()},
     'heirlooms': [{'name': n, 'weapon': w, 'line': l, 'key': k, 'enh': e, 'note': note} for n, w, l, k, e, note in HEIRLOOMS],
     'heirChoice': 'C0-1', 'recipeResult': recipe_result, 'world': {},
@@ -372,7 +372,7 @@ for sid in order:
 
 pro = [scenes[s] for s in order if scenes[s]['ch'] == 0]
 data = {**meta, 'scenes': pro}
-head = ('/* 秘靈 · 비령 — 본편 데이터(프롤로그 · 권 · 장 목록). systems/story/v4/build_v4.py 가 「스토리 스크립트 v4」에서 만든다. 직접 고치지 말 것.\n'
+head = ('/* 秘靈 · 비령 — 본편 데이터(프롤로그 · 권 · 장 목록). systems/story/v4/build_v4.py 가 「비령_스토리 시트_v3」에서 만든다. 직접 고치지 말 것.\n'
         ' * 1장부터는 이 파일에 없다 — story-chapters/chN.json 을 관리자 [스토리 관리]에서 올리고 공개하면 그때 모두에게 열린다. */\n')
 tail = ("\n/* 본편에서 얻는 칭호(장을 마칠 때) — 기능: 하루 첫 접속 용돈 */\n(() => { const T = window.BIRYEONG_TITLES; if (!T) return; for (const [id, name, desc, tier, v] of "
         + json.dumps(TITLES, ensure_ascii=False) + ") if (!T.some((t) => t.id === id)) T.push({ id, name, desc, from: 'story', tier, perk: ['dailyMoney', v], perkText: `하루 첫 접속 때 ${v}냥` }); })();\n")
@@ -381,7 +381,7 @@ if re.search(r'초록동색|창록', text): sys.exit('옛 이름이 들어갔다
 open(os.path.join(ROOT, 'story-data.js'), 'w', encoding='utf8').write(text)
 os.makedirs(os.path.join(ROOT, 'story-chapters'), exist_ok=True)
 for ch in (1, 2, 3, 4):
-    part = {'format': 'biryeong-chapter', 'version': 'v4', 'ch': ch, 'title': next(c['title'] for c in CHAPTERS if c['n'] == ch), 'scenes': [scenes[s] for s in order if scenes[s]['ch'] == ch]}
+    part = {'format': 'biryeong-chapter', 'version': 'v5', 'ch': ch, 'title': next(c['title'] for c in CHAPTERS if c['n'] == ch), 'scenes': [scenes[s] for s in order if scenes[s]['ch'] == ch]}
     open(os.path.join(ROOT, 'story-chapters', f'ch{ch}.json'), 'w', encoding='utf8').write(json.dumps(part, ensure_ascii=False, indent=1))
 print('장면', {c: [s for s in order if scenes[s]['ch'] == c] for c in (0, 1, 2, 3, 4)})
 print('줄', sum(len(scenes[s]['lines']) for s in order), '단계', sum(len(scenes[s]['steps']) for s in order), '선택', len(meta['choices']))

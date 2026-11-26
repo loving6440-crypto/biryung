@@ -622,8 +622,8 @@
     {
       "id": "game/battle",
       "file": "catalog/game/battle.json",
-      "bytes": 123012,
-      "sha256": "a691fc2b9c00a0ce64e8b3fa294edf79691b6e55ccc42f3953ae75ad64895aee"
+      "bytes": 123118,
+      "sha256": "db2c5f532228d02edde98c55255d976ec44ec0fbfa93f324e515938afbb27331"
     },
     {
       "id": "game/battleItems",
@@ -778,8 +778,8 @@
     {
       "id": "game/items",
       "file": "catalog/game/items.json",
-      "bytes": 174599,
-      "sha256": "998a474f160403ad72c1f80da62b747ca47e24531c9a026af917a371a5e71861"
+      "bytes": 174609,
+      "sha256": "2acc63f13284c5a64efed557896e81148ba86e488396e3d432f6e2a7609f8ea6"
     },
     {
       "id": "game/itemsB05",
@@ -832,8 +832,8 @@
     {
       "id": "game/mbattle",
       "file": "catalog/game/mbattle.json",
-      "bytes": 765,
-      "sha256": "11d468894ab2144006006f0ec3b8c5163736a5c83e6364f386c550de13415982"
+      "bytes": 973,
+      "sha256": "fa040421a7ba78b583e1b9b87c2fee461616ed41ac264b8e338315ccd5766e93"
     },
     {
       "id": "game/meals",
@@ -1000,8 +1000,8 @@
     {
       "id": "game/v79SheetData",
       "file": "catalog/game/v79SheetData.json",
-      "bytes": 9315,
-      "sha256": "5f76d026f4ec72d38263e6d23f1281cdf93f9414c357977da058133fe10370da"
+      "bytes": 9334,
+      "sha256": "acfc31c1466504b9b2e24cf11a4c2adb27c09a2ddabd603054dd1ac3c689c6f2"
     },
     {
       "id": "game/verifiedEconomyRules",
@@ -2068,8 +2068,8 @@
       "kind": "game-logic",
       "path": "modules/game/codex.js",
       "origin": "src/game/codex.js",
-      "bytes": 7954,
-      "sha256": "60d8ac8fb55539b34fc2eff042d4b1c08717427a53da908090fd50fc405a5544",
+      "bytes": 7986,
+      "sha256": "a676c50dabd933a7ac6f287cf2ddec17b7b6d6505571284623867f7f04828f64",
       "c01Sha256": "5cee6d310e99a7f8ef93e7def592df4ac7f1f87cac4f422cddf08cb62066e2cc",
       "deps": [
         "game/battle",
@@ -3064,8 +3064,8 @@
       "kind": "game-logic",
       "path": "modules/game/items.js",
       "origin": "src/game/items.js",
-      "bytes": 61567,
-      "sha256": "b9794124a007c4f15c5b28e9011968bc7276167710a3bacc4b8a3c110a8ae9f1",
+      "bytes": 61777,
+      "sha256": "81c1dd705437c38cdceb92b24f6b81c4adc562c8ed1546753d93ef93e8ed5763",
       "c01Sha256": "b9794124a007c4f15c5b28e9011968bc7276167710a3bacc4b8a3c110a8ae9f1",
       "deps": [
         "game/itemEffectsB16",
@@ -3084,7 +3084,7 @@
         "hasNpcTokens": false,
         "needsReact": false,
         "needsServerAdapter": false,
-        "changedFromC01": false,
+        "changedFromC01": true,
         "changeKind": null
       },
       "nodeImportable": true,
@@ -3541,7 +3541,7 @@
         "hasNpcTokens": false,
         "needsReact": false,
         "needsServerAdapter": false,
-        "changedFromC01": false,
+        "changedFromC01": true,
         "changeKind": null
       },
       "nodeImportable": true,
@@ -4953,8 +4953,8 @@
       "kind": "game-logic",
       "path": "modules/game/v79SheetData.js",
       "origin": "src/game/v79SheetData.js",
-      "bytes": 8257,
-      "sha256": "5163163bb9d8b27da0d05aca80300e4a49aa2df4b1bfe497b45d56539aab00c9",
+      "bytes": 8276,
+      "sha256": "f948354300995dd66c717bd1c8b453c13438a96f0071e07199d375762c271e9e",
       "c01Sha256": "980d3294681ca0380ed8a2daa4ffe78c21567bec1fa77cb10301609e9b6aaa03",
       "deps": [],
       "packages": [],
@@ -5398,8 +5398,8 @@
       "kind": "ui-component",
       "path": "modules/ui/components/CodexModal.jsx",
       "origin": "src/components/CodexModal.jsx",
-      "bytes": 9352,
-      "sha256": "c8e286f8c9113e5796b0558cd444d7e3a1351da468f706642d9121521c1843e4",
+      "bytes": 9788,
+      "sha256": "ce074ed8b25c255e577b3ad425f62ddba8f30a10b6ce27c6e29bc1da049fcf5a",
       "c01Sha256": "9d49e12fc8bdfc5bfe24d98724f2afeb1d1ef9c9b8f5ffa9a7982a639fda096b",
       "deps": [
         "game/achievements",

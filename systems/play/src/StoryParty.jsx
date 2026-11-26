@@ -20,6 +20,7 @@ import BattleBag from './BattleBag.jsx'
 import BringPicker from '@vault/ui/components/BringPicker.jsx'
 import PassivePicker from '@vault/ui/components/PassivePicker.jsx'
 import { STORY_FOES } from './storyBoss.js'
+import { errorBossSkillAt, prepareErrorBossMove, finishErrorBossRound } from './oracleSkills.js'
 
 const Auth = () => globalThis.BiryeongAuth
 const live = () => !!(Auth()?.server && Auth()?.token())
@@ -104,11 +105,17 @@ function newMB(enemy, members, size = 3, limit = false) {
   const taint = enemy.story?.taint || 0 // vD.02.2 기다리는 것: 정신오염에 따라 모습
   mb.story = { p, key: enemy.story?.key, hits: 0, broken: false, calm: 0, asked: 0, askedBy: {}, shown: false, roots: 3, baseAtk: mb.enemy.atk, has: enemy.story?.has || {}, form: taint < 20 ? 'mercy' : taint < 50 ? 'revenge' : 'fear', taint, freeze: 0, read: false }
   if (p === 'forms') noteMB(mb, `${mb.enemy.name}의 모습 — ${FORM_NAME[mb.story.form]} (정신오염 ${taint})`)
-  // vD.03 4장 오류: [신탁] 첫 차례는 시곗바늘을 23시 17분으로 뛰어넘기는 데 쓴다(그 뒤 공격력 ×2) · [절대 신탁] 세 라운드마다 그 라운드에 받은 피해를 되돌린다
+  // vD.06.9: 4장 오류의 영능력은 일반 공격 대신 실제 시전되는 두 기술이다
   if (p === 'smear') { Object.assign(mb.story, { named: [], aim: null, wait: 1 }); noteMB(mb, `[${mb.enemy.name}] 다섯⋯ 이름 없는 다섯⋯ — 먹이 보관소 안의 새끼 신수들을 더듬는다.`) }
   if (p === 'oracle') { mb.story.jump = false; mb.story.rStart = mb.ehp; noteMB(mb, `[${mb.enemy.name}] 시곗바늘을 쥔다 — 첫 차례에 23시 17분으로 뛰어넘을 셈이다.`) }
+  // 상대가 선공할 수도 있으므로 첫 영능력을 선공 판정보다 먼저 예약한다.
+  if (p === 'oracle') prepareErrorBossMove(mb)
+  const openingRound = mb.round
   openingInitiative(mb)
-  if (p === 'oracle' && mb.queue?.length) mb.queue = ['none', ...mb.queue.slice(1)]
+  // 상대 선공으로 첫 라운드가 끝난 경우에도 「신탁」 시전을 놓치지 않는다.
+  if (p === 'oracle' && mb.round > openingRound && !mb.over) {
+    finishErrorBossRound(mb, openingRound, (line) => noteMB(mb, line))
+  }
   if (!mb.turn && mb.phase === 'input') beginRound(mb)
   return mb
 }
@@ -149,20 +156,8 @@ function resolveWithStory(mb, actorId, offensive) {
   }
   if (st?.p === 'calm') mb.enemy.atk = st.calm >= 50 ? Math.max(1, Math.round(st.baseAtk / 2)) : Math.round(st.baseAtk * 1.2)
   if (st?.p === 'names' && st.broken) mb.queue = mb.queue.map((q) => (q === 'guard' ? 'jab' : q))
-  if (st?.p === 'oracle' && mb.round > round0) {
-    if (!st.jump) {
-      st.jump = true; mb.enemy.atk = Math.round(st.baseAtk * 2)
-      const txt = `✦ [신탁] 시곗바늘이 23시 17분으로 뛰었다 — 이제 ${mb.enemy.name}의 공격력 ×2.`
-      const skip = [...(mb.log || [])].reverse().find((l) => typeof l?.text === 'string' && l.text.includes('무효화')) // 첫 차례(쉼)를 알리는 엔진 글을 [신탁]으로 바꿔 적는다
-      if (skip) { skip.text = txt; skip.kind = 'warn' } else noteMB(mb, txt)
-    }
-    if (round0 % 3 === 0 && !mb.over) {
-      const back = Math.max(0, Math.min(mb.enemy.hp, st.rStart) - mb.ehp)
-      if (back > 0) { mb.ehp += back; noteMB(mb, `✦ [절대 신탁] 23시 17분으로 되감는다 — 이 라운드에 받은 피해 ${back}이(가) 모두 되돌아갔다.`) }
-      else noteMB(mb, '✦ [절대 신탁] 23시 17분으로 되감았지만 되돌릴 피해가 없다 — 시계가 헛돈다.')
-    }
-    st.rStart = mb.ehp
-    if (mb.round % 3 === 0 && !mb.over) noteMB(mb, '⚠ 이번 라운드가 끝나면 [절대 신탁] — 이 라운드에 준 피해는 되돌아간다. 막기 · 회복 · 준비가 낫다.')
+  if (st?.p === 'oracle' && mb.round > round0 && !mb.over) {
+    finishErrorBossRound(mb, round0, (line) => noteMB(mb, line))
   }
   // vD.06 번진 먹: 두 라운드마다 새끼 하나를 노린다 — 그 라운드에 [이름을 부른다]면 그 새끼는 다시 노려지지 않고 먹이 크게 약해진다.
   //       놓치면 먹이 몸을 불릴 뿐 새끼가 먹히지는 않는다(전투가 길어질 뿐).
@@ -279,8 +274,8 @@ function StoryPanel({ story, round, me, myTurn, onStory, hasPortrait = false }) 
     meter = <p>모습 · {FORM_NAME[story.form]}{story.freeze ? ` · 쪽지로 힘이 꺼짐(${story.freeze}라운드)` : ''}</p>
     acts.push(btn('read', '쪽지를 읽어 준다', story.read ? '이미 읽어 주었다' : '기도 쪽지 묶음 · 한 번 · 한 턴 멈추고 세 라운드 동안 모습의 힘이 꺼진다', undefined, !!story.read || !story.has?.['st-prayers']))
   } else if (story.p === 'oracle') {
-    const left = 3 - ((round - 1) % 3) - 1
-    meter = <p>시각 {story.jump ? '23:17 · 공격력 ×2' : '23:05 · 첫 차례에 시간이 뛴다'} · {left === 0 ? <b style={{ color: '#ff9a7a' }}>이번 라운드 끝에 되감는다 — 준 피해가 되돌아간다</b> : `되감기까지 ${left}라운드`}</p>
+    const next = errorBossSkillAt(round)
+    meter = <p>시각 {story.jump ? '23:17 · 공격력 ×2' : '23:05'} · {next ? <b style={{ color: '#ff9a7a' }}>이번 상대 행동: 영능력 「{next.name}」</b> : `다음 「절대신탁」까지 ${3 - (round % 3)}라운드`}</p>
   } else if (story.p === 'smear') {
     const named = story.named || []
     meter = <div><p>불린 이름 {'●'.repeat(named.length)}{'○'.repeat(Math.max(0, 5 - named.length))} · 번진 먹이 받는 피해 ×{smearMul(story).toFixed(2)}</p>

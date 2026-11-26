@@ -777,7 +777,7 @@ body.is-opening{overflow:hidden}
 .zone-card.west{--accent:#f0ede4;border-color:#b9bcb8}
 .zone-card.east{--accent:#68a9b9;border-color:#4e7c88}
 .map-legend span:nth-child(1){color:#68a9b9}.map-legend span:nth-child(4){color:#f0ede4}.map-legend span:nth-child(5){color:#e4e7ee;text-shadow:0 0 0 #000;background:#05060a;padding:1px 5px;border:1px solid #70788c}
-.dex-card.is-name-only{opacity:.62}.dex-card.is-name-only .dex-head{margin-bottom:0}
+.dex-card.is-name-only{opacity:.85}.dex-card.is-name-only .dex-head{margin-bottom:2px}
 /* vC.01 내부 지도 색감 통일: 사방 지도 · 홈페이지 팔레트(밤 남색 · 금 · 크림 · 청 · 적 · 옥)만 쓴다. 벽돌은 사방 지도와 같은 것. */
 .map-window-head{border-bottom-color:var(--line)}
 .map-tabs button{background:var(--panel-deep);border-color:var(--line);color:var(--sub)}.map-tabs button.is-on{background:var(--gold);border-color:#f2deb0;color:#08111b}

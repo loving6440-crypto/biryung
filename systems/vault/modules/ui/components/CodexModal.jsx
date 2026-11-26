@@ -27,7 +27,12 @@ export function Entry({ e, admin, onGet, have }) {
     return (
       <li className="flex items-center gap-3 rounded-xl bg-edge/[0.05] p-3" data-codex={e.id} data-known="0">
         {e.kind === 'item' ? <ItemIcon locked size={44} className="shrink-0" /> : <Unknown />}
-        <p className="font-serif text-base tracking-widest text-paper/45">???</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-serif text-base tracking-widest text-paper/45">???</p>
+          {e.kind === 'skill' && e.acquireHint && (
+            <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-paper/75">얻는 방법 · {e.acquireHint}</p>
+          )}
+        </div>
       </li>
     )
   }
@@ -60,6 +65,9 @@ export function Entry({ e, admin, onGet, have }) {
         <p className={`mt-1 whitespace-pre-line text-xs leading-relaxed ${e.desc ? 'text-paper/75' : 'text-paper/40'}`}>{e.desc || EMPTY_DESC}</p>
         {e.kind === 'skill' && e.id.startsWith('my-') && <PsychicDetails psychic={PSYCHICS.find(p => p.id === e.id.slice(3))} />}
         {e.extra && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-gold">{e.extra}</p>}
+        {e.kind === 'skill' && e.acquireHint && (
+          <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-paper/70">얻는 방법 · {e.acquireHint}</p>
+        )}
         {admin && e.kind === 'item' && (
           <button type="button" data-admin-get={e.id} onClick={() => onGet?.(e.id)} className="mt-2 rounded-full bg-crimson/80 px-2.5 py-0.5 text-[11px] text-[#fbf6e9]">
             관리자: 즉시 취득 (+1 · 보유 {Object.entries(have ?? {}).filter(([k]) => k === e.id || k.startsWith(`${e.id}#`)).reduce((a, [, n]) => a + n, 0)})

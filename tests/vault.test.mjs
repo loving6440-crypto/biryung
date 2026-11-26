@@ -813,7 +813,16 @@ test('vD.03: 4장 「신탁 오류」 — 지참 · 학년 줄 · 비의 얼굴 
   assert.ok(q.includes("n.type === 'bring'") && q.includes('function myGrade()') && q.includes('ln?.mask'))
   assert.ok(readFileSync(join(ROOT, 'systems/play/src/storyBoss.js'), 'utf8').includes("error: { pattern: 'oracle'"))
   const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8')
-  assert.ok(sp.includes("st?.p === 'oracle' && mb.round > round0") && sp.includes('[절대 신탁]'))
+  assert.ok(sp.includes('finishErrorBossRound') && sp.includes('prepareErrorBossMove'))
+  const { ERROR_BOSS_SKILLS, errorBossSkillAt, prepareErrorBossMove, finishErrorBossRound } = await import('../systems/play/src/oracleSkills.js')
+  assert.deepEqual(ERROR_BOSS_SKILLS.map((s) => s.name), ['신탁', '절대신탁'])
+  assert.equal(errorBossSkillAt(1)?.name, '신탁')
+  assert.equal(errorBossSkillAt(3)?.name, '절대신탁')
+  const mb = { story: { p: 'oracle', jump: false, baseAtk: 10, rStart: 100 }, enemy: { hp: 100, atk: 10 }, ehp: 100, round: 1, queue: ['special', 'jab'], over: null }
+  prepareErrorBossMove(mb); assert.equal(mb.queue[0], 'none')
+  mb.round = 2; finishErrorBossRound(mb, 1, () => {}); assert.equal(mb.enemy.atk, 20)
+  mb.round = 3; mb.ehp = 65; prepareErrorBossMove(mb); assert.equal(mb.queue[0], 'none')
+  mb.round = 4; finishErrorBossRound(mb, 3, () => {}); assert.equal(mb.ehp, 100)
 })
 
 test('vD.03: 아이템 글 = 실제 성능 — 전투 밖 음식은 어디서든 못 쓰던 것 풀림 · 일행 전투 전용 표기 · 전투 태그', async () => {

@@ -941,7 +941,7 @@ const RAW_ITEMS = [
     tags: ['완성품', '무구 강화'],
     name: '은입사 장식',
     price: null,
-    desc: '무구에 은실을 박아 넣는 장인의 장식. 이 단계까지 오른 무구는 더 손댈 곳이 없다고들 한다.',
+    desc: '무구에 은실을 박아 넣는 장인의 장식. 무구의 중상급 강화에 쓰이는 정교한 장식이다.',
     effectText: '무구보관소에서 무구를 일반 강화할 때 쓰는 재료다.',
     effect: {},
     battle: false,
@@ -1069,7 +1069,8 @@ export const weaponFx = (player) => itemOf(equipOf(player).weapon)?.fx ?? null
 export const trinketFx = (player) => itemOf(equipOf(player).trinket)?.trinketFx ?? null
 
 // ───────── 무구 강화 v74 ─────────
-// 강화 1회당 선택 스탯 +1, 무구당 총 15포인트. n번째 강화에 연마석 n개(v-B.06) + 단계별 보조 재료 + 영력.
+// 강화 1회당 선택 스탯 +1, 무구당 총 15포인트. n번째 강화에 연마석 n개 + 단계별 보조 재료 + 영력.
+// D.06.8: 10~12강 은입사 장식(저레벨 적 드롭) 2/3/4개, 13~15강 고비용 제작 주사 호신부 1/2/3개.
 export const ENH_MAX = 15
 export const ENH_TIER_SIZE = 1
 export const ENH_ITEMS = ['polishing-stone', 'whetstone', 'oil-cloth', 'five-knot', 'cinnabar-charm', 'silver-inlay', 'plain-cloth']
@@ -1080,8 +1081,8 @@ export function enhCostFor(level) {
   const tier = Math.floor(lv / 3)
   return {
     polishing: lv + 1, // v-B.06: n번째 강화에 연마석 n개 (1, 2, 3 … 15)
-    material: ['whetstone', 'oil-cloth', 'five-knot', 'cinnabar-charm', 'silver-inlay'][tier],
-    quantity: lv % 3 + 1,
+    material: ['whetstone', 'oil-cloth', 'five-knot', 'silver-inlay', 'cinnabar-charm'][tier],
+    quantity: lv % 3 + 1 + (tier === 3 ? 1 : 0), // 10~12강 은입사 장식 2·3·4개: 초기 저레벨 드롭 난이도 보정
     spirit: (tier + 1) * 10,
   }
 }

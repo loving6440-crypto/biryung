@@ -117,7 +117,8 @@ export function codexEntries(chapterId, player, admin = false) {
       known: admin || x.default || !!p.psychics?.includes(x.id),
       name: x.label,
       desc: x.note,
-      extra: `${x.detail}\n취득 조건: ${x.cond}`,
+      extra: x.detail,
+      acquireHint: x.cond || '아직 정해지지 않았다.',
     })),
     // v-B.05: 퇴마 실습 · 개척 요괴 · 추가전투 요괴의 영능력 전부(보스는 두 가지). 요괴 장과 같은 묶음으로 나눈다.
     ...yogoeList().flatMap(({ enemy: e, group }) => [

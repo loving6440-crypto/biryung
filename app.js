@@ -1013,14 +1013,16 @@
   }
 
   function renderDexPsychics(body) {
-    // vB.04: 아직 얻지 않은 영능력도 모두 보인다 — 이름만. 얻은 것은 의지력 소모 · 상세 설명 · 영향받는 스탯(육조) · 익히는 조건을 모두 적는다.
+    // vD.06.7b: 미습득 영능력도 이름과 '얻는 방법'을 공개한다. 의지력/설명/스탯은 습득 후에만 공개한다.
     const p = dexPlayer(), mine = new Set(p.psychics || []);
     const known = (x) => dexAll() || x.always || mine.has(x.id);
     const draw = (list, x, mark) => {
       const k = known(x), card = h('div', `dex-card${k ? ' is-got' : ' is-name-only'}`); card.dataset.dexPsychic = x.id; card.dataset.known = k ? '1' : '0';
       const head = h('div', 'dex-head'); head.append(h('span', 'dex-icon is-skill', mark), h('strong', '', x.name), h('small', '', k ? (x.always ? '처음부터' : x.stolen ? '빼앗음' : '익힘') : '미습득'));
       card.append(head);
-      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail || x.note), dexLine('영향받는 스탯', x.affects), dexLine('익히는 조건', x.cond));
+      if (k) card.append(h('p', 'dex-note', x.note), dexLine('의지력 소모', x.mp), dexLine('상세 설명', x.detail || x.note), dexLine('영향받는 스탯', x.affects));
+      // 획득 여부와 무관하게 실제 도감 자료에 기록된 획득 조건을 보여준다.
+      card.append(dexLine('얻는 방법', x.cond || '아직 정해지지 않았다.', 'is-from'));
       list.append(card);
     };
     const own = CODEX.psychics.filter((x) => !x.stolen), stolen = CODEX.psychics.filter((x) => x.stolen);

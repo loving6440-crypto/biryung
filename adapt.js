@@ -1,4 +1,4 @@
-/* 秘靈 · 비령 — 적응 퀘스트 (vD.03.2)
+/* 秘靈 · 비령 — 적응 퀘스트 (vD.06.10)
  *
  *   웹게임 자체의 길잡이(튜토리얼). 원고: 구글 시트 「적응 퀘스트 스크립트」 탭.
  *   · 프롤로그 첫 장면 「최초 최후의 신탁」이 끝나면 메뉴의 [適 적응 퀘스트]를 강조하고 서창현이 안내한다(한 번).
@@ -29,6 +29,10 @@
   const TO_STORE = [MAP, ZONE('west'), PB('매점')];
   const TO_PIONEER = [MAP, ZONE('south'), PB('개척')];
   const TO_ANNEX = [MAP, ZONE('east'), PB('별관'), PB('별관 탐사')];
+  const TO_CLASS = [MAP, ZONE('east'), PB('본관'), PB('수업')];
+  const TO_BATTLE = [MAP, ZONE('south'), PB('퇴마 실습')];
+  const TO_DORM = [MAP, ZONE('west'), PB('내 기숙사')];
+  const TO_ARMORY = [MAP, ZONE('south'), PB('뒷산 탐사'), PLAY('왼길'), PLAY('무구보관소'), { sel: '[data-armory]' }];
 
   /* ───────── 퀘스트 원고 ─────────
      x: 대사 · hl: 강조(path 배열 · 하나 · all:true 면 보이는 것 모두) · w: 넘어가는 조건(없으면 [다음])
@@ -104,32 +108,67 @@
       { x: '업적 안으로 들어오면 아이템 목록을 확인할 수 있습니다. 그 아이템 목록을 확인하면 어디에서 습득이 가능한지, 아직 얻지 않은 아이템이더라도 열람이 가능합니다. 이걸 통해 하나씩 도감을 채워가는 겁니다.', hl: { sel: '#codexDialog button', text: '아이템', starts: 1 } },
       { x: '그럼 이번 튜토리얼은 여기까지 하죠. 고생하셨습니다, OO 학생.' },
     ] },
-    { id: 'a4', title: '1-4. 동아리', sum: '별관의 동아리 · 일일 / 주간 퀘스트', reward: { money: 20, spirit: 30 }, steps: [
+    // 구글 시트 「적응 퀘스트 스크립트」 64–79행: 1-4. 기본 활동 (원문 보존)
+    { id: 'a4', title: '1-4. 기본 활동', sum: '수업 · 퇴마 실습 · 추가 전투 · 휴식 · 무구 관리', reward: { money: 50, spirit: 50, items: { picnic: 2 } }, steps: [
+      { x: 'OO 학생. 그럼 이번에는 학생의 기본 본분인 수업 듣기, 그 외 기본적인 활동에 대해서 알아보도록 하겠습니다.' },
+      { x: '우선 ‘수업’입니다. 본관으로 가보시겠습니까? 이곳에서 수업을 들을 수 있습니다.', hl: TO_CLASS, w: { route: '#/zone/east/mainHall/class' } },
+      { x: '수업을 듣는 것은 영력을 얻기 위한 가장 기본적인 활동입니다. 매일마다 수업에서 영력을 얻을 수 있지요. 그 양이 적지 않으니 다들 수업을 듣는 것을 잊지 마십시오. 물론 학생이 수업을 듣는 건 당연하지만요.' },
+      { x: '미니게임과 연결되어 있기도 하고, 뽀모도로식 30분 대기와 연결되어 있기도 하니 편하신 쪽으로 하시면 됩니다.' },
+      { x: '그 다음은 전투 실습입니다. 저희는 퇴마 실습 역시 중요한 수업으로 치고 있지요. 훈련관 님을 자주 뵙게 될 겁니다.' },
+      { x: '전투 안내는 이곳에서 볼 수 있습니다. 각 레벨에서 가장 난이도가 쉬운 것들을 추려 퇴마 실습에 넣어 두었습니다.', hl: TO_BATTLE, w: { route: '#/zone/south/gym/battle' } },
+      { x: '여기서 전투 안내는 튜토리얼입니다. 스토리 중 들르실 때가 있을 겁니다. 지금은 생략하죠.' },
+      { x: '그리고 추가 전투는 매 주 한 단계씩 추가되는 컨텐츠입니다.', hl: { sel: '.play-scope [data-battle-mode="extra"]' }, w: { click: 1 }, hint: '퇴마 실습 화면에서 [추가전투]를 눌러 보세요. 지금은 전투를 시작하지 않아도 됩니다.' },
+      { x: '전투는 왼쪽에서 오른쪽에 있을 수록, 레벨이 높을 수록 영력을 더 많이 줍니다. 영력은 적이 가지고 있는 영력의 2배만큼을 빼앗아올 수 있으며, 최대 3회까지 승리해서 전리품으로 얻을 수 있지요.' },
+      { x: '전투도 최대한 부지런히 싸워가며 영력을 얻는 것이 중요하겠지요? 물론, 이길 수 있는 상대를 잘 파악하여 승리를 제 시간 내에 3회 하는 것이 패배를 거듭하는 것보다 낫기도 할 겁니다.' },
+      { x: '이렇게 전투를 하고 나서 할 수 있는 활동으로는 휴식이 있습니다. 우선 기숙사로 가보죠.', hl: TO_DORM, w: { route: '#/zone/west/dorm/my-room' } },
+      { x: '기숙사에서 잠을 자면, 푹 잠들 수 있습니다. 이곳에서는 영력을 더 빠르게 얻는 명상을 할 수 있을 뿐더러, 체력과 의지력에 더불어 영력까지 얻는 수면을 할 수 있는 등 다양한 이득을 얻을 수 있죠. 휴식이니까요.' },
+      { x: '반면, 깨어있는 동안의 휴식에도 메리트가 있습니다. 양호실로 가볼까요?', hl: TO_INFIRMARY, w: { route: '#/zone/east/infirmary/rest' }, hint: '강학당 → 본관 → 본관 탐사 → 2층 → 양호실 → 침대에 누워 쉰다. 양호실 휴식·상담 화면까지 이동하세요.' },
+      { x: '상담을 하면 의지력이, 휴식을 하면 체력이 찹니다. 체력은 원래도 자연회복이 되지만 의지력은 절대 자연회복이 되지 않으니 평소에 잘 관리하세요.' },
+      { x: '마지막으로 무구 관리를 할 수 있는 곳을 안내드리겠습니다. 이곳도 메인스토리 도중 들르게 될 겁니다. 미리미리 할 수 있는 데까지 강화를 해두면 스토리 클리어는 물론, 평소에 추가 전투를 하는 것도 쉬워집니다.', hl: TO_ARMORY, w: { see: '.play-scope [data-armory]' }, hint: '비령산 금역 → 뒷산 탐사 → 왼길 → 무구보관소로 이동해 관리 화면을 열어 보세요.' },
+      { x: '지금까지 일상생활을 위한 정보를 잘 알아봤습니다. 이걸로 루틴이 어느 정도 파악이 되셨습니까?' },
+    ] },
+    // 구글 시트 80–84행: 기존 1-4 동아리를 1-5로 이동(문구와 기존 동아리 보상 유지)
+    { id: 'a5', title: '1-5. 동아리', sum: '별관의 동아리 · 일일 / 주간 퀘스트', reward: { money: 20, spirit: 30 }, steps: [
       { x: 'OO 학생, 이 게임에는 일일/주간 퀘스트가 있다는 사실 알고 게셨습니까?' },
       { x: '별관으로 이동해봅시다.', hl: TO_ANNEX, w: { route: '#/zone/east/annex/explore' } },
       { x: '별관의 1층부터 옥상까지는 다양한 ‘동아리’가 자리하고 있습니다. 대표적으로, 저는 방송부에 속해 있습니다(목록에는 뜨지 않습니다).', hl: { sel: '.play-scope button.rounded-full', all: true } },
       { x: '동아리에 가입하시는 방법은 각 층 탐사를 해본 뒤, 동아리 가입하기를 눌러 들어가는 것입니다.' },
       { x: '동아리에 들어가고 나면 일일/주간 퀘스트를 할 수 있게 됩니다. 적지 않은 보상을 주므로 꼭 꾸준히 하시길 권장드립니다.' },
     ] },
-    { id: 'a5', title: '1-5. 학당 안내', sum: '어디서 무엇을 하는지 — 마지막 정리', reward: { money: 50, spirit: 50, items: { picnic: 2 } }, steps: [
-      { x: '이 정도만 알아도 대부분은 익혔다고 할 수 있겠습니다. 마지막으로 알아두면 좋은 장소 위치를 몇 가지 알려드리겠습니다.' },
-      { x: '개척 및 전투는 비령산에서 할 수 있습니다.', hl: [MAP, ZONE('south')] },
-      { x: '동아리 가입 및 파티 게임 등은 별관에서 할 수 있습니다. 본관에는 창고가 있고, 그 외 사소한 정보들을 많이 볼 수 있습니다. 양호실도 본관에 있습니다.', hl: [MAP, ZONE('east')] },
-      { x: '메인 스토리 관련해서는 산문에서 확인할 수 있습니다.', hl: [MAP, ZONE('north')] },
-      { x: '수면, 매점 아이템 구매, 급식실 사연 올리기는 생활관에서 가능합니다.', hl: [MAP, ZONE('west')] },
-      { x: '여기까지 확인하셨으면 이제 어엿한 학당의 일원이라 할 수 있습니다. 고생하셨습니다.' },
-      { x: 'OO 학생, 당신이 제대로 선 무당의 아이들이 되기까지 보조하겠습니다. 그럼 이만⋯⋯.' },
-    ] },
   ];
   const INTRO = '제3특수교육시설, 비령산 학당에 오신 것을 진심으로 환영합니다. 해당 버튼을 눌러 적응 퀘스트를 진행하면서 학당 생활에 익숙해져보세요.';
 
   /* ───────── 기록 ───────── */
-  const st = () => { const s = App.save; s.adapt ||= {}; const a = s.adapt; a.done ||= {}; a.paid ||= {}; a.gave ||= {}; return a; };
+  // D.06.10 저장 호환: 예전 a4=동아리, a5=학당 안내였다. 이제 a4=기본 활동, a5=동아리.
+  // 완료·지급 기록을 이전 퀘스트 내용에 연결해 보상을 중복 지급하지 않는다.
+  // 옛 a5의 보상은 새로운 a4에, 옛 a4의 보상은 새로운 a5에 그대로 귀속한다.
+  function migrate(a) {
+    if ((a.questSchema || 1) >= 2) return false;
+    const old4Done = a.done.a4, old5Done = a.done.a5;
+    const old4Paid = a.paid.a4, old5Paid = a.paid.a5;
+    delete a.done.a4; delete a.done.a5;
+    delete a.paid.a4; delete a.paid.a5;
+    // 과거 동아리를 끝냈다면 새로운 1-5에 완료 표시. 새 1-4는 실제로 진행해야 완료된다.
+    if (old4Done) a.done.a5 = old4Done;
+    if (old4Paid) a.paid.a5 = old4Paid;
+    // 과거 학당 안내 보상(냥50·영력50·피크닉2)은 새 1-4에서 다시 지급하지 않는다.
+    if (old5Paid) a.paid.a4 = old5Paid;
+    if (a.cur?.id === 'a4') a.cur = { ...a.cur, id: 'a5', step: Math.min(4, Math.max(0, a.cur.step || 0)) };
+    else if (a.cur?.id === 'a5') delete a.cur; // 기존 학당 안내는 새 시트상 1장에 해당, 적응 퀘스트에서 제외
+    a.questSchema = 2;
+    return true;
+  }
+  const st = () => {
+    const s = App.save; s.adapt ||= {};
+    const a = s.adapt; a.done ||= {}; a.paid ||= {}; a.gave ||= {};
+    if (migrate(a)) App.persist?.();
+    return a;
+  };
   const api = () => App.playApi?.();
   const name = () => App.profile()?.name || '학생';
   const fill = (x) => String(x).replace(/OO/g, name());
   const qOf = (id) => QUESTS.find((q) => q.id === id);
-  const unlocked = (i) => i === 0 || !!st().done[QUESTS[i - 1].id];
+  const unlocked = (i) => i === 0 || !!st().done[QUESTS[i - 1].id] || !!st().done[QUESTS[i].id] || st().cur?.id === QUESTS[i].id; // 기존 동아리 완료/진행 계정은 재방문 허용
   const progressText = () => `${QUESTS.filter((q) => st().done[q.id]).length} / ${QUESTS.length}`;
   const rewardText = (r) => [r.money && `${r.money}냥`, r.spirit && `영력 ${r.spirit}`, ...Object.entries(r.items || {}).map(([id, n]) => `${api()?.itemName?.(id) || id} ×${n}`)].filter(Boolean).join(' · ');
   function drawCount() { const b = document.getElementById('statusAdapt'); if (b) b.textContent = progressText(); }
@@ -168,7 +207,7 @@
   function closeBox() { box?.remove(); box = null; paint([]); clearInterval(ticker); ticker = null; }
 
   function start(id, from = 0) {
-    const q = qOf(id); if (!q) return;
+    const q = qOf(id); if (!q || !unlocked(QUESTS.indexOf(q))) return;
     if (!api()?.player) { toast('적응 퀘스트', '캐릭터를 불러온 뒤에 할 수 있다. 프로필을 먼저 만들어 줘.'); return; }
     run = { q, i: from }; st().cur = { id, step: from }; App.persist();
     enter();
@@ -238,7 +277,7 @@
       api()?.grant?.({ ...q.reward, log: `[적응 퀘스트] 「${q.title}」을 마쳤다 — ${rewardText(q.reward)}` });
     }
     App.persist(); App.renderStatus?.(); closeBox(); run = null; drawCount();
-    const nextQ = QUESTS[QUESTS.indexOf(q) + 1];
+    const nextQ = QUESTS.find((candidate) => !a.done[candidate.id] && unlocked(QUESTS.indexOf(candidate)));
     toast('적응 퀘스트', `「${q.title}」을 마쳤다.${first ? ` 보상: ${rewardText(q.reward)}` : ' (보상은 처음 한 번만)'}${nextQ ? ` 다음은 「${nextQ.title}」.` : ' 적응 퀘스트를 모두 마쳤다!'}`);
     App.ding?.('gift');
     if ((location.hash || '').startsWith('#/adapt')) renderPage(App.body);

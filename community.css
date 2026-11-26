@@ -149,3 +149,6 @@
 .popup-notice h2{margin:6px 0 10px;font-size:20px;color:#f2d24a}
 .popup-notice-body{margin:0 0 16px;white-space:pre-wrap;line-height:1.7;font-size:15px}
 .popup-notice-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+/* D.06.8 도깨비들의 터 HTML 로그 저장 — 활성/종료 일행 */
+.party-room-head .party-log-download{flex-shrink:0}.party-transcript-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 0 10px}.party-transcript-tools p{margin:0}.party-log-download:disabled{opacity:.5;cursor:wait}

@@ -36,7 +36,9 @@ export const STORY_FOES = {
   // vD.02.2 3장 「사찰귀」 — 3단계 보스 수준(아이템과 영능력을 함께 써야 한다) · vD.02.4 3인 전투(체력은 3인 배율이 따로 붙어 2.4 → 1.6)
   sachal: { pattern: null, hp: 1.6, atk: 1.2, drop: null, rules: ['3단계 보스 수준의 상대 — 체력이 아주 많고 한 방이 아프다. 아이템과 영능력을 함께 써야 이길 수 있다.'] },
   // vD.03 4장 「오류(誤謬)」 — 3인 전투(StoryParty)의 'oracle' 패턴
-  error: { pattern: 'oracle', hp: 1.2, atk: 0.7, drop: ['st-stopwatch', 1], rules: ['[신탁] 첫 차례에 시곗바늘을 23시 17분으로 뛰어넘긴다 — 그 뒤로 오류의 공격력이 2배가 된다.', '[절대 신탁] 세 라운드마다(3 · 6 · 9 … 라운드가 끝날 때) 23시 17분으로 되감아, 그 라운드에 오류가 받은 피해를 모두 되돌린다.', '되감는 라운드엔 공격보다 막기 · 회복 · 준비가 낫다. 그 라운드에 쓰러뜨리면 되감지 못한다.'],
+  error: { pattern: 'oracle', hp: 1.2, atk: 0.7, drop: ['st-stopwatch', 1],
+    psychicSkills: ['신탁', '절대신탁'],
+    rules: ['「신탁」 — 첫 행동에 영능력을 시전하여 23시 17분으로 시간을 뛰어넘긴다. 이후 공격력이 2배가 된다.', '「절대신탁」 — 3라운드마다 공격 대신 영능력을 시전한다. 23시 17분으로 되감아 직전 라운드에 받은 피해를 돌려놓는다.', '시전하는 라운드에는 일반 공격을 하지 않는다. 전투에서 쓰러뜨린 뒤에는 되감을 수 없다.'],
     say: { start: '23시 17분. 그 시각은 지켜져야 한다.', stop: '…시각이, 지나갔다.' } },
   baekmok: { pattern: 'eyes', hp: 1.3, drop: ['st-eyelid', 1], rules: ['열 개의 눈이 나를 본다 — 뜬 눈이 많을수록 상대의 공격이 아프다(눈 10개 ×1.2 ~ 0개 ×0.4).', '앞 턴과 다른 행동을 하면 눈 하나가 감기고, 같은 행동을 하면 다시 뜬다.', '눈이 모두 감기면 백목이 한 턴 쉰다. 관측 차단 봉투를 지니면 눈 세 개가 감긴 채로 시작한다.'],
     say: { start: '관측 대상 확인. 행동 패턴 학습 개시.', blind: '관측… 불가…' } },
@@ -73,7 +75,8 @@ export function makeStoryEnemy(base, { key, name, blurb }, ctx = {}) {
   const atk = Math.max(1, Math.round(base.atk * (cfg.atk || 1))) // vD.02.2 공격력 배율(사찰귀)
   return {
     ...base, id: `story-${key}`, name: shown, blurb, hp, atk,
-    story: { key, pattern, phases, form: ctx.form || 1, taint: ctx.taint || 0, names: ctx.names || {}, has: ctx.has || {}, family: ctx.family || '', rules: cfg.rules || [], say: cfg.say || {} },
+    ...(key === 'error' ? { special: null, special2: null } : {}),
+    story: { key, pattern, phases, form: ctx.form || 1, taint: ctx.taint || 0, names: ctx.names || {}, has: ctx.has || {}, family: ctx.family || '', rules: cfg.rules || [], psychicSkills: cfg.psychicSkills || [], say: cfg.say || {} },
     gimmicks: pattern ? (cfg.rules || []) : undefined,
   }
 }

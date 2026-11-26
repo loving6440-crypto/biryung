@@ -301,6 +301,16 @@
     party.d.classList.remove('is-min'); party.d.querySelector('.party-fold') && (party.d.querySelector('.party-fold').textContent = '접기');
     App.addTo?.('community', 'party'); renderParty();
   }
+  async function saveRoomLog(meta, button) {
+    if (!meta?.id || !window.BiryeongPartyLog) { toast('도깨비들의 터', '로그 저장 기능을 불러오지 못했다.'); return; }
+    if (button.disabled) return;
+    button.disabled = true; button.textContent = '로그 모으는 중…';
+    try {
+      const count = await window.BiryeongPartyLog.download({ ...meta }, call);
+      toast('도깨비들의 터', `대화 ${count}건을 HTML 파일로 내려받았다.`);
+    } catch (e) { toast('도깨비들의 터', `로그를 내려받지 못했다: ${errText(e)}`); }
+    finally { button.disabled = false; button.textContent = '로그 내려받기'; }
+  }
   function msgLine(m) {
     const li = h('li', `party-msg${m.u ? '' : ' is-notice'}${m.u && m.u === me() ? ' is-me' : ''}`);
     if (m.u) { const nm = h('b', '', m.name || m.u); const lead = room?.leader ?? room?.members?.[0]?.u; if (lead && m.u === lead) nm.append(h('small', 'party-leader-tag', ' 파티장')); li.append(nm, h('span', '', m.body), h('time', '', kst(m.at))); } // vD.02 파티장 표시
@@ -323,6 +333,8 @@
       if (!window.confirm('일행에서 나갈까? 혼자 남으면 일행이 끝나고, 대화는 모두가 읽을 수 있게 된다.')) return;
       try { await call('bry_room_leave', { p_room: room.id }); room = null; await presence(); renderParty(); } catch (e) { toast('도깨비들의 터', errText(e)); }
     }));
+    const logButton = btn('ghost-btn party-log-download', '로그 내려받기', () => saveRoomLog(room, logButton));
+    head.append(logButton);
     const list = h('ol', 'party-log'); list.setAttribute('aria-live', 'polite');
     const form = h('form', 'party-form'); const input = h('input'); input.maxLength = 500; input.placeholder = '일행에게 말한다 (캐릭터로)'; input.setAttribute('aria-label', '일행에게 보낼 말');
     const send = h('button', 'flat-btn', '보내기'); send.type = 'submit';
@@ -383,7 +395,9 @@
     try {
       const r = await call('bry_room_msgs', { p_room: x.id, p_after: 0 });
       const list = h('ol', 'party-log is-read'); (r.msgs || []).forEach((m) => list.append(msgLine(m)));
-      trans.body.replaceChildren(para(`${kst(x.created_at, true)} ~ ${kst(x.ended_at, true)}`), list);
+      const logButton = btn('ghost-btn party-log-download', '로그 내려받기', () => saveRoomLog(x, logButton));
+      const tools = h('div', 'party-transcript-tools'); tools.append(para(`${kst(x.created_at, true)} ~ ${kst(x.ended_at, true)}`), logButton);
+      trans.body.replaceChildren(tools, list);
     } catch (e) { trans.body.replaceChildren(para(errText(e))); }
   }
 

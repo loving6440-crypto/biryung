@@ -20,8 +20,8 @@
     {
       "name": "items.json",
       "records": 312,
-      "bytes": 133975,
-      "sha256": "08037f310d4c9526acb9e0266305f2c63f4e3c13ded7e8bf2b97acd42f4ceb7f"
+      "bytes": 133985,
+      "sha256": "3e2a360ec086e4f6e8fef43dfee175537e720ef99f87e1d4b2c3fbcb90c4e7bb"
     },
     {
       "name": "enemies.json",
@@ -44,8 +44,8 @@
     {
       "name": "item-data-layers.json",
       "records": null,
-      "bytes": 94621,
-      "sha256": "4449bbd418798bdf7a300745923564c5b40d59957a839facfb00b7c84186a774"
+      "bytes": 94640,
+      "sha256": "943dc1b0a2a95b0f9d9fc91cee4805c7c2cc975dad017bb9bd79f142739550bb"
     },
     {
       "name": "pioneer-tables.json",
