@@ -1,0 +1,35 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const file = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
+test('D.06.12: 가격 50냥이 소스·실행 화면에 반영됨', () => {
+  const retune = file('systems/play/src/itemRetune.js')
+  const runtime = file('play/play.js')
+  const wb = JSON.parse(file('systems/data/user-updated-workbook.json'))
+  assert.match(retune, /'friendship-letter': \{ price: 50,/)
+  assert.match(retune, /"friendship-letter": \{"price": 50,/)
+  assert.match(runtime, /"friendship-letter":\{price:50,/)
+  assert.ok(!runtime.includes('"friendship-letter":{price:100,'))
+  const row = wb.아이템.find(x => x.id === 'friendship-letter')
+  assert.equal(row['5'], 50)
+})
+test('D.06.12: 화면 입력창의 작은 호출 종과 수신 처리', () => {
+  const p = file('party.js'), a=file('app.js'), c=file('community.css')
+  assert.ok(p.includes("btn('ghost-btn party-call-bell', '🔔'"))
+  assert.ok(p.includes('form.append(input, bell, send)'))
+  assert.ok(p.includes("call('bry_room_bell', { p_room: room.id })"))
+  assert.ok(p.includes('if (r.bell) receiveBell(r.bell)'))
+  assert.ok(p.includes('document.hidden') && p.includes('Notification.permission'))
+  assert.ok(a.includes("kind === 'party-bell'"))
+  assert.ok(c.includes('.party-call-bell'))
+})
+test('D.06.12: 서버 권한·일행 제한·호출 남발 방지와 기존 SQL 재실행 파일', () => {
+  const m=file('supabase/party_bell_D.06.12.sql'), schema=file('supabase/schema.sql')
+  assert.ok(m.includes('create table if not exists biryeong_private.room_bells'))
+  assert.ok(m.includes("r.members @> jsonb_build_array(jsonb_build_object('u', a.username))"))
+  assert.ok(m.includes("r.status = 'open'"))
+  assert.ok(m.includes("interval '12 seconds'") && m.includes("interval '45 seconds'"))
+  assert.ok(m.includes('revoke all on table biryeong_private.room_bells'))
+  assert.ok(m.includes("'bell', case when r.id is null then null else"))
+  assert.ok(schema.includes('create or replace function public.bry_room_bell'))
+})

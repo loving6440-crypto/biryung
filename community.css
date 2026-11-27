@@ -152,3 +152,9 @@
 
 /* D.06.8 도깨비들의 터 HTML 로그 저장 — 활성/종료 일행 */
 .party-room-head .party-log-download{flex-shrink:0}.party-transcript-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 0 10px}.party-transcript-tools p{margin:0}.party-log-download:disabled{opacity:.5;cursor:wait}
+
+/* D.06.12: 채팅 입력창 우측 작은 호출 종 */
+.party-call-bell{flex:0 0 34px;min-width:34px;min-height:34px;padding:4px !important;font-size:16px;line-height:1;border:1px solid #c9a96199;border-radius:7px;background:#1b2e3d;color:#f1d78a;cursor:pointer}
+.party-call-bell:hover,.party-call-bell:focus-visible{background:#38455b;outline:2px solid #d4b078;outline-offset:2px}
+.party-call-bell:disabled{opacity:.4;cursor:wait}
+.party-notice-permit{font-size:11px;padding:4px 7px;white-space:nowrap}

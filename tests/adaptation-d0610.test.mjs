@@ -22,13 +22,15 @@ function mount(saved = {}) {
   return { adapter: win.BiryeongAdapt, app, persistCount: () => persists }
 }
 
-test('D.06.10: 시트 64~79행은 1-4 기본 활동 16단계, 80~84행은 1-5 동아리 5단계', () => {
+test('D.06.11: 시트 64~79행은 1-4 기본 활동 16단계, 80~84행은 1-5 동아리 5단계', () => {
   const { adapter } = mount()
-  assert.equal(adapter.quests.length, 5)
+  assert.equal(adapter.quests.length, 6)
   assert.equal(adapter.quests[3].title, '1-4. 기본 활동')
   assert.equal(adapter.quests[3].steps.length, 16)
   assert.equal(adapter.quests[4].title, '1-5. 동아리')
   assert.equal(adapter.quests[4].steps.length, 5)
+  assert.equal(adapter.quests[5].title, '1-6. 학당 안내')
+  assert.equal(adapter.quests[5].steps.length, 7)
   assert.match(adapter.quests[3].steps[0].x, /학생의 기본 본분인 수업 듣기/)
   assert.match(adapter.quests[3].steps[7].x, /매 주 한 단계씩 추가/)
   assert.match(adapter.quests[3].steps[14].x, /무구 관리를 할 수 있는 곳/)
@@ -42,22 +44,24 @@ test('D.06.10: 시트 64~79행은 1-4 기본 활동 16단계, 80~84행은 1-5 �
   assert.equal(adapter.quests[3].steps[14].w.see, '.play-scope [data-armory]')
 })
 
-test('D.06.10: 기존 동아리 완료는 a5로 이동하고 새로운 a4는 미완료, 보상은 중복 지급되지 않음', () => {
+test('D.06.11: 기존 동아리 완료는 a5로 이동하고 새로운 a4는 미완료, 보상은 중복 지급되지 않음', () => {
   const { adapter, persistCount } = mount({ done: { a1: 1, a2: 2, a3: 3, a4: 44, a5: 55 }, paid: { a4: 444, a5: 555 }, gave: {} })
   const s = adapter.state()
-  assert.equal(s.questSchema, 2)
+  assert.equal(s.questSchema, 3)
   assert.equal(s.done.a4, undefined)
   assert.equal(s.done.a5, 44)
-  assert.equal(s.paid.a4, 555)
+  assert.equal(s.paid.a4, undefined)
+  assert.equal(s.paid.a6, 555)
+  assert.equal(s.done.a6, 55)
   assert.equal(s.paid.a5, 444)
   assert.equal(persistCount(), 1)
   adapter.state() // 재진입 시 다시 뒤집지 않음
   assert.equal(s.paid.a5, 444)
   assert.equal(persistCount(), 1)
-  assert.equal(adapter.progressText(), '4 / 5')
+  assert.equal(adapter.progressText(), '5 / 6')
 })
 
-test('D.06.10: 예전 a4 동아리를 진행 중이던 플레이어는 a5 진행을 이어감', () => {
+test('D.06.11: 예전 a4 동아리를 진행 중이던 플레이어는 a5 진행을 이어감', () => {
   const { adapter } = mount({ done: { a1: 1, a2: 2, a3: 3 }, paid: {}, gave: {}, cur: { id: 'a4', step: 3 } })
   const s = adapter.state()
   assert.equal(s.cur.id, 'a5')
@@ -65,17 +69,38 @@ test('D.06.10: 예전 a4 동아리를 진행 중이던 플레이어는 a5 진행
   assert.equal(s.done.a5, undefined)
 })
 
-test('D.06.10: 이전 a5 학당 안내는 새 a5 동아리로 오인하지 않고 진행 기록 정리', () => {
+test('D.06.11: 이전 a5 학당 안내를 새 a6 학당 안내로 옮기고 이어서 진행', () => {
   const { adapter } = mount({ done: { a1: 1, a2: 2, a3: 3, a4: 4 }, paid: { a4: 4 }, cur: { id: 'a5', step: 4 } })
   const s = adapter.state()
-  assert.equal(s.cur, undefined)
+  assert.equal(s.cur.id, 'a6')
+  assert.equal(s.cur.step, 4)
   assert.equal(s.done.a5, 4)
   assert.equal(s.done.a4, undefined)
 })
 
-test('D.06.10: 새 계정 상태 초기화 및 적응 퀘스트 번들 캐시 버전', () => {
+test('D.06.11: 새 계정 상태 초기화 및 적응 퀘스트 번들 캐시 버전', () => {
   const { adapter } = mount()
-  assert.equal(adapter.state().questSchema, 2)
+  assert.equal(adapter.state().questSchema, 3)
   const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
-  assert.ok(html.includes('adapt.js?v=D.06.10'))
+  assert.ok(html.includes('adapt.js?v=D.06.11'))
+})
+
+test('D.06.11: D.06.10에 잘못 연결된 학당 안내 보상을 새 a6으로 되돌림', () => {
+  const { adapter } = mount({questSchema:2, done: {a1:1,a2:2,a3:3,a5:4}, paid: {a4:55,a5:44}})
+  const s = adapter.state()
+  assert.equal(s.questSchema, 3)
+  assert.equal(s.paid.a4, undefined)
+  assert.equal(s.paid.a6, 55)
+  assert.equal(s.paid.a5, 44)
+  assert.equal(s.done.a5, 4)
+  assert.equal(s.done.a6, undefined)
+})
+
+test('D.06.11: D.06.10에서 진행하던 기본 활동과 동아리 기록은 그대로', () => {
+  const {adapter} = mount({questSchema: 2, done: {a1:1,a2:2,a3:3,a4:4}, paid: {a4:4}, cur: {id:'a5', step: 2}})
+  const s = adapter.state()
+  assert.equal(s.cur.id,'a5')
+  assert.equal(s.cur.step,2)
+  assert.equal(s.done.a4,4)
+  assert.equal(s.paid.a4,4)
 })

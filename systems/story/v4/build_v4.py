@@ -16,14 +16,15 @@
   · 연출(FX)은 줄 번호(시트의 행)로 붙인다 — 화면 효과 · 배경 · 장면 그림. 글자로는 나오지 않는다.
 """
 import json, os, re, sys
-from xlsx_plain import read_rows
+from xlsx_plain import read_rows, read_merged_speaker_ranges
 from align_story import row_alignment
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-SOURCE = os.environ.get('BIRYEONG_STORY_SOURCE', os.path.join(HERE, 'script_v5.xlsx'))
+SOURCE = os.environ.get('BIRYEONG_STORY_SOURCE', os.path.join(HERE, 'script_v6.xlsx'))
 old_rows = read_rows(os.path.join(HERE, 'script_v4.xlsx'), '스토리 스크립트')
 new_rows = read_rows(SOURCE, '스토리 스크립트')
+merged_speaker = read_merged_speaker_ranges(SOURCE, '스토리 스크립트')
 row_map, alignment_stats = row_alignment(old_rows, new_rows)
 
 # Preserve every revised screenplay cell in the requested B2:B851 chapter range.
@@ -82,7 +83,7 @@ NARR = {6, 7, 8, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 25, 26, 32, 34, 37, 38,
         678, 697, 699, 710, 713, 714, 725, 735, 736, 737, 738, 739, 741, 749, 771, 773, 781, 782, 783, 791, 793, 802, 810, 813}
 SKIP_ROWS = set(range(453, 460))   # 3장: 시트에 같은 대사 묶음(서창현 「장경각 아래에…」 ~ 연호수 「여기 말이 되는 일이…」)이 두 번 들어 있다 — 뒤의 것은 뺀다
 SPEAKER_SET = {460: '연호수'}       # 위를 빼서 앞 화자가 바뀐 줄
-SPEAKER_FIX = {'선생': '결계학 선생', '귀환자 쉼터': '귀환자 쉼터 담당자', '윤호수': '연호수', '—': ''}  # 시트의 화자 칸 → 화면에 나오는 이름
+SPEAKER_FIX = {'선생': '결계학 선생', '귀환자 쉼터': '귀환자 쉼터 담당자', '윤호수': '연호수', '—': '', '-': ''}  # 시트의 화자 칸 → 화면에 나오는 이름
 BATTLE_RULE_ROWS = {146, 377, 378, 379, 463, 527, 752}   # 전투 설명 줄 — 대사로 흘리지 않고 전투 단계의 안내 · 전투 시작 카드로
 OPENING_ROWS = {2, 3, 4, 5, 7}            # 가입 직후 오프닝(opening.js)이 먼저 보여 주는 줄 — 프롤로그를 처음 볼 때는 건너뛴다(다시 보기에는 나온다)
 CHAPTER_END = {184: 1, 402: 2, 549: 3, 812: 4}            # 「n장─… 종료.」 → 장 마침 표제(글자 줄이 아니라 화면 연출)
@@ -227,7 +228,10 @@ for r in rows:
         continue
     if r['row'] in CHAPTER_END:
         sc['lines'].append({'t': 'end', 'ch': CHAPTER_END[r['row']], 'row': r['row']}); continue
-    char = SPEAKER_SET.get(r['row'], r['char'])
+    # Source E-column speaker applies only to its own cell or an explicit E-column merge.
+    # A visually blank E cell outside a merge is ALWAYS narration, never
+    # an implicit continuation of the preceding character.
+    char = r['char'] or merged_speaker.get(r['source_row'], '')
     ln = {'row': r['row']}
     fx = list(FX.get(r['row'], []))
     act = r['act']
@@ -258,7 +262,7 @@ for r in rows:
                 if m: who, unk = m[1], True
                 else: who = SPEAKER_FIX.get(char, char)
                 speaker = (who, unk) if who else None
-            elif r['row'] in NARR: speaker = None
+            else: speaker = None
             if char and not who: speaker = None
             cur_who = speaker
             if not cur_who: ln.update({'t': 'n', 'x': text})

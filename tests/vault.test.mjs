@@ -896,12 +896,12 @@ test('vD.04: 육조 스탯 마우스오버 설명 6개', () => {
   for (const t of ['교육자들은 우선 눈을 크게 뜰 것을 1원칙으로', '제어할 수 없는 돌발 행동 확률도', '시간을 들여 얻는 보상이 늘어납니다', '영력 활용이 효율적으로', '반 박자 빠를 수 있는 법칙', '개척 중 전투를 확률적으로 피하게']) assert.ok(app.includes(t), t)
 })
 
-test('vD.06.7: 우정 편지 매점 100냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
+test('vD.06.12: 우정 편지 매점 50냥 · 개척에서 안 나옴 · 선물용 도구 · 재료로 안 쓰임', async () => {
   const { NEW_STORE, retuneItems } = await import('../systems/play/src/itemRetune.js')
-  assert.equal(NEW_STORE['friendship-letter'].price, 100)
+  assert.equal(NEW_STORE['friendship-letter'].price, 50)
   assert.equal(NEW_STORE['friendship-letter'].effectText, '선물용 도구. 이 편지를 전송하면 받은 사람과 특별한 연을 맺게 된다.')
   const [x] = retuneItems([{ id: 'friendship-letter', kind: 'material', tags: ['재료'], price: null, desc: '누군가들이 주고받은 편지. 다른 사람의 인연이 담겨있다.', effect: {} }])
-  assert.ok(x.price === 100 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
+  assert.ok(x.price === 50 && x.kind === 'tool' && !x.tags.includes('재료') && x.desc.startsWith('누군가들이 주고받은 편지'))
   assert.ok(!readFileSync(join(ROOT, 'systems/biryeong/hunt-extra.txt'), 'utf8').includes('friendship-letter'))
   const R = await import('../systems/biryeong/reskin.data.js')
   const recs = [...R.NEW_RECIPES.W, ...R.NEW_RECIPES.K, ...R.STORY_RECIPES]

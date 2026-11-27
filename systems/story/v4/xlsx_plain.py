@@ -41,3 +41,32 @@ def read_rows(file_name, sheet_title):
                 columns[k - 1] = value
             out.append((n, columns))
         return out
+
+
+def read_merged_speaker_ranges(file_name, sheet_title):
+    """Return {sheet row: E-column merged anchor speaker} using only actual merges.
+    Unmerged empty speaker cells remain narration. Uses the same OOXML parsing
+    conventions as read_rows, without depending on openpyxl at runtime.
+    """
+    with zipfile.ZipFile(file_name) as z:
+        book = ET.fromstring(z.read('xl/workbook.xml'))
+        sheet = next(x for x in book.find(M + 'sheets') if x.get('name') == sheet_title)
+        rels = ET.fromstring(z.read('xl/_rels/workbook.xml.rels'))
+        target = next(x.get('Target') for x in rels if x.get('Id') == sheet.get(R + 'id'))
+        target = target.lstrip('/') if target.startswith('/') else posixpath.normpath(posixpath.join('xl', target))
+        root = ET.fromstring(z.read(target))
+        merged = root.find(M + 'mergeCells')
+        if merged is None:
+            return {}
+        source = {idx: vals for idx, vals in read_rows(file_name, sheet_title)}
+        result = {}
+        for cell in merged:
+            ref = cell.get('ref', '')
+            match = re.fullmatch(r'E(\d+):E(\d+)', ref)
+            if match:
+                first, last = map(int, match.groups())
+                anchor = str((source.get(first) or [None] * 11)[4] or '').strip()
+                if anchor:
+                    for row in range(first + 1, last + 1):
+                        result[row] = anchor
+        return result

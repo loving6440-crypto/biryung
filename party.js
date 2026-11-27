@@ -207,6 +207,57 @@
     inviteBox.append(card);
     App.ding?.('invite');
   }
+  // D.06.12: 호출 알림은 채팅창이 닫혀 있어도 기존 접속 확인에서 수신한다.
+  const bellStart = Date.now();
+  const bellKey = (roomId) => `biryeong-room-bell-seen:${me()}:${roomId}`;
+  const seenBellMemory = new Map();
+  const readBellSeen = (roomId) => {
+    try { return Math.max(seenBellMemory.get(roomId) || 0, Number(localStorage.getItem(bellKey(roomId))) || 0); }
+    catch (_) { return seenBellMemory.get(roomId) || 0; }
+  };
+  const markBellSeen = (roomId, id) => {
+    seenBellMemory.set(roomId, id);
+    try { localStorage.setItem(bellKey(roomId), String(id)); } catch (_) { /* 접근 제한 */ }
+  };
+  function bellSoundNotice(bell) {
+    // 다른 탭/최소화된 창에서도 오디오 엔진이 활성화되어 있으면 재생한다.
+    App.ding?.('party-bell');
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      try { const n = new Notification('비령 · 일행 호출 🔔', {
+        body: `${bell.name || '일행'}님이 도깨비들의 터에서 호출했어.`, tag: `biryeong-party-bell-${bell.room}`, silent: true
+      }); n.onclick = () => { window.focus(); openParty('room'); n.close(); }; } catch (_) { /* 알림 차단/비지원 */ }
+    } else if (!document.hidden) {
+      toast('일행 호출 🔔', `${bell.name || '일행'}님이 띠롱띠롱 호출했어.`);
+    }
+  }
+  function receiveBell(bell) {
+    const roomId = Number(bell?.room), id = Number(bell?.id);
+    if (!roomId || !id) return;
+    const previouslySeen = readBellSeen(roomId);
+    // 오래전에 온 호출과 이 세션 이전에 울린 호출은 다시 재생하지 않는다.
+    const fresh = Date.parse(bell.at) >= bellStart - 3000 && Date.now() - Date.parse(bell.at) < 120000;
+    if (id <= previouslySeen) return;
+    markBellSeen(roomId, id);
+    if (bell.sender !== me() && fresh) bellSoundNotice(bell);
+  }
+  async function sendBell(button) {
+    if (!room?.id || button.disabled) return;
+    button.disabled = true;
+    try {
+      const r = await call('bry_room_bell', { p_room: room.id });
+      markBellSeen(room.id, Number(r.id) || 0);
+      toast('일행 호출 🔔', '일행에게 종소리를 보냈어.');
+    } catch (e) { toast('일행 호출', errText(e)); }
+    finally { setTimeout(() => { button.disabled = false; }, 1500); }
+  }
+  async function allowBellNotifications(button) {
+    if (!('Notification' in window)) { toast('알림', '이 브라우저는 시스템 알림을 지원하지 않아.'); return; }
+    if (Notification.permission === 'default') {
+      try { await Notification.requestPermission(); } catch (_) { /* 브라우저 제한 */ }
+    }
+    button.textContent = Notification.permission === 'granted' ? '🔔 알림 허용됨' : '🔕 알림 차단됨';
+    toast('알림', Notification.permission === 'granted' ? '다른 탭에 있어도 시스템 알림을 표시할게.' : '브라우저 사이트 권한에서 알림을 허용해야 해.');
+  }
   let polling = false, lastDm = 0, lastUnread = 0;
   // vD.02.3 팝업 공지: 한 번 본 것은 다시 띄우지 않는다(이 브라우저 기준)
   function showPopup(pp) {
@@ -235,6 +286,7 @@
       (r.invites || []).forEach(showInvite);
       if (r.fight) showFight(r.fight); // vC.07.3 같은 일행이 추가전투 · 실습 파티를 열었다
       if (r.popup) showPopup(r.popup); // vD.02.3 관리자의 팝업 공지
+      if (r.bell) receiveBell(r.bell); // D.06.12 채팅을 접어도, 다른 탭에서도 호출을 처리
       if (r.mail > 0) window.BiryeongServer?.poll?.(); // vC.07.5 우편이 왔다(관리자의 상태 고침 · 선물 · 하사) — 받을 때 띠링
       // vD.01 밀담: 접속 확인이 안 읽은 밀담 수까지 준다 — 늘었으면 띠링 + 알림(언제나)
       const dm = Number(r.dm) || 0;
@@ -277,6 +329,11 @@
     const sound = btn('ghost-btn party-sound', '', () => { App.setChatSound?.(!App.chatSoundOn?.()); paintSound(); });
     const paintSound = () => { const on = App.chatSoundOn?.() !== false; sound.textContent = on ? '🔔 새 말 소리 켜짐' : '🔕 새 말 소리 꺼짐'; sound.setAttribute('aria-pressed', String(on)); sound.title = on ? '일행 대화에 새 말이 오면 띠링 소리가 난다(끄면 숫자만 뜬다)' : '새 말은 도깨비들의 터 단추 위 숫자로만 알린다'; };
     const fold = btn('ghost-btn party-fold', '접기', () => { const min = party.d.classList.toggle('is-min'); fold.textContent = min ? '펴기' : '접기'; });
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      const allow = btn('ghost-btn party-notice-permit', '🔔 알림 허용', () => allowBellNotifications(allow));
+      allow.title = '다른 탭이나 최소화된 창에서 일행 호출 시스템 알림 받기';
+      tools.append(allow);
+    }
     paintSound(); tools.append(sound, fold);
     party.head.insertBefore(tools, party.head.lastChild);
     let drag = null;
@@ -338,7 +395,10 @@
     const list = h('ol', 'party-log'); list.setAttribute('aria-live', 'polite');
     const form = h('form', 'party-form'); const input = h('input'); input.maxLength = 500; input.placeholder = '일행에게 말한다 (캐릭터로)'; input.setAttribute('aria-label', '일행에게 보낼 말');
     const send = h('button', 'flat-btn', '보내기'); send.type = 'submit';
-    form.append(input, send);
+    const bell = btn('ghost-btn party-call-bell', '🔔', () => sendBell(bell));
+    bell.type = 'button'; bell.title = '현재 일행 전원에게 띠롱띠롱 호출 알림 보내기 (12초 제한)';
+    bell.setAttribute('aria-label', '일행 전원에게 종소리 호출');
+    form.append(input, bell, send);
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); const text = input.value.trim(); if (!text) return;
       send.disabled = true;

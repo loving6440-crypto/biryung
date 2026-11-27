@@ -94,18 +94,21 @@ test('D.06.8: 한국 시각 06/18시 BGM 전환, 전투 BGM 우선, 배경곡 �
   now = '2026-11-26T09:00:00Z'; // KST 18:00
   window.BiryeongBgm.sync();
   assert.equal(window.BiryeongBgm.state().playing, 'night');
-  assert.equal(day.paused, true);
-  const night = tracks[1]; night.currentTime = 41;
+  assert.equal(day.paused, false, '비전투 낮/밤 음악은 같은 Audio 객체에서 이어진다');
+  assert.match(day.src, /assets\/bgm\/night\.mp3/);
+  const night = day; night.currentTime = 41;
   window.BiryeongBgm.battle('battle');
   assert.equal(window.BiryeongBgm.state().playing, 'battle');
-  assert.equal(tracks[2].src, 'assets/bgm/battle.mp3');
+  assert.equal(tracks[1].src, 'assets/bgm/battle.mp3');
+  assert.equal(night.paused, true);
   window.BiryeongBgm.battle('boss');
-  assert.equal(tracks[3].src, 'assets/bgm/boss.mp3');
+  assert.equal(tracks[2].src, 'assets/bgm/boss.mp3');
   window.BiryeongBgm.battle(null);
   assert.equal(window.BiryeongBgm.state().playing, 'night');
   assert.equal(night.currentTime, 41);
   now = '2026-11-26T21:00:00Z'; // KST next day 06:00
   window.BiryeongBgm.sync();
   assert.equal(window.BiryeongBgm.state().playing, 'commu');
+  assert.match(day.src, /assets\/bgm\/commu\.mp3/);
   assert.equal(day.currentTime, 25);
 });

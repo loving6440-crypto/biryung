@@ -1,8 +1,8 @@
-/* 秘靈 · 비령 — 적응 퀘스트 (vD.06.10)
+/* 秘靈 · 비령 — 적응 퀘스트 (vD.06.11)
  *
  *   웹게임 자체의 길잡이(튜토리얼). 원고: 구글 시트 「적응 퀘스트 스크립트」 탭.
  *   · 프롤로그 첫 장면 「최초 최후의 신탁」이 끝나면 메뉴의 [適 적응 퀘스트]를 강조하고 서창현이 안내한다(한 번).
- *   · 퀘스트는 차례로 열린다(1-1 → 1-5). 다 마친 퀘스트는 언제든 다시 할 수 있다.
+ *   · 퀘스트는 차례로 열린다(1-1 → 1-6). 다 마친 퀘스트는 언제든 다시 할 수 있다.
  *   · 보상(마칠 때 받는 것 · 도중에 건네받는 냥 · 물건)은 계정당 처음 한 번만 — 다시 할 때는 주지 않는다.
  *   · 단계마다 화면의 단추를 반짝여 알려 주고, 그곳을 누르거나(장소 이동 · 구매 · 개척 · 제작 …) [다음]을 누르면 넘어간다.
  *
@@ -135,27 +135,51 @@
       { x: '동아리에 가입하시는 방법은 각 층 탐사를 해본 뒤, 동아리 가입하기를 눌러 들어가는 것입니다.' },
       { x: '동아리에 들어가고 나면 일일/주간 퀘스트를 할 수 있게 됩니다. 적지 않은 보상을 주므로 꼭 꾸준히 하시길 권장드립니다.' },
     ] },
+    // D.06.11: 구버전 1-5 학당 안내를 삭제하지 않고 1-6으로 이동 (기존 7개 대사 그대로)
+    { id: 'a6', title: '1-6. 학당 안내', sum: '어디서 무엇을 하는지 — 마지막 정리', reward: { money: 50, spirit: 50, items: { picnic: 2 } }, steps: [
+      { x: '이 정도만 알아도 대부분은 익혔다고 할 수 있겠습니다. 마지막으로 알아두면 좋은 장소 위치를 몇 가지 알려드리겠습니다.' },
+      { x: '개척 및 전투는 비령산에서 할 수 있습니다.', hl: [MAP, ZONE('south')] },
+      { x: '동아리 가입 및 파티 게임 등은 별관에서 할 수 있습니다. 본관에는 창고가 있고, 그 외 사소한 정보들을 많이 볼 수 있습니다. 양호실도 본관에 있습니다.', hl: [MAP, ZONE('east')] },
+      { x: '메인 스토리 관련해서는 산문에서 확인할 수 있습니다.', hl: [MAP, ZONE('north')] },
+      { x: '수면, 매점 아이템 구매, 급식실 사연 올리기는 생활관에서 가능합니다.', hl: [MAP, ZONE('west')] },
+      { x: '여기까지 확인하셨으면 이제 어엿한 학당의 일원이라 할 수 있습니다. 고생하셨습니다.' },
+      { x: 'OO 학생, 당신이 제대로 선 무당의 아이들이 되기까지 보조하겠습니다. 그럼 이만⋯⋯.' },
+    ] },
   ];
   const INTRO = '제3특수교육시설, 비령산 학당에 오신 것을 진심으로 환영합니다. 해당 버튼을 눌러 적응 퀘스트를 진행하면서 학당 생활에 익숙해져보세요.';
 
   /* ───────── 기록 ───────── */
-  // D.06.10 저장 호환: 예전 a4=동아리, a5=학당 안내였다. 이제 a4=기본 활동, a5=동아리.
-  // 완료·지급 기록을 이전 퀘스트 내용에 연결해 보상을 중복 지급하지 않는다.
-  // 옛 a5의 보상은 새로운 a4에, 옛 a4의 보상은 새로운 a5에 그대로 귀속한다.
+  // D.06.11 저장 호환: 기존 퀘스트 ID에 묶인 완료/보상/진행 기록 보존.
+  //   구버전(1): a4=동아리, a5=학당 안내
+  //   D.06.10(2): a4=기본 활동, a5=동아리(학당 안내 삭제 및 보상 이전 버그)
+  //   D.06.11(3): a4=기본 활동, a5=동아리, a6=학당 안내
   function migrate(a) {
-    if ((a.questSchema || 1) >= 2) return false;
-    const old4Done = a.done.a4, old5Done = a.done.a5;
-    const old4Paid = a.paid.a4, old5Paid = a.paid.a5;
-    delete a.done.a4; delete a.done.a5;
-    delete a.paid.a4; delete a.paid.a5;
-    // 과거 동아리를 끝냈다면 새로운 1-5에 완료 표시. 새 1-4는 실제로 진행해야 완료된다.
-    if (old4Done) a.done.a5 = old4Done;
-    if (old4Paid) a.paid.a5 = old4Paid;
-    // 과거 학당 안내 보상(냥50·영력50·피크닉2)은 새 1-4에서 다시 지급하지 않는다.
-    if (old5Paid) a.paid.a4 = old5Paid;
-    if (a.cur?.id === 'a4') a.cur = { ...a.cur, id: 'a5', step: Math.min(4, Math.max(0, a.cur.step || 0)) };
-    else if (a.cur?.id === 'a5') delete a.cur; // 기존 학당 안내는 새 시트상 1장에 해당, 적응 퀘스트에서 제외
-    a.questSchema = 2;
+    const v = Number(a.questSchema) || 1;
+    if (v >= 3) return false;
+    if (v < 2) {
+      const old4Done = a.done.a4, old5Done = a.done.a5;
+      const old4Paid = a.paid.a4, old5Paid = a.paid.a5;
+      delete a.done.a4; delete a.done.a5;
+      delete a.paid.a4; delete a.paid.a5;
+      if (old4Done) a.done.a5 = old4Done;
+      if (old5Done) a.done.a6 = old5Done;
+      if (old4Paid) a.paid.a5 = old4Paid;
+      if (old5Paid) a.paid.a6 = old5Paid;
+      if (a.cur?.id === 'a4') a.cur = { ...a.cur, id: 'a5', step: Math.min(4, Math.max(0, a.cur.step || 0)) };
+      else if (a.cur?.id === 'a5') a.cur = { ...a.cur, id: 'a6', step: Math.min(6, Math.max(0, a.cur.step || 0)) };
+    } else {
+      // D.06.10은 기존 학당 안내의 수령 기록을 a4로 잘못 이동했음.
+      // 실제 새 1-4를 완료하지 않았다면 이 기록은 1-6으로 되돌린다.
+      // 새 1-4를 이미 끝낸 경우에는 기존 보상의 이중 지급 방지를 우선한다.
+      if (a.paid.a4 && !a.done.a4) {
+        a.paid.a6 ||= a.paid.a4;
+        delete a.paid.a4;
+      } else if (a.paid.a4 && a.done.a4 && a.paid.a4 < a.done.a4) {
+        a.paid.a6 ||= a.paid.a4;
+      }
+      // 1-4 기본 활동 및 1-5 동아리의 기존 진행/완료 기록은 그대로 둔다.
+    }
+    a.questSchema = 3;
     return true;
   }
   const st = () => {

@@ -149,11 +149,15 @@
   function ding(kind = 'notice') {
     if (!sfxOn()) return; // vD.06.1 효과음 끄기
     if (kind === 'chat' && !chatSoundOn()) return;
-    const now = Date.now(); if (now - lastDing < 1200) return; lastDing = now;
+    const now = Date.now(); if (now - lastDing < 1200 && kind !== 'party-bell') return; lastDing = now;
     const ac = audio(); if (!ac) return;
     try {
       const t0 = ac.currentTime;
-      [[1318.5, 0], [1975.5, 0.11]].forEach(([f, dt]) => {
+      // 호출 종: 띠롱-띠롱 두 번. 일반 채팅/전투 효과음은 기존대로 유지한다.
+      const notes = kind === 'party-bell'
+        ? [[987.77, 0], [1318.51, .12], [987.77, .48], [1318.51, .60]]
+        : [[1318.5, 0], [1975.5, 0.11]];
+      notes.forEach(([f, dt]) => {
         const o = ac.createOscillator(), g = ac.createGain();
         o.type = 'sine'; o.frequency.value = f;
         g.gain.setValueAtTime(0.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(0.16, t0 + dt + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.55);
