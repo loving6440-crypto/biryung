@@ -37,7 +37,13 @@
       method, headers: { apikey: C.supabaseAnonKey, ...(jwtKey ? { Authorization: `Bearer ${C.supabaseAnonKey}` } : {}), 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
-    if (!res.ok) throw new Error(`supabase ${res.status}`);
+    if (!res.ok) {
+      let detail = null;
+      try { detail = await res.json(); } catch (_) { /* non-json error */ }
+      const missing = res.status === 404 && (detail?.code === 'PGRST202' || /Could not find the function/i.test(detail?.message || ''));
+      throw new Error(missing ? `서버 RPC가 없습니다 (${path}). D.06.16 관리자 스토리 SQL을 적용하고 API 스키마를 새로고침하세요.` :
+        `${detail?.message || `supabase ${res.status}`} (${detail?.code || res.status}; ${path})`);
+    }
     return res.status === 204 || (method !== 'GET' && !read) ? null : res.json();
   }
   const quiet = (p) => p.catch((error) => { console.warn('[비령] 서버 전송 실패(게임은 계속된다)', error.message); return null; });

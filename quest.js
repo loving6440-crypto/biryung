@@ -965,15 +965,15 @@
           const f = file.files?.[0]; if (!f) return;
           let content; try { content = JSON.parse(await f.text()); } catch (_) { toast('스토리 관리', 'JSON 파일이 아니다.'); return; }
           if (!validChapter(content, c.n)) { toast('스토리 관리', `${c.n}장 파일이 아니다. (story-chapters/ch${c.n}.json)`); return; }
+          if (server) { const r = await sync.adminSet(adminCode(), c.n, c.title, content, null, 'content'); if (!r?.ok) { toast('스토리 관리', `서버에 올리지 못했다 — ${r?.error || '서버 응답 없음'}`); return; } }
           const all = localStore(); all[c.n] = { ...(all[c.n] || {}), title: c.title, content, uploadedAt: new Date().toISOString() }; writeLocal(all);
-          if (server) { const r = await sync.adminSet(adminCode(), c.n, c.title, content, null, 'content'); if (r?.error) { toast('스토리 관리', `서버에 올리지 못했다 — ${r.error}`); return; } }
           toast('스토리 관리', `${c.n}장 파일을 올렸다. 아직 공개되지 않았다.`); refreshChapters(); App.route();
         });
         acts.append(file, btn('ghost-btn codex-use', has ? '파일 바꾸기' : '파일 올리기', () => file.click()));
         const setOpen = async (iso) => {
           if (!has) { toast('스토리 관리', '먼저 장 파일을 올려야 한다.'); return; }
+          if (server) { const r = await sync.adminSet(adminCode(), c.n, c.title, null, iso, 'open'); if (!r?.ok) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r?.error || '서버 응답 없음'}`); return; } }
           const all = localStore(); all[c.n] = { ...(all[c.n] || {}), openAt: iso }; writeLocal(all);
-          if (server) { const r = await sync.adminSet(adminCode(), c.n, c.title, null, iso, 'open'); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
           toast('스토리 관리', iso ? (Date.parse(iso) <= Date.now() ? `${c.n}장을 공개했다.` : `${c.n}장 공개 시각을 정했다.`) : `${c.n}장을 닫았다.`); refreshChapters(); App.route();
         };
         acts.append(btn('solid-btn codex-use', '지금 공개', () => setOpen(new Date().toISOString())));
@@ -985,7 +985,13 @@
       });
     };
     drawRows(null);
-    if (server) sync.adminList(adminCode()).then((r) => { if (r?.error) { table.prepend(para(`서버 목록을 읽지 못했다 — ${r.error} (관리자 코드를 확인)`)); return; } drawRows(r); }).catch(() => {});
+    if (server) sync.adminList(adminCode()).then((r) => {
+      if (!Array.isArray(r)) {
+        table.prepend(para(`서버 목록 조회 실패 — ${r?.error || '서버 응답 없음'}. Supabase SQL Editor에서 story_admin_list 설치 여부를 확인하세요.`));
+        return;
+      }
+      drawRows(r);
+    }).catch((e) => { table.prepend(para(`서버 목록 조회 실패 — ${e?.message || e}`)); });
 
     // vC.01 추가전투 단계 공개: 처음에는 1단계만 열려 있다. 한 주에 한 단계씩 여는 것을 기준으로 난이도를 맞췄다.
     body.append(h('p', 'panel-label', '추가전투 단계 공개'));
@@ -1073,8 +1079,8 @@
       const sel = h('select'); c.o.forEach((o, i) => sel.append(new Option(`${CIRC[i]} ${o}`, String(i + 1)))); if (option) sel.value = String(option);
       const when = h('input'); when.type = 'datetime-local'; when.className = 'story-when';
       const set = async (opt, iso) => {
+        if (server) { const r = await sync.adminRoute(adminCode(), id, opt, iso); if (!r?.ok) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r?.error || '서버 응답 없음'}`); return; } }
         const all = routeStore(); all[id] = { option: opt, openAt: iso }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
-        if (server) { const r = await sync.adminRoute(adminCode(), id, opt, iso); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
         toast('스토리 관리', !iso ? '루트를 닫았다.' : Date.parse(iso) <= Date.now() ? `${CIRC[opt - 1]} 루트를 공개했다.` : `${CIRC[opt - 1]} 루트 공개 시각을 정했다.`); refreshChapters(); App.route();
       };
       const acts = h('div', 'story-admin-acts');
@@ -1098,7 +1104,7 @@
       return rows;
     };
     const loadVotes = (rows) => (server ? sync.adminRoutes(adminCode()).then((r) => { srvRoutes = Array.isArray(r) ? r : []; drawVotes(rows); }).catch(() => drawVotes(rows)) : drawVotes(rows));
-    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices(adminCode())).then((rows) => loadVotes(rows || [])).catch(() => { votes.replaceChildren(para('서버에서 선택을 읽지 못했다. 이 브라우저의 계정들만 보인다.')); drawVotes(localVotes()); });
+    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices(adminCode())).then((rows) => { if (!Array.isArray(rows)) throw new Error(rows?.error || '투표 내역 응답 형식 오류'); return loadVotes(rows); }).catch((e) => { votes.replaceChildren(para(`서버 선택 기록을 읽지 못했다 — ${e?.message || e}. 로컬 기록은 참고용이며 서버 집계가 아니다.`)); drawVotes(localVotes()); });
     else { drawVotes(localVotes()); votes.prepend(para('서버 연결 전 — 이 브라우저에 있는 계정들의 선택만 모았다.')); }
   }
 
