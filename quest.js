@@ -149,6 +149,73 @@
   // (q 는 원고 판이 바뀌면 새로 시작하지만 claimed · sent 는 q 바깥에 두어 그대로 남는다)
   function claims() { const st = save().story; if (!st.claimed || typeof st.claimed !== 'object') st.claimed = {}; if (!st.sent || typeof st.sent !== 'object') st.sent = {}; return st; }
   function claimOnce(key) { const st = claims(); if (st.claimed[key]) return false; st.claimed[key] = Date.now(); return true; }
+  // D.06.14: 예전 판에서는 서버 오류가 나도 sent에 먼저 적어 재전송이 막혔다.
+  // sent는 최초 선택의 보관 장소, choiceConfirmed는 서버가 실제 등록을 확인한 기록이다.
+  let choiceSyncTask = null;
+  function currentChoice(id) {
+    const st = claims();
+    return Number(st.choiceServer?.[id]?.option ?? st.sent[id] ?? Q().flags[id] ?? 0);
+  }
+  function pendingChoices() {
+    const st = claims(), q = Q();
+    if (!st.choiceConfirmed || typeof st.choiceConfirmed !== 'object') st.choiceConfirmed = {};
+    const pending = [];
+    for (const [id, def] of Object.entries(D.choices || {})) {
+      // 서버에서 확정한 표(특히 이미 수정된 표)는 옛 로컬 값으로 되돌리지 않음.
+      if (st.choiceServer?.[id]) continue;
+      const option = Number(st.sent[id] ?? q.flags[id]);
+      if (Number.isInteger(option) && option >= 1 && option <= (def.o || []).length) pending.push([id, option]);
+    }
+    return pending;
+  }
+  function reflectChoice(id, option) {
+    const st = claims(), q = Q();
+    st.sent[id] = option; st.choiceConfirmed[id] = option;
+    if (q.flags[id] != null) q.flags[id] = option;
+    // 장면 재생/나의 기록에도 최종 선택값만 노출. 과거 보상·스토리 진행은 되감지 않음.
+    SCENES.forEach(sc => sc.lines.forEach((ln, i) => {
+      if (ln.t === 'choice' && ln.id === id && q.picked[`${sc.id}:${i}`]) {
+        q.picked[`${sc.id}:${i}`] = option;
+        q.pick[sc.id] = option;
+      }
+    }));
+  }
+  async function reconcileServerChoices() {
+    const sync = Sync();
+    const rows = await sync.myChoices();
+    const st = claims(); if (!st.choiceServer) st.choiceServer = {};
+    rows.forEach(r => {
+      if (!D.choices?.[r.branch]) return;
+      const option = Number(r.option), edits = Number(r.edit_count || 0);
+      if (option < 1 || option > D.choices[r.branch].o.length) return;
+      st.choiceServer[r.branch] = {option, edit_count:edits};
+      reflectChoice(r.branch, option);
+    });
+    persist();
+    return rows;
+  }
+  async function syncSavedChoices() {
+    const sync = Sync();
+    if (!sync?.enabled || !window.BiryeongAuth?.token?.()) return { ok:false, error:'서버 연결 또는 로그인이 필요합니다.', pending:pendingChoices().length };
+    if (choiceSyncTask) return choiceSyncTask;
+    choiceSyncTask = (async () => {
+      let error = '', done = 0;
+      try { await reconcileServerChoices(); }
+      catch (e) { return {ok:false,error:`기존 선택 조회 실패: ${e?.message || '서버 SQL 적용을 확인하세요.'}`,pending:pendingChoices().length,done:0}; }
+      for (const [id, option] of pendingChoices()) {
+        try {
+          const reply = await sync.choice(id, option);
+          const accepted = Number(reply.option || option);
+          if (!claims().choiceServer) claims().choiceServer = {};
+          claims().choiceServer[id] = {option:accepted,edit_count:Number(reply.edit_count || 0)};
+          reflectChoice(id, accepted); persist(); done++;
+        } catch (e) { error = e?.message || '선택 전송 실패'; break; }
+      }
+      return { ok:!error, error, done, pending:pendingChoices().length };
+    })();
+    try { return await choiceSyncTask; } finally { choiceSyncTask = null; }
+  }
+
   const persist = () => App.persist();
   const playerName = () => App.profile()?.name || '학생';
   const hasBatchim = (word) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 !== 0 : /[13678lmnr]$/i.test(word); };
@@ -698,8 +765,8 @@
       // 같은 선택이 다시 나와도 처음 고른 것이 남는다
       q.picked[key] = n; q.pick[scene.id] = n; if (q.flags[ln.id] == null) q.flags[ln.id] = n;
       if (ln.id === HEIR_CHOICE) { save().story.heirloom = HEIRS[n - 1]?.weapon || null; App.mark('heirloomChosen'); if (!q.keep.includes('부모의 유품')) q.keep.push('부모의 유품'); }
-      const cs = claims(); if (ln.id && !scene.event && !cs.sent[ln.id]) { cs.sent[ln.id] = n; Sync()?.choice(ln.id, n); } // vD.06 이벤트의 선택은 서버에 올리지 않는다
-      persist(); at += 1; show();
+      const cs = claims(); if (ln.id && !scene.event && cs.sent[ln.id] == null) cs.sent[ln.id] = n; // 최초 선택 저장; 서버 성공 여부는 choiceConfirmed로 별도 관리
+      persist(); if (ln.id && !scene.event) void syncSavedChoices(); at += 1; show();
     }
     // 장의 첫 장면을 처음 열 때: 권 · 장 표제
     const firstOfChapter = SCENES.find((s) => s.ch === scene.ch) === scene && from === 0;
@@ -770,22 +837,73 @@
     body.append(ul.children.length ? ul : para('아직 없다.'));
   }
   function boardWorld(body) {
-    const q = Q(), sync = Sync();
-    body.append(para(sync?.enabled ? '모든 학생의 선택이 모인다. 내가 고른 것은 청색으로 보인다.' : '서버에 닿기 전이라 지금은 내가 고른 것만 보인다.'));
+    const sync = Sync();
+    body.append(para(sync?.enabled ? '모든 학생의 최신 선택을 집계한다. 선택은 분기당 딱 1회 수정할 수 있다.' : '서버가 연결되지 않아 전체 집계를 볼 수 없다.'));
+    const status = h('p', 'quest-tally-status', '집계 준비 중…'); body.append(status);
+    const refresh = btn('ghost-btn', '선택 집계 새로고침', () => { void load(); });
+    body.append(refresh);
     const box = h('div', 'quest-tally'); body.append(box);
-    const shown = Object.entries(D.choices || {}).filter(([id, c]) => isOpen(c.ch) && q.flags[id]);
-    if (!shown.length) { box.append(para('아직 고른 것이 없다.')); return; }
     const draw = (by) => {
       box.replaceChildren();
+      const shown = Object.entries(D.choices || {}).filter(([id]) => currentChoice(id) > 0);
+      if (!shown.length) { box.append(para('아직 고른 것이 없다.')); return; }
       shown.forEach(([id, c]) => {
-        const counts = by?.[id] || {}; const sum = Object.values(counts).reduce((a, b) => a + b, 0);
-        const row = h('div', 'quest-tally-row'); row.append(h('strong', '', `${c.ch ? `${c.ch}장` : '프롤로그'} · ${c.q || c.scene}${c.vote ? ' (모두의 선택)' : ''}`));
-        c.o.forEach((o, i) => { const v = counts[i + 1] || 0; const mine = Number(q.flags[id]) === i + 1; row.append(h('p', mine ? 'is-mine' : '', `${CIRC[i]} ${fill(o)}${by ? ` — ${v}명 (${sum ? Math.round(v * 100 / sum) : 0}%)` : ''}${mine ? '  ◂ 내 선택' : ''}`)); }); // vC.06 내 선택은 어디서나 청색(서버에서 온 글자 '1'도 맞춘다)
+        const counts = by?.[id] || {}, sum = Object.values(counts).reduce((a,b) => a + Number(b||0),0);
+        const mine = currentChoice(id), srv = claims().choiceServer?.[id];
+        const row = h('div','quest-tally-row');
+        row.append(h('strong','',`${c.ch ? `${c.ch}장` : '프롤로그'} · ${c.q || c.scene}${c.vote ? ' (모두의 선택)' : ''}`));
+        c.o.forEach((o,i) => {
+          const v = Number(counts[i+1]||0);
+          row.append(h('p',mine === i+1 ? 'is-mine' : '',`${CIRC[i]} ${fill(o)}${by ? ` — ${v}명 (${sum ? Math.round(v*100/sum):0}%)`:''}${mine === i+1 ? '  ◂ 내 선택' : ''}`));
+        });
+        if (srv) {
+          const used = Number(srv.edit_count || 0) >= 1;
+          if (used) row.append(h('p','quest-tally-status','선택 수정 1회 사용 완료'));
+          else {
+            const b = btn('ghost-btn','선택 수정 (1회)',() => {
+              const panel = h('div','vn-choice');
+              panel.append(h('p','scene-question','수정은 이 선택지에서 딱 한 번만 가능하며 취소할 수 없습니다.'));
+              c.o.forEach((o,i) => {
+                if (i+1 === mine) return;
+                const change = btn('scene-option',`${CIRC[i]} ${fill(o)}`,async () => {
+                  if (!window.confirm(`기존 ${CIRC[mine-1]} 대신 ${CIRC[i]}로 변경할까요? 이 선택은 다시 바꿀 수 없습니다.`)) return;
+                  change.disabled=true;
+                  try {
+                    const result = await sync.editChoice(id,i+1);
+                    claims().choiceServer[id]={option:Number(result.option),edit_count:Number(result.edit_count)};
+                    reflectChoice(id,Number(result.option)); persist();
+                    status.textContent='수정 완료. 이전 선택표는 사라지고 새 선택만 집계됩니다.';
+                    await load();
+                  } catch(e) { change.disabled=false; status.textContent=`수정 실패: ${e.message}`; }
+                });
+                panel.append(change);
+              });
+              panel.append(btn('ghost-btn','닫기',() => panel.remove()));
+              row.append(panel);
+              b.disabled=true;
+            });
+            row.append(b);
+          }
+        }
         box.append(row);
       });
     };
     draw(null);
-    if (sync?.enabled) sync.tally().then((rows) => { const by = {}; (rows || []).forEach((r) => { (by[r.branch] = by[r.branch] || {})[r.option] = r.votes; }); draw(by); }).catch(() => {});
+    let loading = false;
+    async function load() {
+      if (loading) return;
+      if (!sync?.enabled) { status.textContent='서버가 연결되지 않아 집계를 볼 수 없다.'; return; }
+      loading=true;refresh.disabled=true;status.textContent='이전 기록 및 현재 집계를 확인하는 중…';
+      try {
+        const uploaded=await syncSavedChoices();
+        const rows=await sync.tally(),by={};
+        (rows||[]).forEach(r=>{(by[r.branch]=by[r.branch]||{})[r.option]=Number(r.votes||0);});
+        draw(by);
+        status.textContent=uploaded.ok ? `집계 갱신 완료${uploaded.done ? ` · 누락 선택 ${uploaded.done}건 동기화` : ''}.` : `집계 조회 완료, 선택 동기화 오류: ${uploaded.error}`;
+      } catch(e) {status.textContent=`선택 집계를 읽지 못했다: ${e?.message || '연결 오류'}. SQL 적용 상태를 확인해 주세요.`;}
+      finally {loading=false;refresh.disabled=false;}
+    }
+    void load();
   }
 
   /* ───────── 바깥 지역 (#/out/<지역>/<지점>) ───────── */

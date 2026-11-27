@@ -39,7 +39,7 @@ test('Sensitive direct Supabase table writes are revoked in migration and browse
   assert.match(patch,/function public\.bry_story_choice\(p_token text/);
   assert.match(patch,/function public\.story_admin_choices\(p_code text/);
   assert.match(patch,/limit 100/);
-  assert.match(sync,/authenticated\('bry_story_choice'/);
+  assert.match(sync,/call\('rpc\/bry_story_choice'/);
   assert.match(sync,/authenticated\('bry_story_progress'/);
   assert.match(sync,/authenticated\('bry_story_contrib'/);
   assert.doesNotMatch(sync,/call\('story_choices\?/);

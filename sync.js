@@ -49,7 +49,25 @@
   window.BiryeongSync = {
     enabled, playerId,
     // 최초 1회만: 이미 올린 분기는 다시 보내도 서버가 처음 표를 지킨다(ignore-duplicates · 계정당 첫 표만 남기는 서버 규칙)
-    choice: (branch, option) => (enabled ? authenticated('bry_story_choice', { p_branch: branch, p_option: option }) : null),
+    // 투표 전송은 실패를 삼키지 않는다. 성공한 RPC 응답만 전송 확정으로 취급한다.
+    choice: async (branch, option) => {
+      if (!enabled || !token()) throw new Error('선택 집계 서버 또는 로그인 연결이 없습니다.');
+      const result = await call('rpc/bry_story_choice', { method:'POST', body:{ p_token:token(), p_branch:branch, p_option:option }, read:true });
+      if (!result || result.ok !== true) throw new Error(result?.error || '선택 집계 서버가 등록을 확인하지 않았습니다.');
+      return result;
+    },
+    myChoices: async () => {
+      if (!enabled || !token()) throw new Error('로그인이 필요합니다.');
+      const rows = await call('rpc/bry_story_choice_mine', { method:'POST', body:{ p_token:token() }, read:true });
+      if (!Array.isArray(rows)) throw new Error('선택 내역을 읽지 못했습니다.');
+      return rows;
+    },
+    editChoice: async (branch, option) => {
+      if (!enabled || !token()) throw new Error('로그인이 필요합니다.');
+      const result = await call('rpc/bry_story_choice_edit', { method:'POST', body:{ p_token:token(), p_branch:branch, p_option:option }, read:true });
+      if (!result?.ok) throw new Error(result?.error || '선택 수정에 실패했습니다.');
+      return result;
+    },
     contrib: (event, amount = 1) => (enabled ? authenticated('bry_story_contrib', { p_event: event, p_amount: amount }) : null),
     progress: (scenes) => (enabled ? authenticated('bry_story_progress', { p_scenes: scenes }) : null),
     tally: async () => (enabled ? call('story_tally?select=branch,option,votes') : []),
