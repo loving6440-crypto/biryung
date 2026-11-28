@@ -150,20 +150,48 @@
       content.append(replies,h('h3','community-stack-title','이야기에 답하기'),composer('이 글에 이어 이야기를 남겨 주세요…',500,'답글 남기기',async text=>{await post(`posts/${id}/replies`,{body:text});await openPost(id);}));
     }catch(err){content.replaceChildren(empty(err.message),button('← 돌아가기','community-back',()=>renderSocialReset()));}
   }
+  /* V.01 낮새들의 터: [최근의 소식]은 이번 주(일요일 0시 ~ 지금, 한국 시각) 글만 — 최신이 위.
+     옆의 [지금까지의 기록 보기]로 지난 주들의 타임라인을 한 주씩 묶어 본다(일 ~ 토). */
+  const DAY=864e5,KST=9*3600e3;
+  const weekStartOf=(t=Date.now())=>{const k=t+KST;const dow=new Date(k).getUTCDay();return Math.floor(k/DAY)*DAY-dow*DAY-KST;};
+  const ymd=(t)=>{const d=new Date(t+KST);return `${d.getUTCMonth()+1}월 ${d.getUTCDate()}일`;};
+  const weekLabel=(ws)=>`${ymd(ws)}(일) ~ ${ymd(ws+6*DAY)}(토)`;
+  let socialView='week';
   async function renderSocial(){socialRows=[];addIntro(explanations.social);
-    content.append(composer('비령산의 오늘을 한 줄로 전해 주세요…',500,'낮새들의 터에 글 남기기',async text=>{await post('posts',{body:text});await renderSocialReset();}));
-    content.append(h('h3','community-stack-title','낮새들의 터 · 최근의 소식'));
+    content.append(composer('비령산의 오늘을 한 줄로 전해 주세요…',500,'낮새들의 터에 글 남기기',async text=>{await post('posts',{body:text});socialView='week';await renderSocialReset();}));
+    const head=h('div','community-feed-head');
+    const ttl=h('h3','community-stack-title',socialView==='week'?`낮새들의 터 · 최근의 소식 — 이번 주 ${weekLabel(weekStartOf())}`:'낮새들의 터 · 지금까지의 기록');
+    const sw=button(socialView==='week'?'지금까지의 기록 보기':'← 최근의 소식으로','community-mini-btn community-feed-switch',()=>{socialView=socialView==='week'?'archive':'week';renderSocialReset().catch(e=>setFeedback(e.message));});
+    sw.dataset.socialSwitch=socialView;head.append(ttl,sw);content.append(head);
     await loadSocial(true);
   }
   async function renderSocialReset(){content.replaceChildren();await renderSocial();}
   async function loadSocial(reset){try{
     const old=content.querySelector('#socialFeed');if(old)old.remove();
     if(reset)socialRows=[];
-    const before=socialRows.length?`?before=${socialRows[socialRows.length-1].id}`:'';
-    const data=await api(`posts${before}`);socialRows.push(...data.posts);
-    const list=h('div');list.id='socialFeed';if(!socialRows.length)list.append(empty('아직 별에 남겨진 말이 없습니다. 첫 글을 남겨 보세요.'));
-    socialRows.forEach(item=>list.append(postCard(item)));
-    if(data.posts.length===25)list.append(button('오래된 글 더 보기','community-load-more',()=>loadSocial(false).catch(e=>setFeedback(e.message))));
+    const ws=weekStartOf(),archive=socialView==='archive';
+    let more=false,guard=0;
+    // 이번 주 글이 아닌 것을 건너뛰며(지금까지의 기록은 이번 주 글을 건너뛰며) 한 화면(25개 안팎)을 채운다
+    while(guard++<8){
+      const before=socialRows.length?`?before=${socialRows[socialRows.length-1].id}`:(socialRows.lastId?`?before=${socialRows.lastId}`:'');
+      const data=await api(`posts${before}`);const got=data.posts||[];
+      if(!got.length){more=false;break;}
+      socialRows.lastId=got[got.length-1].id;
+      const keep=got.filter(p=>{const t=Date.parse(p.created_at);return archive?t<ws:t>=ws;});
+      socialRows.push(...keep);
+      const older=Date.parse(got[got.length-1].created_at)<ws;
+      if(!archive&&older){more=false;break;} // 이번 주보다 오래된 글에 닿았다
+      more=got.length===25;
+      if(!more||keep.length>=10)break;
+    }
+    const list=h('div');list.id='socialFeed';list.dataset.socialView=socialView;
+    if(!socialRows.length)list.append(empty(archive?'지난 주들의 기록이 아직 없습니다.':'이번 주에는 아직 남겨진 말이 없습니다. 첫 글을 남겨 보세요.'));
+    let lastWeek=null;
+    socialRows.forEach(item=>{
+      if(archive){const w=weekStartOf(Date.parse(item.created_at));if(w!==lastWeek){lastWeek=w;list.append(h('p','community-week-head',weekLabel(w)));}}
+      list.append(postCard(item));
+    });
+    if(more)list.append(button(archive?'더 지난 기록 보기':'이번 주 글 더 보기','community-load-more',()=>loadSocial(false).catch(e=>setFeedback(e.message))));
     content.append(list);
   }catch(err){setFeedback(err.message);}}
   function memoCard(item){const card=h('article','community-card');card.append(authorHeader(item),h('h3','community-card-title',item.title),h('p','community-card-body',item.body));
@@ -283,7 +311,7 @@
       if(!dmLastId || Number(message.id)>Number(dmLastId))dmLastId=message.id;
       list.append(messageBubble(message));
     }
-    if(shouldScroll)list.scrollTop=list.scrollHeight;initialDM=false;
+    if(shouldScroll||data.messages.length){list.scrollTop=list.scrollHeight;requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight;});}initialDM=false; // V.01 새 말이 오면 언제나 맨 아래(최신)
   }
   if(SERVER){const status=$('#communityConnectionStatus');Auth.rpc('bry_status').then(()=>{if(status)status.textContent='비령 내부 통신 연결';}).catch(()=>{if(status)status.textContent='학당 통신 · 서버 설정 필요';});}
   else fetch('health',{cache:'no-store'}).then(r=>r.ok?r.json().catch(()=>null):null).then(info=>{

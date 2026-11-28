@@ -5,7 +5,7 @@
 //   라운드 피해로는 쓰러지지 않는다(체력 1에서 멈춘다).
 // · 낫게 하는 물건(공작소 · 조리실): ① 완치  ② 완치 + 체력/의지력 회복  ③ 남은 시간을 5분으로 줄이기(두 가지씩).
 //   가벼운 이상(simple) 둘을 한 번에 낫게 하는 물건도 셋 있다. 무거운 이상(heavy)을 둘 낫게 하는 물건은 없다.
-// · 쇠약(지면 24시간, 모든 육조 스탯 5할)은 예전처럼 player.weakUntil 로 따로 센다 — [현재 상태] 칸에는 같이 보인다.
+// · 쇠약(지면 6시간 — V.01), 모든 육조 스탯 5할)은 예전처럼 player.weakUntil 로 따로 센다 — [현재 상태] 칸에는 같이 보인다.
 export const MIN = 60_000
 
 export const AILMENTS = [
@@ -217,7 +217,7 @@ const effText = (e) => [
 /** 아이템 표(items.js 의 ITEMS 뒤에 붙는다 — patches.mjs) */
 const PIX = {"ail-snake-pill": {"t": "pill", "p": "green"}, "ail-snake-tang": {"t": "stew", "p": "dgreen"}, "ail-wound-salve": {"t": "jar", "p": "green"}, "ail-wound-wrap": {"t": "patch", "p": "cream"}, "ail-burn-gel": {"t": "drop", "p": "lime"}, "ail-burn-tea": {"t": "cup", "p": "yellow"}, "ail-cold-pack": {"t": "pouch", "p": "tan"}, "ail-warm-soup": {"t": "bowl", "p": "brown"}, "ail-cough-pill": {"t": "pill", "p": "white"}, "ail-cough-tea": {"t": "cup", "p": "red"}, "ail-dizzy-tea": {"t": "cup", "p": "jade"}, "ail-dizzy-candy": {"t": "candy", "p": "gold"}, "ail-purge-charm": {"t": "talisman", "p": "red"}, "ail-purge-cord": {"t": "knot", "p": "crimson"}, "ail-itch-wash": {"t": "bottle", "p": "green"}, "ail-itch-balm": {"t": "jar", "p": "jade"}, "ail-fungus-ash": {"t": "powder", "p": "black"}, "ail-fungus-porridge": {"t": "porridge", "p": "rice"}, "ail-moxa": {"t": "smoke", "p": "gray"}, "ail-dangwi-soup": {"t": "stew", "p": "brown"}, "ail-two-loofah": {"t": "jar", "p": "lime"}, "ail-two-steam": {"t": "pouch", "p": "ember"}, "ail-two-omija": {"t": "cup", "p": "pink"}, "ail-short-needle": {"t": "stake", "p": "gray"}, "ail-short-bind": {"t": "cloth", "p": "white"}, "ail-short-towel": {"t": "cloth", "p": "sky"}, "ail-short-warmer": {"t": "pot", "p": "ember"}, "ail-short-burn": {"t": "flame", "p": "orange"}}
 export const AIL_ITEMS_CRAFT = RAW.map((r) => ({
-  pixel: PIX[r.id], id: r.id, kind: 'craft', name: r.name, price: null, desc: r.desc, tags: ['완성품', '#몸의 이상'], effectText: `${effText(r.effect)} (전투 밖에서)`,
+  pixel: PIX[r.id], id: r.id, kind: r.place === 'K' ? 'food' : 'craft', name: r.name, // V.01 조리실에서 달이는 해독환 · 냉차 등은 음식(#음식) — 공작소 물건과 섞이지 않게 price: null, desc: r.desc, tags: ['완성품', '#몸의 이상'], effectText: `${effText(r.effect)} (전투 밖에서)`,
   effect: { ...(r.effect.cure ? { cureAil: r.effect.cure } : {}), ...(r.effect.shorten ? { shortenAil: r.effect.shorten } : {}), ...(r.effect.hp ? { hp: r.effect.hp } : {}), ...(r.effect.mp ? { mp: r.effect.mp } : {}) },
   battle: false, party: false,
 }))

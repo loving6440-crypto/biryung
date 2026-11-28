@@ -929,6 +929,7 @@
   // 관리자 계정으로 서버에 로그인해 있으면 코드를 다시 묻지 않는다(계정의 표로 통과).
   const adminToken = () => { const A = window.BiryeongAuth; return A?.server && A.isAdmin() && A.token() ? `token:${A.token()}` : ''; };
   const adminCode = () => { if (adminToken()) return adminToken(); try { return sessionStorage.getItem(codeKey) || ''; } catch (_) { return ''; } };
+  let voteCh = null; // V.01 관리자 · 선택 집계: 지금 보고 있는 장
   function renderAdminStory(body) {
     const sync = Sync(); const server = !!sync?.enabled;
     body.append(para(server
@@ -946,7 +947,7 @@
     body.append(pv);
 
     body.append(h('p', 'panel-label', '장 공개'));
-    const table = h('div', 'story-admin-list'); body.append(table);
+    const table = h('div', 'story-admin-list scroll-box'); body.append(table); // V.01 장이 늘어도 네모 칸 안에서
     const L = localStore();
     const drawRows = (srv) => {
       table.replaceChildren();
@@ -1030,6 +1031,25 @@
     drawNpc(Number(routeStore().NPC_QUESTS?.option) === 1);
     if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'NPC_QUESTS') : null; if (Array.isArray(r)) drawNpc(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
 
+    // V.01 도깨비 증표 퀘스트 15종(사찰의 △△) — 인물의 부탁 45종과 따로 연다. 기본은 닫힘.
+    body.append(h('p', 'panel-label', '퀘스트 공개 — 도깨비 증표 15종(사찰)'));
+    const godBox = h('div', 'story-route'); godBox.dataset.godQuestAdmin = ''; body.append(godBox);
+    const drawGod = (open) => {
+      godBox.replaceChildren(h('p', 'story-route-state', open ? '지금 공개되어 있다. 학생들은 사찰에서 하루 하나씩 부탁을 받는다(보상: 도깨비 증표).' : '지금 숨겨져 있다. 공개하기 전에는 사찰에 부탁이 나오지 않는다. (인물의 부탁 45종과 상관없다)'));
+      const setGod = async (on) => {
+        const iso = new Date().toISOString(), all = routeStore(); all.GOBLIN_QUESTS = { option: on ? 1 : null, openAt: on ? iso : null }; try { localStorage.setItem(ROUTE_KEY, JSON.stringify(all)); } catch (_) { /* 무시 */ }
+        if (server) { const r = await sync.adminRoute(adminCode(), 'GOBLIN_QUESTS', on ? 1 : null, on ? iso : null); if (r?.error) { toast('스토리 관리', `서버에 쓰지 못했다 — ${r.error}`); return; } }
+        if (on) routes.GOBLIN_QUESTS = 1; else delete routes.GOBLIN_QUESTS;
+        toast('스토리 관리', on ? '도깨비 증표 퀘스트를 공개했다.' : '도깨비 증표 퀘스트를 다시 숨겼다. (이미 받은 부탁은 마칠 수 있다)'); refreshChapters(); drawGod(on);
+      };
+      const acts = h('div', 'story-admin-acts');
+      if (!open) { const b = btn('solid-btn codex-use', '도깨비 증표 퀘스트 공개', () => { if (window.confirm('사찰의 도깨비 증표 퀘스트(15종)를 모든 학생에게 공개할까요?')) setGod(true); }); b.dataset.godQuestOpen = ''; acts.append(b); }
+      else { const b = btn('ghost-btn codex-use', '도깨비 증표 퀘스트 숨기기', () => { if (window.confirm('도깨비 증표 퀘스트를 다시 숨길까요? (이미 받은 부탁은 마칠 수 있다)')) setGod(false); }); b.dataset.godQuestClose = ''; acts.append(b); }
+      godBox.append(acts);
+    };
+    drawGod(Number(routeStore().GOBLIN_QUESTS?.option) === 1);
+    if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'GOBLIN_QUESTS') : null; if (Array.isArray(r)) drawGod(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
+
     // vD.06 이벤트 「학생 괴담 수칙」 공개 · 닫기: 닫혀 있으면 이벤트도 신수들의 터도 「아직 공개되지 않았다」.
     body.append(h('p', 'panel-label', '이벤트 공개 — 학생 괴담 수칙 · 신수들의 터'));
     const evBox = h('div', 'story-route'); evBox.dataset.beastEventAdmin = ''; body.append(evBox);
@@ -1058,8 +1078,22 @@
       votes.replaceChildren();
       const by = {};
       rows.forEach((r) => { ((by[r.branch] = by[r.branch] || {})[r.option] = by[r.branch][r.option] || []).push(r); });
-      Object.entries(D.choices || {}).forEach(([id, c]) => {
-        const sec = h('details', `story-vote${c.vote ? ' is-vote' : ''}`); sec.open = !!c.vote;
+      // V.01 장을 골라 그 장의 선택지만 본다(아래로 끝없이 늘어놓지 않는다)
+      const entries = Object.entries(D.choices || {}), chOf = (c) => Number(c.ch) || 0;
+      const chs = [...new Set(entries.map(([, c]) => chOf(c)))].sort((a, b) => a - b);
+      if (!chs.includes(voteCh)) voteCh = chs.find((n) => entries.some(([, c]) => chOf(c) === n && c.vote)) ?? chs[0];
+      const tabs = h('div', 'story-vote-tabs'); tabs.setAttribute('role', 'tablist');
+      chs.forEach((n) => {
+        const ids = entries.filter(([, c]) => chOf(c) === n).map(([id]) => id);
+        const cnt = ids.reduce((a, id) => a + Object.values(by[id] || {}).flat().length, 0);
+        const hasVote = entries.some(([, c]) => chOf(c) === n && c.vote);
+        const b = btn(`story-vote-tab${n === voteCh ? ' is-on' : ''}${hasVote ? ' has-vote' : ''}`, `${n ? `${n}장` : '프롤로그'} · ${ids.length}개 · ${cnt}표`, () => { voteCh = n; drawVotes(rows); });
+        b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', n === voteCh ? 'true' : 'false'); b.dataset.voteCh = String(n);
+        tabs.append(b);
+      });
+      votes.append(tabs);
+      entries.filter(([, c]) => chOf(c) === voteCh).forEach(([id, c]) => {
+        const sec = h('details', `story-vote${c.vote ? ' is-vote' : ''}`); sec.open = true;
         const all = Object.values(by[id] || {}).flat(); const sum = all.length;
         sec.append(h('summary', '', `${id} · ${c.ch ? `${c.ch}장` : '프롤로그'} 「${c.scene}」 ${c.q ? `— ${c.q}` : ''}${c.vote ? ' (투표)' : ''} · ${sum}명`));
         c.o.forEach((o, i) => {
@@ -1148,7 +1182,7 @@
   }
 
   const peek = () => { const scene = current(); const st = scene && !busy ? activeStep(scene) : null; return { id: scene?.id || null, step: st ? Q().step : -1, w: st?.w || '', at: st ? atPlace(st.w) : false, needs: st ? needState(scene, st).map((n) => ({ raw: n.raw, type: n.type, arg: n.arg, have: n.have, count: n.count, done: n.done })) : [], busy, open: Object.keys(loaded).map(Number) }; };
-  window.BiryeongQuest = { playScene: (sc, onEnd) => { busy = true; playLines(sc, 0, sc.lines.length, () => { busy = false; onEnd && onEnd(); later(); }, false); }, sceneOpen: () => busy, at: (w) => atPlace(w), hashOf, toast: (a, b) => toast(a, b), card: (c) => card(c), fill: (t) => fill(t), extraTier: () => Math.max(1, Math.min(10, Number(routes.EXTRA_TIER) || 1)), routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
+  window.BiryeongQuest = { godName: () => godName(), playScene: (sc, onEnd) => { busy = true; playLines(sc, 0, sc.lines.length, () => { busy = false; onEnd && onEnd(); later(); }, false); }, sceneOpen: () => busy, at: (w) => atPlace(w), hashOf, toast: (a, b) => toast(a, b), card: (c) => card(c), fill: (t) => fill(t), extraTier: () => Math.max(1, Math.min(10, Number(routes.EXTRA_TIER) || 1)), routes, routeWait, renderBoard, renderPlace, renderAdminStory, progressText, tick, state: Q, current, peek, inspectable, refreshChapters, isOpen, replay: (id) => byId[id] && playLines(byId[id], 0, byId[id].lines.length, null, true) };
   refreshChapters();
   App.route();
   drawTracker();

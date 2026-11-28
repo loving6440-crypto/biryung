@@ -82,7 +82,7 @@ test('D.06.11: 새 계정 상태 초기화 및 적응 퀘스트 번들 캐시 �
   const { adapter } = mount()
   assert.equal(adapter.state().questSchema, 3)
   const html = readFileSync(join(ROOT, 'index.html'), 'utf8')
-  assert.ok(html.includes('adapt.js?v=V.01-2'))
+  assert.ok(html.includes('adapt.js?v=V.01-3'))
 })
 
 test('D.06.11: D.06.10에 잘못 연결된 학당 안내 보상을 새 a6으로 되돌림', () => {

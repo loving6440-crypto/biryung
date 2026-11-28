@@ -8,6 +8,8 @@
  *   서버 함수: supabase/schema.sql 의 bry_presence · bry_online · bry_invite · bry_invite_answer · bry_room_* · bry_rooms_ended · bry_gift
  */
 (() => {
+  // V.01 채팅창은 언제나 가장 최신(맨 아래)이 보이게 — 그림 · 글꼴이 늦게 그려져도 한 번 더 내린다
+  const stickBottom = (el) => { if (!el) return; el.scrollTop = el.scrollHeight; requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; setTimeout(() => { el.scrollTop = el.scrollHeight; }, 120); }); };
   'use strict';
   const Auth = window.BiryeongAuth, App = window.BiryeongApp;
   if (!Auth || !App) { window.BiryeongPartyError = '화면 기본 파일(app.js · auth.js)을 먼저 불러오지 못했다.'; return; }
@@ -328,7 +330,7 @@
     const tools = h('div', 'party-dock-tools');
     const sound = btn('ghost-btn party-sound', '', () => { App.setChatSound?.(!App.chatSoundOn?.()); paintSound(); });
     const paintSound = () => { const on = App.chatSoundOn?.() !== false; sound.textContent = on ? '🔔 새 말 소리 켜짐' : '🔕 새 말 소리 꺼짐'; sound.setAttribute('aria-pressed', String(on)); sound.title = on ? '일행 대화에 새 말이 오면 띠링 소리가 난다(끄면 숫자만 뜬다)' : '새 말은 도깨비들의 터 단추 위 숫자로만 알린다'; };
-    const fold = btn('ghost-btn party-fold', '접기', () => { const min = party.d.classList.toggle('is-min'); fold.textContent = min ? '펴기' : '접기'; });
+    const fold = btn('ghost-btn party-fold', '접기', () => { const min = party.d.classList.toggle('is-min'); fold.textContent = min ? '펴기' : '접기'; if (!min) stickBottom(party.d.querySelector('.party-log')); });
     if ('Notification' in window && Notification.permission !== 'granted') {
       const allow = btn('ghost-btn party-notice-permit', '🔔 알림 허용', () => allowBellNotifications(allow));
       allow.title = '다른 탭이나 최소화된 창에서 일행 호출 시스템 알림 받기';
@@ -355,7 +357,7 @@
   function openParty(tab) {
     partyTab = tab || (room ? 'room' : 'others');
     if (!party.d.open) { try { party.d.show(); } catch (_) { party.d.setAttribute('open', ''); } }
-    party.d.classList.remove('is-min'); party.d.querySelector('.party-fold') && (party.d.querySelector('.party-fold').textContent = '접기');
+    party.d.classList.remove('is-min'); party.d.querySelector('.party-fold') && (party.d.querySelector('.party-fold').textContent = '접기'); stickBottom(party.d.querySelector('.party-log:not(.is-read)'));
     App.addTo?.('community', 'party'); renderParty();
   }
   async function saveRoomLog(meta, button) {
@@ -411,9 +413,8 @@
       if (!room || viewing !== room.id) return;
       try {
         const r = await call('bry_room_msgs', { p_room: room.id, p_after: lastId });
-        const near = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
         (r.msgs || []).forEach((m) => { list.append(msgLine(m)); lastId = Math.max(lastId, m.id); });
-        if (near || lastId && list.childElementCount === (r.msgs || []).length) list.scrollTop = list.scrollHeight;
+        if ((r.msgs || []).length) stickBottom(list); // V.01 새 말이 오면 언제나 가장 아래(최신)를 보여 준다
         lastSeen = Math.max(lastSeen, lastId); try { localStorage.setItem(seenKey(), String(lastSeen)); } catch (_) { /* 괜찮다 */ }
         paintButtons(0);
         lastUnread = 0; // 읽었으니 다음 새 말부터 다시 센다
@@ -454,7 +455,7 @@
     trans.body.replaceChildren(para('불러오는 중…')); openDlg(trans.d);
     try {
       const r = await call('bry_room_msgs', { p_room: x.id, p_after: 0 });
-      const list = h('ol', 'party-log is-read'); (r.msgs || []).forEach((m) => list.append(msgLine(m)));
+      const list = h('ol', 'party-log is-read'); (r.msgs || []).forEach((m) => list.append(msgLine(m))); stickBottom(list);
       const logButton = btn('ghost-btn party-log-download', '로그 내려받기', () => saveRoomLog(x, logButton));
       const tools = h('div', 'party-transcript-tools'); tools.append(para(`${kst(x.created_at, true)} ~ ${kst(x.ended_at, true)}`), logButton);
       trans.body.replaceChildren(tools, list);

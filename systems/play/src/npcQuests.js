@@ -15,7 +15,10 @@ export const NPCS = {
   yeon: { name: '연호수', color: '#7f9fd8' },
   seo: { name: '서창현', color: '#9aa7b4' },
   yoon: { name: '윤진서', color: '#d8a0b4' },
+  // V.01 사찰의 △△ — 본편에서 내가 지어 준 이름으로 불린다(아직 안 지었으면 「무명」)
+  god: { get name() { return godNameNow() }, color: '#e6c77a' },
 }
+const godNameNow = () => { try { return String(globalThis.BiryeongQuest?.godName?.() || '').trim() || '무명' } catch { return '무명' } }
 export const MAX_ACTIVE = 2
 
 const Q = (id, npc, place, where, minS, maxS, title, goal, offer, accept, progress, done, extra = {}) => ({ id, npc, place, where, minS, maxS, title, goal, offer, accept, progress, done, ...extra })
@@ -162,18 +165,107 @@ export const NPC_QUESTS = [
     '돌아오면 도깨비들이랑 잔치해요! 꼭 돌아와요.', '백골장군 {left}번 남았어요. 추가전투 9단계래요.', '북소리가 멎었어요. 도깨비들이 {name} 이름으로 노래를 만들었대요. 이제 아무도 {name}를 잊어버리지 않을 거예요.', { reward: { item: 'ail-two-loofah' } }),
 ]
 
+
+// ── V.01 도깨비 증표 퀘스트 15종: 사찰의 △△ ──
+// · 사찰(비령산 · 중앙길 · 산 오르기 · 사찰)에서만 받고 마친다. 하루(한국 시각)에 하나씩, 차례대로.
+// · 인물의 부탁 45종과 따로 연다 — 관리자가 [스토리 관리 → 도깨비 증표 퀘스트 공개]를 누르기 전에는 보이지 않는다.
+// · 인물의 부탁 두 건 자리와 상관없다(△△의 부탁은 한 번에 한 건). 보상은 도깨비 증표.
+export const GOD_PLACE = 'gym:center:climb:temple'
+export const GOD_WHERE = '비령산 · 사찰'
+const G = (id, title, goal, offer, accept, progress, done, n = 1) => ({ id, npc: 'god', place: GOD_PLACE, where: GOD_WHERE, minS: 0, maxS: 999, title, goal, offer, accept, progress, done, god: true, reward: { item: 'goblin-token', n } })
+export const GOD_QUESTS = [
+  G('god01', '바람 냄새', { type: 'visit', key: 'gym:center:climb:peak', where: '비령산 · 산꼭대기' },
+    '…아. 왔다. {name}다. 나 방금 데굴데굴 굴러서 법당 이 끝에서 저 끝까지 갔다 왔어. 열일곱 번. 심심해. 저 위에, 꼭대기. 오늘 거기 바람이 무슨 냄새인지 맡고 와 줄래? 나는 여기서 못 나가. 아니, 나갈 수는 있는데 안 나가. 그런 거야.',
+    '응. 냄새 기억해 와. 코로. 코 있지? …있네.', '꼭대기. 위로, 계속 위로 가면 돼. 하늘 나오기 전에 멈추고.',
+    '…솔 냄새? 비 냄새? 둘 다? 와아. 오늘 산이 기분이 좋구나. 그럼 됐어. 이거 줄게. 도깨비들이 나한테 맡겨 놓은 건데, 맡긴 걸 또 맡기는 거야. 괜찮아.'),
+  G('god02', '솔방울 시합', { type: 'deliver', item: 'pinecone', n: 3 },
+    '{name}, 솔방울 알아? 동글동글하고 비늘 있는 거. 세 개만. 나 그거 굴리기 시합 할 거야. 누구랑? …나랑. 나 혼자. 나랑, 나랑, 나. 셋이서.',
+    '큰 거, 작은 거, 중간 거. 아니 아무거나. 아무거나가 제일 좋아.', '솔방울 {left}개 더. 솟대 소나무길에 떨어져 있대. 산이 그러더라.',
+    '와. 이게 제일 빨라. 이건 제일 느려. 이건… 이건 굴러가다 멈춰서 생각을 하네. 얘 마음에 든다. 고마워. 고마운 건 이렇게 주는 거래.'),
+  G('god03', '학교라는 곳', { type: 'lesson', n: 2 },
+    '학교에서는 뭘 해? 앉아 있어? 계속? 해 질 때까지? …신기하다. 수업 두 번만 듣고 와서 무슨 얘기 했는지 알려 줘. 나도 창문 밖에서 들어 본 적은 있는데, 귀신 하나가 옆에서 너무 떠들어서 하나도 못 들었어. 아, 그 귀신은 내가 혼내 줬어. 몰래.',
+    '졸면 안 돼. 졸면… 음, 졸아도 돼. 꿈도 수업이야.', '수업 {left}번 더. 강학당에 가면 있어.',
+    '귀신은 소금을 싫어하고, 이름을 부르면 돌아본다… 응, 응. 맞아. 다 맞아. 근데 그거 말고 하나 더 있는데. …비밀. 조금 더 크면 알려 줄게.'),
+  G('god04', '사사삭 빗자루', { type: 'kill', enemy: 'mongdangbi', n: 2 },
+    '쉿. 들려? 사사삭. 사사삭. 몽당비들이 또 마당 쓸러 왔어. 근데 쓸지는 않고 낙엽을 더 흩어 놔. 장난꾸러기야. 두 번만 혼내 줘. 세게 말고. 콩, 하고.',
+    '콩. 이렇게. …너무 약한가? 그럼 쿵.', '몽당비 도깨비 {left}번 더. 추가전투 1단계에 있어.',
+    '마당이 조용해졌다. 낙엽이 낙엽끼리 얌전히 누워 있어. 좋아. 이런 날은 산이 낮잠을 자.'),
+  G('god05', '바깥은 어떤 모양', { type: 'pioneer', n: 2 },
+    '{name}, {name}, {name}! 바깥은 어떤 모양이야? 동그래? 네모나? 길쭉해? 저기 산 아래, 사람들이 다니는 길. 나는 산 안쪽은 아주 잘 알아. 바위 하나하나 이름도 알아. 근데 바깥은 몰라. 개척 두 번만 나가서 보고 와.',
+    '본 거 다 기억해. 하나도 빼지 말고. 아, 무서운 건 빼도 돼.', '개척 {left}번 더.',
+    '…길이 구불구불하고, 개울이 있고, 돌탑이 있고. 아, 그 돌탑. 그거 옛날에 내가 쌓아 달라고 한 거야. 아직 있구나. 다행이다. 히히.'),
+  G('god06', '불이 버섯한테 하는 말', { type: 'make', item: 'grilled-mushroom', n: 1 },
+    '버섯은 구우면 냄새가 달라져? 정말? 왜? 불이 버섯한테 무슨 말을 하는 거야? 비밀 얘기? 무서운 얘기? …나 하나만 보고 싶어. 버섯 구이. 조리실에서 만들 수 있대. 네가 만든 걸로.',
+    '타면 안 돼. 탄 건 산짐승들이 싫어해. 나도 싫어해. 아마.', '버섯 구이 {left}개. 받은 뒤에 만든 것만 쳐 줄 거야. 나는 다 알아.',
+    '…! …! 뜨거워. 근데 냄새 좋아. 근데 뜨거워. 근데 냄새 좋아. 이거 계속 반복돼. 신기해. 남은 건 네가 먹어. 나는 냄새만 먹었어.'),
+  G('god07', '오래된 손님', { type: 'visit', key: 'gym:center:climb:tomb', where: '비령산 · 묘소' },
+    '묘소 쪽에 오늘 누가 왔어. 누군지는 알아. 근데 말 걸기가 좀… 쑥스러워. 아주 오래된 손님이거든. 네가 가서 인사만 하고 와. 「잘 지내시죠」 하고. 대답은 안 할 거야. 그래도 들어.',
+    '공손하게. 고개는 이만큼. 아니, 이만큼.', '묘소에 다녀와. 사찰 옆길이야.',
+    '…그래, 웃었구나. 안 보여도 알아. 산 위에서는 그런 게 다 느껴져. 고마워. 오늘은 네가 잠깐 산신 대신이었어.'),
+  G('god08', '도토리 세는 밤', { type: 'deliver', item: 'acorn', n: 4 },
+    '다람쥐들이 겨울 준비를 하다가 도토리를 어디 묻었는지 다 까먹었대. 그래서 울어. 다람쥐가 울면 산이 시끄러워. 도토리 네 개만 줘. 내가 다시 나눠 줄게. 공평하게. 아니, 제일 많이 운 애한테 하나 더.',
+    '도토리 숲길에 많아. 거기 다람쥐들한테는 비밀이야.', '도토리 {left}개 더.',
+    '하나, 둘, 셋, 넷. …다섯? 아, 아니다 넷이다. 하나를 두 번 셌어. 이제 아무도 안 울어. 산이 조용해졌다.'),
+  G('god09', '아래에서 올라오는 냄새', { type: 'win', n: 3 },
+    '…오늘은 장난 아니야. 잘 들어. 산 아래에서 나쁜 것들 냄새가 올라와. 학교 쪽으로. 내가 밤마다 몰래 밀어내고 있는데, 오늘은 좀 많아. 세 번만 이겨 줘. 어디서든. 네가 이길 때마다 그것들이 그만큼 겁을 먹어.',
+    '다치지 마. 이건 부탁이 아니라… 음. 명령? 아니, 부탁.', '{left}번 더 이기면 돼. 실습장이든 개척이든.',
+    '…냄새가 옅어졌어. 고마워, {name}. 내가 지키는 건 산인데, 산에는 학교도 들어 있어. 그러니까 너도 들어 있어. 알지?'),
+  G('god10', '네 장짜리 행운', { type: 'deliver', item: 'clover', n: 1 },
+    '행운이 뭐야? 사람들은 잎사귀 네 개짜리 풀을 보면 행운이래. 세 개면 안 되고, 다섯 개도 안 되고. 딱 네 개. 이상해. 근데 보고 싶어. 하나만.',
+    '찾으면 바로 와. 행운은 오래 들고 있으면 닳는대. 거짓말 같지만.', '네잎클로버 하나. 솟대 소나무길 풀밭에 숨어 있어.',
+    '…하나, 둘, 셋, 넷. 진짜 네 개다. 이걸 보면 행운이 와? 지금 와? …온 것 같아. 네가 왔으니까.'),
+  G('god11', '손 흔들기', { type: 'visit', key: 'mainHall:roof:door', where: '본관 옥상 · 문' },
+    '학교에서 제일 높은 데는 어디야? 옥상? 거기서 이쪽을 보면 내가 보일까? 나는 거기가 보여. 가끔 손 흔드는 애들도 보여. 내가 흔드는 건 안 보이겠지만. 옥상에 한번 올라가 줘. 내가 손 흔들게.',
+    '나 흔든다. 지금부터. 계속.', '본관 옥상까지 올라가 줘. 나 아직 흔들고 있어.',
+    '봤어? 못 봤어? 괜찮아. 나는 봤어. 너 작더라. 개미만 했어. 귀여웠어.'),
+  G('god12', '북쪽 바위의 금', { type: 'deliver', item: 'small-altar', n: 1 },
+    '…{name}. 잠깐 진지해질게. 산 북쪽 바위 밑에 금이 갔어. 거기로 안 좋은 게 새어 나와. 내가 막을 수는 있는데, 손이 하나 모자라. 소형 돌제단 하나만 만들어 줘. 공작소에서. 그걸 거기 놓으면 내 손 대신이 돼.',
+    '정성 들여. 돌은 정성을 알아.', '소형 돌제단 {left}개. 공작소에서 만들 수 있어.',
+    '…됐어. 막혔어. 이제 북쪽 바람이 깨끗해. 너는 몰랐겠지만, 방금 학교 하나를 지켰어. 아니, 둘? 아무튼 많이.'),
+  G('god13', '산 한 바퀴', { type: 'pioneer', n: 3 },
+    '산신은 매일 산을 한 바퀴 돌아야 해. 그게 일이야. 근데 오늘은 데굴데굴하느라 못 했어. …비밀이야. 대신 돌아 줄래? 개척 세 번. 그러면 산이 「아, 오늘도 누가 왔구나」 하고 안심해.',
+    '발자국 크게 내. 산이 알아보게.', '개척 {left}번 더.',
+    '산이 안심했대. 근데 나한테 「오늘 산신 발이 좀 작았다」고 그러더라. 히히. 들켰다.'),
+  G('god14', '신발 세는 손님', { type: 'kill', enemy: 'yagwanggwi', n: 2 },
+    '야광귀 알아? 밤에 와서 신발을 신어 보고, 맞으면 가져가. 그러면 신발 주인은 한 해 운이 나빠져. 기숙사 앞에 걔네가 줄 서 있어. 내가 체를 걸어 놨거든, 구멍 세느라 정신없게. 근데 두 마리는 체를 다 셌어. 똑똑한 애들이야. 쫓아내 줘.',
+    '신발 꽉 신고 가. 벗겨지면 끝이야.', '야광귀 {left}번 더. 추가전투 1단계에 있어.',
+    '기숙사 신발들이 다 제자리에 있어. 짝도 맞아. 좋아. 이것도 내가 몰래 한 걸로 하자. 너랑 나만 알아.'),
+  G('god15', '산이 기억하는 사람', { type: 'win', n: 5 },
+    '{name}. 오늘은 내가 조금 커 보이지? 기분 탓 아니야. 가끔 이렇게 돼. 산이 나를 크게 만들 때가 있어. …들어. 곧 겨울이 와. 겨울에는 나쁜 것들이 더 가까이 내려와. 다섯 번만 이겨 줘. 그러면 이 산이 너를 기억할 거야. 산이 기억하는 사람은 길을 잃지 않아.',
+    '…응. 다녀와. 나는 여기서 보고 있을게. 굴러다니면서.', '{left}번 더. 산이 세고 있어.',
+    '다섯. 산이 다 셌어. 이제 너는 이 산의 사람이야. 어디 가도, 길을 잃어도, 위를 보면 돼. 내가 있어. …아, 다시 작아졌다. 히히. 이거 다 가져. 도깨비들한테는 내가 줬다고 해. 다들 깜짝 놀랄 거야.', 3),
+]
+const ALL_Q = [...NPC_QUESTS, ...GOD_QUESTS]
+const KST = 9 * 3600 * 1000
+export const kstDay = (t = Date.now()) => Math.floor((t + KST) / 864e5)
+const godState = (p) => p?.godQ ?? { act: {}, done: {} }
+/** 오늘 받을 수 있는 △△의 부탁(없으면 null): 진행 중인 게 없고, 오늘 마친 게 없을 때 — 아직 안 한 것 중 첫째 */
+export function godNext(p, openTier = 1, now = Date.now()) {
+  const st = godState(p)
+  if (Object.keys(st.act).length) return null
+  const today = kstDay(now)
+  if (Object.values(st.done).some((t) => kstDay(t) === today)) return null
+  for (const q of GOD_QUESTS) {
+    if (st.done[q.id]) continue
+    if (q.goal.type === 'kill' && enemyTier(q.goal.enemy) > openTier) return null // 차례를 건너뛰지 않는다
+    return q
+  }
+  return null
+}
+
 // ── 보상 · 조건 ──
 const REC = [0, 4, 8, 12, 16, 20, 25, 30, 36, 43, 50]
 const tierOfS = (s) => { let t = 1; for (let i = 1; i <= 10; i++) if (s >= REC[i] * 0.9) t = i; return t }
 const enemyOf = (id) => ALL_ENEMIES.find((e) => e.id === id) ?? BESTIARY_ENEMIES.find((e) => e.id === id)
 export const enemyTier = (id) => enemyOf(id)?.tier ?? 0 // 실습장 상대는 0(언제나 열려 있다)
 export function rewardOf(q) {
+  if (q.god) return { ...q.reward }
   const t = tierOfS(q.minS)
   const base = { money: Math.round((30 + 25 * t) / 5) * 5, spirit: 5 * t }
   if (q.goal.type === 'kill' || q.goal.type === 'win') { base.money += 10 * t; base.spirit += 3 * t }
   return { ...base, ...(q.reward ?? {}) }
 }
-export const rewardText = (r) => [r.money ? `${r.money}냥` : '', r.spirit ? `영력 ${r.spirit}` : '', r.item ? `[${itemOf(r.item)?.name ?? r.item}]` : ''].filter(Boolean).join(' · ')
+export const rewardText = (r) => [r.money ? `${r.money}냥` : '', r.spirit ? `영력 ${r.spirit}` : '', r.item ? `[${itemOf(r.item)?.name ?? r.item}]${(r.n || 1) > 1 ? ` ${r.n}개` : ''}` : ''].filter(Boolean).join(' · ')
 export const goalText = (q) => {
   const g = q.goal
   if (g.type === 'kill') return `${enemyOf(g.enemy)?.name ?? g.enemy} ${g.n}번 쓰러뜨리기`
@@ -187,8 +279,14 @@ export const goalText = (q) => {
 }
 const goalN = (g) => (g.type === 'visit' ? 1 : g.n)
 
-const stateOf = (p) => p?.npcQ ?? { act: {}, done: {} }
-const fill = (text, p, left) => String(text ?? '').split('{name}').join(p?.name || '당신').split('{left}').join(String(left))
+const npcState = (p) => p?.npcQ ?? { act: {}, done: {} }
+const stateOf = npcState
+const stOf = (p, q) => (q?.god ? godState(p) : npcState(p))
+const withSt = (p, q, st) => (q?.god ? { ...p, godQ: st } : { ...p, npcQ: st })
+// V.01 받침에 맞춘 「으로 / 로」(받침 없음 · ㄹ 받침 → 로)
+const euro = (w) => { const c = String(w ?? '').trim().slice(-1).charCodeAt(0) - 0xac00; if (c < 0 || c > 11171) return '으로'; const j = c % 28; return j === 0 || j === 8 ? '로' : '으로' }
+const qOf = (id) => ALL_Q.find((x) => x.id === id)
+const fill = (text, p, left) => String(text ?? '').split('{name}').join(p?.name || '당신').split('{left}').join(String(left)).split('{god}').join(godNameNow())
 /** 지금 수치(보정 포함 평균 S) · 열린 단계에서 이 부탁이 보이는가 */
 export function canOffer(q, p, S, openTier) {
   const st = stateOf(p)
@@ -198,14 +296,14 @@ export function canOffer(q, p, S, openTier) {
   return true
 }
 export function progressOf(q, p) {
-  const a = stateOf(p).act[q.id]
+  const a = stOf(p, q).act[q.id]
   if (!a) return null
   const need = goalN(q.goal)
   const cur = q.goal.type === 'deliver' ? Math.min(need, p.inventory?.[q.goal.item] || 0) : Math.min(need, a.n || 0)
   return { cur, need, left: need - cur, done: cur >= need }
 }
 /** 장소 하나에서 보일 것: 받을 수 있는 부탁 + 이 장소에서 받은(진행 중인) 부탁 */
-export function placeView(p, place, S, openTier, open = true) {
+export function placeView(p, place, S, openTier, open = true, godOpen = false, now = Date.now()) {
   const st = stateOf(p)
   const activeN = activeCount(p)
   const here = NPC_QUESTS.filter((q) => q.place === place)
@@ -215,48 +313,62 @@ export function placeView(p, place, S, openTier, open = true) {
     if (pr) rows.push({ q, state: 'active', pr, line: fill(pr.done ? q.done : q.progress, p, pr.left), reward: rewardOf(q) })
     else if (open && canOffer(q, p, S, openTier)) rows.push({ q, state: 'offer', line: fill(q.offer, p, goalN(q.goal)), reward: rewardOf(q), full: activeN >= MAX_ACTIVE })
   }
+  // V.01 사찰의 △△ — 진행 중인 것은 닫혀 있어도 마칠 수 있다. 새 부탁은 공개되어 있을 때 하루 하나
+  if (place === GOD_PLACE) {
+    for (const q of GOD_QUESTS) { const pr = progressOf(q, p); if (pr) rows.push({ q, state: 'active', pr, line: fill(pr.done ? q.done : q.progress, p, pr.left), reward: rewardOf(q) }) }
+    const nx = godOpen ? godNext(p, openTier, now) : null
+    if (nx) rows.push({ q: nx, state: 'offer', line: fill(nx.offer, p, goalN(nx.goal)), reward: rewardOf(nx), full: false })
+    else if (godOpen && !rows.some((r) => r.q.god)) {
+      const left = GOD_QUESTS.filter((q) => !godState(p).done[q.id]).length
+      rows.push({ q: { id: 'god-rest', npc: 'god', title: left ? '오늘은 여기까지' : '산의 사람', goal: { type: 'none' }, god: true }, state: 'rest', line: left ? '…오늘은 놀아 줘서 고마워. 내일 또 와. 내일의 나는 또 심심할 거야. 분명히.' : '이제 부탁은 없어. 그냥 놀러 와. 데굴데굴 같이 하자.', reward: {} })
+    }
+  }
   return rows
 }
 /** 진행 중인 부탁 수 — 지금 있는 부탁만 센다(없어진 부탁이 자리를 잡아먹지 않게) */
 export const activeCount = (p) => Object.keys(stateOf(p).act).filter((id) => NPC_QUESTS.some((q) => q.id === id)).length
 export function activeList(p) {
-  const st = stateOf(p)
-  return NPC_QUESTS.filter((q) => st.act[q.id]).map((q) => ({ q, pr: progressOf(q, p), npc: NPCS[q.npc].name }))
+  return ALL_Q.filter((q) => stOf(p, q).act[q.id]).map((q) => ({ q, pr: progressOf(q, p), npc: NPCS[q.npc].name }))
 }
 export function acceptQuest(p, id, now = Date.now()) {
-  const q = NPC_QUESTS.find((x) => x.id === id); const st = stateOf(p)
+  const q = qOf(id); const st = stOf(p, q)
   if (!q || st.act[id] || st.done[id]) return { error: '받을 수 없는 부탁이다.' }
-  if (activeCount(p) >= MAX_ACTIVE) return { error: `부탁은 한 번에 ${MAX_ACTIVE}건까지 받을 수 있다. 하나를 마치면 다시 받을 수 있다.` }
-  return { player: { ...p, npcQ: { ...st, act: { ...st.act, [id]: { at: now, n: 0 } } } }, log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 받았다 — ${goalText(q)} (마치러 ${q.where}으로)`, line: fill(q.accept, p, goalN(q.goal)) }
+  if (q.god) { if (godNext(p, 99, now)?.id !== id) return { error: '오늘은 더 받을 수 없는 부탁이다.' } }
+  else if (activeCount(p) >= MAX_ACTIVE) return { error: `부탁은 한 번에 ${MAX_ACTIVE}건까지 받을 수 있다. 하나를 마치면 다시 받을 수 있다.` }
+  return { player: withSt(p, q, { ...st, act: { ...st.act, [id]: { at: now, n: 0 } } }), log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 받았다 — ${goalText(q)} (마치러 ${q.where}${euro(q.where)})`, line: fill(q.accept, p, goalN(q.goal)) }
 }
 export function abandonQuest(p, id) {
-  const q = NPC_QUESTS.find((x) => x.id === id); const st = stateOf(p)
+  const q = qOf(id); const st = stOf(p, q)
   if (!q || !st.act[id]) return { error: '진행 중인 부탁이 아니다.' }
   const act = { ...st.act }; delete act[id]
-  return { player: { ...p, npcQ: { ...st, act } }, log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 그만두었다. (다시 받을 수 있다)` }
+  return { player: withSt(p, q, { ...st, act }), log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 그만두었다. (다시 받을 수 있다)` }
 }
 export function finishQuest(p, id, now = Date.now()) {
-  const q = NPC_QUESTS.find((x) => x.id === id); const st = stateOf(p)
+  const q = qOf(id); const st = stOf(p, q)
   const pr = q && progressOf(q, p)
   if (!pr?.done) return { error: '아직 마치지 않았다.' }
   let inv = { ...p.inventory }
   if (q.goal.type === 'deliver') { inv[q.goal.item] -= q.goal.n; if (inv[q.goal.item] <= 0) delete inv[q.goal.item] }
   const r = rewardOf(q)
-  if (r.item) inv[r.item] = (inv[r.item] || 0) + 1
+  if (r.item) inv[r.item] = (inv[r.item] || 0) + (r.n || 1)
   const act = { ...st.act }; delete act[id]
-  const next = clampSpirit({ ...p, inventory: inv, money: (p.money || 0) + (r.money || 0), spirit: (p.spirit || 0) + (r.spirit || 0), npcQ: { act, done: { ...st.done, [id]: now } } })
+  const next = clampSpirit(withSt({ ...p, inventory: inv, money: (p.money || 0) + (r.money || 0), spirit: (p.spirit || 0) + (r.spirit || 0) }, q, { act, done: { ...st.done, [id]: now } }))
   return { player: next, log: `${NPCS[q.npc].name}의 부탁 「${q.title}」을(를) 마쳤다. 보상: ${rewardText(r)}`, line: fill(q.done, p, 0) }
 }
 /** 활동이 일어났다 → 진행 중인 부탁의 수를 센다. type: kill(id) · win · lesson · pioneer · make(id, qty) · visit(key) */
 export function npcEvent(p, type, arg = null, qty = 1) {
-  const st = stateOf(p)
-  let changed = false
-  const act = { ...st.act }
-  for (const id of Object.keys(act)) {
-    const q = NPC_QUESTS.find((x) => x.id === id); if (!q) continue
-    const g = q.goal
-    const hit = (g.type === type && (type === 'kill' ? g.enemy === arg : type === 'make' ? g.item === arg : type === 'visit' ? g.key === arg : true))
-    if (hit && (act[id].n || 0) < goalN(g)) { act[id] = { ...act[id], n: Math.min(goalN(g), (act[id].n || 0) + (type === 'make' ? qty : 1)) }; changed = true }
+  let out = p
+  for (const god of [false, true]) {
+    const st = god ? godState(out) : npcState(out)
+    let changed = false
+    const act = { ...st.act }
+    for (const id of Object.keys(act)) {
+      const q = (god ? GOD_QUESTS : NPC_QUESTS).find((x) => x.id === id); if (!q) continue
+      const g = q.goal
+      const hit = (g.type === type && (type === 'kill' ? g.enemy === arg : type === 'make' ? g.item === arg : type === 'visit' ? g.key === arg : true))
+      if (hit && (act[id].n || 0) < goalN(g)) { act[id] = { ...act[id], n: Math.min(goalN(g), (act[id].n || 0) + (type === 'make' ? qty : 1)) }; changed = true }
+    }
+    if (changed) out = god ? { ...out, godQ: { ...st, act } } : { ...out, npcQ: { ...st, act } }
   }
-  return changed ? { ...p, npcQ: { ...st, act } } : p
+  return out
 }

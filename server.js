@@ -171,9 +171,32 @@
     const drawGifts = guard(async () => { gsList.replaceChildren(para('불러오는 중…')); ({ rows: gsRows } = await call('bry_admin_gifts')); gsDraw(); });
     gsQ.addEventListener('input', gsDraw);
 
+    /* V.01 비밀번호 재설정 요청 — 로그인 화면의 [비밀번호를 잊었어요]. 임시 비밀번호를 본인에게 전해 준다 */
+    body.append(h('div', 'panel-rule'), h('p', 'panel-label', '비밀번호 재설정 요청 — 본인이 맞는지 확인한 뒤 임시 비밀번호를 전해 주세요. 임시 비밀번호로 들어오면 곧바로 새 비밀번호를 정한다(3일 뒤 사라진다)'));
+    const rList = h('div', 'codex-list scroll-box admin-reset-list'); rList.setAttribute('aria-label', '비밀번호 재설정 요청'); rList.dataset.pwResets = ''; body.append(rList);
+    const drawResets = guard(async () => {
+      const { resets } = await call('bry_admin_pw_resets'); rList.replaceChildren();
+      if (!resets.length) rList.append(para('들어온 요청이 없다.'));
+      resets.forEach((x) => {
+        const r = h('div', `codex-row${x.used_at ? '' : ' is-got'}`), t = h('div', 'codex-text');
+        const pw = h('code', 'admin-temp-pw', x.temp_pw); pw.dataset.tempPw = x.username;
+        const top = h('strong', '', `@${x.username}${x.name ? ` · ${x.name}` : ''} — 임시 비밀번호 `); top.append(pw);
+        t.append(top, h('p', '', `${when(x.requested_at)} 요청 · ${x.used_at ? `${when(x.used_at)}에 임시 비밀번호로 들어옴(새 비밀번호를 정하는 중)` : `아직 쓰지 않음 · ${when(x.expires_at)}까지`}`));
+        const side = h('div', 'codex-side admin-side');
+        side.append(btn('ghost-btn codex-use', '복사', () => { try { navigator.clipboard?.writeText(x.temp_pw); toast('서버 관리', '임시 비밀번호를 복사했다.'); } catch (_) { /* 무시 */ } }));
+        side.append(btn('ghost-btn codex-use', '지우기', guard(async () => { if (!window.confirm(`@${x.username} 의 요청을 지울까요? (임시 비밀번호를 쓸 수 없게 된다)`)) return; await call('bry_admin_pw_reset_clear', { p_username: x.username }); drawResets(); })));
+        r.append(h('span', 'codex-mark', '◇'), t, side); rList.append(r);
+      });
+    });
+    drawResets();
+
     /* 회원 */
     body.append(h('div', 'panel-rule'));
-    const uLabel = h('p', 'panel-label', '회원'); const uList = h('div', 'codex-list'); body.append(uLabel, uList);
+    const uLabel = h('p', 'panel-label', '회원'); const uList = h('div', 'codex-list scroll-box admin-user-list'); uList.setAttribute('aria-label', '회원 목록');
+    // V.01 회원이 많아도 아래로 끝없이 늘어나지 않게: 네모 칸 안에서 스크롤 + 이름 · 아이디로 찾기
+    const uFind = h('input', 'admin-find'); uFind.type = 'search'; uFind.placeholder = '이름 · 아이디로 찾기'; uFind.setAttribute('aria-label', '회원 찾기');
+    uFind.addEventListener('input', () => { const q = uFind.value.trim().toLowerCase(); uList.querySelectorAll('[data-user-row]').forEach((r) => { r.hidden = !!q && !r.dataset.userRow.includes(q); }); });
+    body.append(uLabel, uFind, uList);
     const me = Auth.session();
     const setUser = (u, action, value, done) => guard(async () => { await call('bry_admin_user_set', { p_username: u.username, p_action: action, p_value: String(value ?? '') }); toast('서버 관리', done); drawUsers(); })();
     const askDays = (text) => { const v = window.prompt(`${text}\n며칠 동안? (숫자, 0 = 해제)`, '1'); if (v == null) return null; const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : null; };
@@ -183,6 +206,7 @@
       uLabel.textContent = `회원 — ${users.length}명 · 지금 접속 ${users.filter((u) => u.online).length}명`;
       users.forEach((u) => {
         const r = h('div', 'codex-row is-got'), t = h('div', 'codex-text'), self = u.username === me;
+        r.dataset.userRow = `${u.display_name || ''} ${u.username} ${u.name || ''}`.toLowerCase();
         t.append(h('strong', '', `${u.online ? '● ' : ''}${u.display_name} @${u.username}${self ? ' (나)' : ''}${u.role === 'admin' ? ' · 관리자' : ''}${u.chat_title ? ` · 「${u.chat_title}」` : ''}`),
           h('p', '', `${u.name ? `학생 이름 ${u.name} · ` : ''}본편 장면 ${u.scenes}개 · 글 ${u.writes}개 · 가입 ${when(u.created_at)} · 최근 접속 ${when(u.last_seen)} · 기록 ${u.save_at ? when(u.save_at) : '없음'}`));
         if (active(u.banned_until) || active(u.muted_until)) t.append(h('p', 'server-flag', [active(u.banned_until) ? `계정 정지 ~${when(u.banned_until)}` : '', active(u.muted_until) ? `글쓰기 정지 ~${when(u.muted_until)}` : ''].filter(Boolean).join(' · ')));
@@ -263,7 +287,7 @@
 
     /* 감사 기록 */
     body.append(h('div', 'panel-rule'), h('p', 'panel-label', '감사 기록 — 관리자가 한 일(최근 150건)'));
-    const aList = h('div', 'server-audit'); body.append(aList);
+    const aList = h('div', 'server-audit scroll-box'); body.append(aList);
     const LABEL = { edit: '상태 고침', claim_admin: '관리자 코드로 관리자가 됨', read_dm: '밀담 열람', read_save: '기록 열람', read_gifts: '우편함 엿보기', grant: '하사', grant_cancel: '하사 거둠', notice: '공지', delete_post: '지신성 글 삭제', delete_memo: '메모 삭제', delete_comment: '댓글 삭제', delete_story: '급식실 사연 삭제', board_post: '공지사항 올림', board_delete: '공지사항 지움', note_post: '업데이트 노트 올림', note_delete: '업데이트 노트 지움',
       user_role: '역할 변경', user_ban: '계정 정지(일)', user_mute: '글쓰기 정지(일)', user_password: '비밀번호 초기화', user_chat_title: '칭호', user_delete: '계정 삭제' };
     call('bry_admin_audit').then(({ rows }) => {

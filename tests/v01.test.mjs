@@ -74,7 +74,7 @@ test('V.01: 산출물은 소스에서 다시 만든 것 — 화면 묶음 · 도
   assert.ok(codex.includes('무구보관소에서 무구를 일반 강화(10~12)할 때 쓰는 재료(2·3·4개 필요).'));
   assert.ok(light.includes('.party-call-bell'), '일행 호출 종도 화이트 모드');
   const html = read('index.html');
-  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01-2'));
+  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01-3'));
 });
 
 test('V.01: 매점 판매가는 개척 터 레벨로 — 같은 터 같은 종류는 같은 값, 터가 어려울수록 비싸다', () => {
@@ -149,4 +149,57 @@ test('V.01: 모바일 · 컴퓨터 기록 맞추기 — 다른 기기가 올린 
   assert.ok(auth.includes('setInterval(() => { if (!document.hidden && !idle()) checkOther(); }, 60000)') && auth.includes("window.addEventListener('focus', () => checkOther())"));
   assert.ok(auth.includes('if (dirty && (ask || touchedSince(id)))'), '들어올 때 이 기기에서 한 것이 없으면 다른 기기 기록을 받는다');
   assert.ok(auth.includes('leaving = true; location.reload();'), '받아 새로고침할 때 닫히는 화면이 옛 기록을 올리지 못한다');
+});
+
+test('V.01: 한 주는 일요일 ~ 토요일 — 화면(주간 기록 · 동아리 · 랭킹)과 서버(week0)가 같다', async () => {
+  const { applyPatches } = await import('../systems/play/patches.mjs');
+  const src = applyPatches('systems/vault/modules/game/activityCounters.js', read('systems/vault/modules/game/activityCounters.js'));
+  const body = src.match(/export const weekStartOf = [\s\S]*?\n\}/)[0].replace('export ', '');
+  const weekStartOf = new Function('KST_MS', 'DAY_MS', `${body}; return weekStartOf`)(9 * 3600e3, 864e5);
+  const day = (iso) => new Date(weekStartOf(Date.parse(iso)) + 9 * 3600e3).toISOString().slice(0, 10);
+  assert.equal(day('2026-11-28T23:59:00+09:00'), '2026-11-22'); // 토요일 → 그 주 일요일
+  assert.equal(day('2026-11-29T00:00:00+09:00'), '2026-11-29'); // 일요일 0시에 새 주
+  assert.ok(src.includes('weekStart === ws + DAY_MS'), '예전(월요일)으로 적힌 이번 주 기록은 이어진다');
+  const patch = read('supabase/v01_patch.sql');
+  assert.ok(patch.includes("(date_trunc('week', (now() at time zone 'Asia/Seoul') + interval '1 day') - interval '1 day')"), 'SQL week0 일요일');
+  for (const f of ['app.js', 'systems/play/src/ClubQuests.jsx']) assert.ok(!read(f).includes('월요일 0시'), f);
+  assert.ok(read('community.js').includes('지금까지의 기록 보기'), '낮새들의 터: 이번 주 + 지난 기록');
+});
+
+test('V.01: 안목이 높을수록 분실물을 잘 줍는다(1 → 1%, 40 → 10%)', async () => {
+  const { lostFindChance } = await import('../systems/play/src/lostFind.js');
+  assert.equal(lostFindChance(1), 0.01);
+  assert.ok(Math.abs(lostFindChance(40) - 0.1) < 1e-9);
+  assert.ok(Math.abs(lostFindChance(99) - 0.1) < 1e-9, '40을 넘어도 10%');
+  assert.ok(lostFindChance(20) > 0.05 && lostFindChance(20) < 0.06);
+  assert.ok(read('systems/play/src/usePlayHost.js').includes('lostFindChance(ins)'));
+});
+
+test('V.01: 도깨비 증표 퀘스트 15종 — 사찰 · 하루 하나 · 따로 열고 기본은 닫힘', () => {
+  const q = read('systems/play/src/npcQuests.js');
+  assert.equal((q.match(/^\s+G\('god\d\d'/gm) || []).length, 15);
+  assert.ok(q.includes("export const GOD_PLACE = 'gym:center:climb:temple'"));
+  assert.ok(read('systems/play/src/usePlayHost.js').includes('Number(globalThis.BiryeongQuest?.routes?.GOBLIN_QUESTS) === 1'), '공개해야 보인다');
+  const qs = read('quest.js');
+  assert.ok(qs.includes("sync.adminRoute(adminCode(), 'GOBLIN_QUESTS'") && qs.includes("godBox.dataset.godQuestAdmin = ''"), '관리자 단추가 따로');
+  assert.ok(qs.includes('godName: () => godName()'));
+});
+
+test('V.01: 비밀번호를 잊었을 때 — 임시 비밀번호 요청 · 관리자 확인 · 새 비밀번호', () => {
+  const patch = read('supabase/v01_patch.sql');
+  for (const f of ['bry_pw_reset_request', 'bry_pw_reset_finish', 'bry_pw_reset_state', 'bry_admin_pw_resets', 'bry_admin_pw_reset_clear']) assert.ok(patch.includes(`function public.${f}(`), f);
+  assert.ok(patch.includes("'must_change', temp"), '임시 비밀번호로 들어오면 알린다');
+  assert.ok(!/bry_pw_reset_request[\s\S]{0,1600}'temp_pw', tmp/.test(patch), '요청한 사람에게 임시 비밀번호를 돌려주지 않는다');
+  assert.ok(read('supabase/reset_all.sql').includes('biryeong_private.pw_resets'));
+  assert.ok(read('auth.js').includes('forceNewPassword') && read('server.js').includes('bry_admin_pw_resets'));
+});
+
+test('V.01: 동아리 할일을 채우면 붉은 알림 · 단추에 숫자', () => {
+  const a = read('app.js');
+  assert.ok(a.includes('function checkClubAlerts') && a.includes("'is-alert'") && a.includes('menu-alert'));
+  assert.ok(a.includes('try { checkClubAlerts(); }'), '기록이 바뀔 때마다 확인');
+});
+
+test('V.01: 첫 화면 스크립트는 문법 오류가 없다', () => {
+  for (const f of ['app.js', 'auth.js', 'quest.js', 'server.js', 'community.js', 'party.js', 'beast-event.js']) assert.doesNotThrow(() => new Function(read(f)), f);
 });

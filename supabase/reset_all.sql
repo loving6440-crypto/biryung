@@ -19,6 +19,7 @@ begin;
 truncate table
   biryeong_private.accounts,
   biryeong_private.sessions,
+  biryeong_private.pw_resets,
   biryeong_private.saves,
   biryeong_private.photos,
   biryeong_private.friends,

@@ -129,14 +129,30 @@
   const ownsTitle = (id) => titleById[id]?.from === 'start' || !!save.titles[id];
   const ownedTitles = () => TITLES.filter((t) => ownsTitle(t.id));
 
+  /* V.01 칭호 고르기 정렬: 기능 갈래 → 효과 크기(작은 것 위) → 이름 */
+  const PERK_ORDER = ['dailyMoney', 'discount', 'sell', 'winMoney', 'winSpirit', 'lessonSpirit', 'trainSpirit', 'wakeSpirit', 'regen', 'statRefund', 'itemSave', 'craftBonus', 'cookBonus', 'gatherBonus', 'harvestBonus',
+    'stat:insight', 'stat:aggression', 'stat:endurance', 'stat:control', 'stat:agility', 'stat:comprehension'];
+  const PERK_LABEL = { dailyMoney: '하루 첫 접속 때 냥', discount: '매점에서 살 때 덜 낸다', sell: '매점에 팔 때 더 받는다', winMoney: '전투에서 이겨 받는 냥', winSpirit: '전투에서 이겨 받는 영력',
+    lessonSpirit: '수업 보상 영력', trainSpirit: '수련을 마치면 영력', wakeSpirit: '잠을 다 자면 영력', regen: '영력 자연 회복', statRefund: '육조를 올릴 때 영력 되돌림', itemSave: '아이템이 줄지 않을 확률',
+    craftBonus: '공작소 제작 때 하나 더', cookBonus: '조리 때 하나 더', gatherBonus: '개척 채집 · 수렵 때 하나 더', harvestBonus: '텃밭 수확 때 하나 더',
+    'stat:insight': '육조 보정 · 안목', 'stat:aggression': '육조 보정 · 호전', 'stat:endurance': '육조 보정 · 인내', 'stat:control': '육조 보정 · 절제', 'stat:agility': '육조 보정 · 신속', 'stat:comprehension': '육조 보정 · 이해' };
+  const perkOf = (t) => { const pk = Array.isArray(t.perk) ? { type: t.perk[0], v: t.perk[1] } : (t.perk || {}); return { key: t.noPerk || !pk.type ? 'none' : pk.type === 'stat' ? `stat:${pk.key}` : pk.type, v: Number(pk.v) || 0 }; };
+  function titleGroups(list) {
+    const by = new Map();
+    list.forEach((t) => { const k = perkOf(t).key; if (!by.has(k)) by.set(k, []); by.get(k).push(t); });
+    const keys = [...by.keys()].sort((a, b) => (a === 'none') - (b === 'none') || ((PERK_ORDER.indexOf(a) + 1 || 99) - (PERK_ORDER.indexOf(b) + 1 || 99)));
+    return keys.map((k) => [k === 'none' ? '기능 없음 · 자신을 증명하는 칭호' : (PERK_LABEL[k] || k), by.get(k).sort((a, b) => perkOf(a).v - perkOf(b).v || String(a.name).localeCompare(String(b.name), 'ko'))]);
+  }
+
   /* ───────── 알림 ───────── */
   const toastStack = $('#toastStack');
-  function toast(head, text) {
-    const el = h('div', 'toast'); el.append(h('strong', '', head), h('span', '', text));
+  function toast(head, text, cls) {
+    const el = h('div', `toast${cls ? ` ${cls}` : ''}`); el.append(h('strong', '', head), h('span', '', text));
     toastStack.appendChild(el);
     try { if (toastStack.matches(':popover-open')) toastStack.hidePopover(); toastStack.showPopover(); } catch (_) { /* popover 를 모르는 브라우저 */ }
-    setTimeout(() => el.classList.add('is-leaving'), 4200);
-    setTimeout(() => { el.remove(); if (!toastStack.children.length) { try { toastStack.hidePopover(); } catch (_) { /* 무시 */ } } }, 4800);
+    const stay = cls === 'is-alert' ? 7000 : 4200; // V.01 붉은 알림은 조금 더 오래
+    setTimeout(() => el.classList.add('is-leaving'), stay);
+    setTimeout(() => { el.remove(); if (!toastStack.children.length) { try { toastStack.hidePopover(); } catch (_) { /* 무시 */ } } }, stay + 600);
   }
 
   /* ───────── vD.01 띠링 — 소리 파일 없이 두 음(WebAudio). 파티 초대 · 선물 · 밀담은 언제나, 일행 대화의 새 말은 켜 두었을 때만 ───────── */
@@ -236,6 +252,7 @@
     if (key === 'psychics') return [psychicList.filter((it) => it.always || (p.psychics || []).includes(it.id)).length, psychicList.length || 1];
     if (key === 'weapons') return [weapons.filter((id) => copies(id).length > 0).length, weapons.length || 1];
     if (key === 'maxweapons') return [weapons.filter((id) => copies(id).some((inst) => Object.values(p.enh?.[inst] || {}).reduce((sum, x) => sum + Number(x || 0), 0) >= 15)).length, weapons.length || 1];
+    if (key === 'money') return [Math.min(1000000, Math.floor(Number(p.money) || 0)), 1000000]; // V.01 백만 냥(부귀영화)
     if (key === 'extra-all') { const ids = Object.values(extra).flat(); return [taken(ids), ids.length || 1]; }
     if (/^extra-(?:10|[1-9])$/.test(key)) { const ids = extra[key.slice(6)] || []; return [taken(ids), ids.length || 1]; }
     return [0,1];
@@ -562,7 +579,7 @@
     if (Auth.server) { panelBody.append(h('div', 'panel-rule'), para('회원 · 하사 · 공지 · 밀담 감사 · 감사 기록은 [서버 관리] 탭에 있다.')); return; }
     panelBody.append(h('div', 'panel-rule'), h('p', 'panel-label', `회원 목록 — 이 브라우저 (${Auth.list().length}명)`));
     const me = Auth.session();
-    const list = h('div', 'codex-list');
+    const list = h('div', 'codex-list scroll-box'); // V.01 네모 칸 안에서 스크롤
     Auth.list().forEach((u) => {
       const r = h('div', 'codex-row is-got'); const t = h('div', 'codex-text');
       t.append(h('strong', '', `${u.name || u.id}${u.name ? ` @${u.id}` : ''}${u.id === me ? ' (나)' : ''}${u.admin ? ' · 관리자' : ''}`), h('p', '', `등록 ${new Date(u.createdAt).toLocaleDateString('ko-KR')} · 기록 ${u.hasSave ? '있음' : '없음'}`));
@@ -723,7 +740,7 @@
     const acts = h('div', 'profile-actions'); acts.append(btn('ghost-btn', '매점으로', () => go('#/zone/west/dorm/store')), btn('ghost-btn', '퇴마 실습으로', () => go('#/zone/south/gym/battle')));
     panelBody.append(acts);
     const log = (save.playLog || []).slice(-25).reverse();
-    if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
+    if (log.length) { panelBody.append(h('p', 'panel-label', '최근 기록')); const ul = h('ul', 'log-list scroll-box'); log.forEach((l) => { const li = h('li'); li.append(h('span', '', `[${l.time}] `), l.message); ul.append(li); }); panelBody.append(ul); }
   }
   // vD.03 벼룩시장(market.js) — 서버에 연결된 계정만
   // vD.04 카페 정산(cafe.js) — 서버에 연결된 계정만
@@ -739,6 +756,43 @@
     if (window.BiryeongMarket) window.BiryeongMarket.render(panelBody);
     else panelBody.append(para('벼룩시장을 불러오지 못했다. 새로고침해 줘.'));
   }
+  /* ───────── V.01 동아리 알림: 내 동아리의 할일을 다 채웠는데 아직 받지 않은 보상 ─────────
+     [동아리] 단추에 붉은 숫자 · 새로 채운 것은 붉은 알림으로 한 번(무엇을 채웠고 무엇을 받는지). 보상은 부실에서 받는다. */
+  const KST9 = 9 * 3600 * 1000, DAY1 = 864e5;
+  const kstDayNo = (t = Date.now()) => Math.floor((t + KST9) / DAY1);
+  const kstWeekNo = (t = Date.now()) => { const d = kstDayNo(t); return d - new Date(d * DAY1).getUTCDay(); }; // 그 주 일요일의 날 번호
+  function clubAlerts() {
+    const api = playApi(); const mine = api?.clubMine?.();
+    if (!mine || !api?.clubBoard) return [];
+    let b; try { b = api.clubBoard(mine); } catch (_) { return []; }
+    const d = kstDayNo(), w = kstWeekNo(), out = [];
+    const add = (q, daily) => { if (q && q.done && !q.claimed) out.push({ key: `${daily ? `d${d}` : `w${w}`}:${q.id}`, kind: daily ? '오늘의 할일' : '이번주에 할일', label: q.label, reward: q.reward }); };
+    (b.daily || []).forEach((q) => add(q, true)); add(b.dailyMeta, true);
+    (b.weekly || []).forEach((q) => add(q, false)); (b.weeklyMeta || []).forEach((q) => add(q, false));
+    return out;
+  }
+  const CLUB_SEEN = () => `biryeong-club-seen:${window.BiryeongAuth?.session?.() || ''}`;
+  function checkClubAlerts() {
+    const list = clubAlerts();
+    const mb = document.querySelector('.status-menu [data-menu="clubs"]');
+    if (mb) {
+      let dot = mb.querySelector('.menu-alert');
+      if (list.length) { if (!dot) { dot = h('b', 'menu-alert'); mb.append(dot); } dot.textContent = String(list.length); mb.dataset.alert = String(list.length); mb.setAttribute('aria-label', `동아리 — 받을 수 있는 보상 ${list.length}개`); }
+      else { dot?.remove(); delete mb.dataset.alert; mb.removeAttribute('aria-label'); }
+    }
+    let seen = []; try { seen = JSON.parse(localStorage.getItem(CLUB_SEEN()) || '[]'); } catch (_) { seen = []; }
+    const fresh = list.filter((x) => !seen.includes(x.key));
+    if (fresh.length) {
+      const lines = fresh.slice(0, 4).map((x) => `[${x.kind}] ${x.label} — 보상 ${clubReward(x.reward) || '—'}`);
+      if (fresh.length > 4) lines.push(`… 그 밖에 ${fresh.length - 4}개`);
+      toast('동아리 · 할일 달성! 부실에서 보상을 받을 수 있다', lines.join('\n'), 'is-alert');
+      const d = kstDayNo(), w = kstWeekNo();
+      const keep = seen.filter((k) => k.startsWith(`d${d}:`) || k.startsWith(`w${w}:`)); // 지난 날 · 지난 주 것은 버린다
+      try { localStorage.setItem(CLUB_SEEN(), JSON.stringify([...keep, ...fresh.map((x) => x.key)])); } catch (_) { /* 무시 */ }
+    }
+    return list;
+  }
+
   /* ───────── V.01 동아리 창(예전 [업데이트 노트] 자리) ─────────
      동아리를 골라 그 동아리의 [오늘의 할일] · [이번주에 할일]을 본다.
      내 동아리: 부실에서 보는 것과 같은 판(진행 · 받은 것). 보상은 부실에서 받는다.
@@ -778,6 +832,15 @@
     const isMine = c.id === mine;
     if (isMine) api.clubEnsure?.(c.id);
     const b = api.clubBoard(c.id);
+    if (isMine) { // V.01 받을 수 있는 보상
+      const al = checkClubAlerts();
+      if (al.length) {
+        const box = h('section', 'club-alert'); box.dataset.clubAlert = String(al.length);
+        box.append(h('p', 'club-alert-head', `받을 수 있는 보상 ${al.length}개 — 부실(${[c.floor, c.room].filter(Boolean).join(' ')})에 가서 [보상 받기]`));
+        const ul = h('ul'); al.forEach((x) => ul.append(h('li', '', `[${x.kind}] ${x.label} — ${clubReward(x.reward) || '—'}`))); box.append(ul);
+        panelBody.append(box);
+      }
+    }
     panelBody.append(para(isMine
       ? `**${c.name}** — 내 동아리. 부실(${[c.floor, c.room].filter(Boolean).join(' ')})에서 보는 것과 같은 할일이다. 다 채운 칸의 보상은 부실에 가서 [보상 받기]로 받는다.`
       : `**${c.name}**${c.room ? ` — 부실: ${[c.floor, c.room].filter(Boolean).join(' ')}` : ''}. ${mine ? '내 동아리가 아니라 미리 보기만 할 수 있다.' : '아직 가입한 동아리가 없다. 가입하면 부실에서 이 할일을 하고 보상을 받는다.'} (납품 · 토벌은 지금 가입하면 이번 주에 받게 될 것)`, 'club-intro'));
@@ -789,7 +852,7 @@
       return box;
     };
     panelBody.append(sec('오늘의 할일', '매일 0시에 새로', b.daily, [b.dailyMeta]));
-    panelBody.append(sec('이번주에 할일', `월요일 0시에 새로 · 이번 주 수준 ${b.tier}단계 (스탯 평균 ${b.avg ?? '—'})`, b.weekly, b.weeklyMeta));
+    panelBody.append(sec('이번주에 할일', `일요일 0시에 새로 · 이번 주 수준 ${b.tier}단계 (스탯 평균 ${b.avg ?? '—'})`, b.weekly, b.weeklyMeta));
   }
   const dateOnly = (v) => { try { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(v)); } catch (_) { return ''; } };
 
@@ -835,7 +898,12 @@
     const pick = h('div', 'profile-field');
     const sel = h('select'); sel.id = 'profileTitleSelect';
     sel.append(new Option('칭호 없음', ''));
-    ownedTitles().forEach((t) => sel.append(new Option(`${t.name} — ${t.perkText ?? ''}`, t.id, false, p.title === t.id)));
+    // V.01 같은 기능끼리 묶어 낮은 효과 → 높은 효과 순. 육조 보정은 안목 · 호전 · 인내 · 절제 · 신속 · 이해 순, 기능 없는 최종 칭호는 맨 아래
+    titleGroups(ownedTitles()).forEach(([label, list]) => {
+      const g = document.createElement('optgroup'); g.label = label;
+      list.forEach((t) => g.append(new Option(`${t.name} — ${t.perkText ?? ''}`, t.id, false, p.title === t.id)));
+      sel.append(g);
+    });
     sel.addEventListener('change', () => { p.title = sel.value || null; persist(); renderStatus(); if (inPop) openMyProfile(); else route(); });
     const lab = h('label', '', `칭호 고르기 (가진 칭호 ${ownedTitles().length} / ${TITLES.length})`); lab.htmlFor = sel.id;
     pick.append(lab, sel);
@@ -1001,7 +1069,7 @@
     { const sa = $('#statusAdapt'); if (sa && window.BiryeongAdapt) sa.textContent = window.BiryeongAdapt.progressText(); }
   }
   /** 실행 화면이 바꾼 값(game · counts · playLog)을 다시 읽는다. */
-  function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); }
+  function refreshFromPlay() { pullPlay(); renderStatus(); checkAchievements(); try { checkClubAlerts(); } catch (_) { /* 동아리 알림은 다음에 */ } }
   function refreshStoryGoal() { const i = storyIndex(); if (i < 0) return; const ok = met(STORY.steps[i].goal.when); const b = $('.story-step.is-now .solid-btn'); if (b && b.disabled === ok) route(); }
 
   /* ───────── 업적 / 도감 ───────── */
@@ -1207,7 +1275,7 @@
         const side = h('div', 'codex-side');
         if (got && p) side.append(p.title === t.id ? h('span', 'codex-state', '사용 중') : btn('ghost-btn codex-use', '달기', () => { p.title = t.id; persist(); renderStatus(); renderCodex(current); }));
         else side.append(h('span', 'codex-state', got ? '보유' : '미획득'));
-        const r = row(got, got ? t.name : '???', got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : t.from === 'story' ? '본편 이야기에서 얻는다.' : '아직 얻을 방법이 알려지지 않았다.', side);
+        const r = row(got, t.name, got ? t.desc : source ? `업적 [${source.name}] — ${source.hint}` : t.from === 'story' ? '본편 이야기에서 얻는다.' : '아직 얻을 방법이 알려지지 않았다.', side);
         if (t.perkText) r.querySelector('.codex-text').append(h('p', 'perk-line', `기능 — ${t.perkText}`));
         listEl.append(r);
       });
@@ -1240,9 +1308,11 @@
   }
   // vB.01: 시간이 드는 행동 중에 다른 페이지로 나가려 하면 한 번 더 묻는다(나가면 그 행동은 멈추고 보상은 없다).
   let lastHash = location.hash, skipHash = false;
-  function leaveAsk(onYes) {
+  function leaveAsk(onYes, what = '', left = '') {
     const wrap = h('div', 'leave-ask'); const box = h('div', 'leave-ask-box'); wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true');
     box.append(h('p', 'leave-ask-text', '정말 나가겠습니까? 지금 나가면 보상을 얻을 수 없습니다.'));
+    // V.01 지금 무엇을 기다리는 중이고, 끝나기까지 얼마나 남았는지
+    if (what || left) box.append(h('p', 'leave-ask-left', `${what ? `지금 ${what} 중` : ''}${what && left ? ' · ' : ''}${left ? `끝나기까지 ${left} 남음` : ''}`));
     const row = h('div', 'leave-ask-row');
     const close = () => wrap.remove();
     row.append(btn('solid-btn', '예', () => { close(); onYes(); }), btn('ghost-btn', '아니오', close));
@@ -1250,11 +1320,12 @@
   }
   window.addEventListener('hashchange', () => {
     if (skipHash) { skipHash = false; lastHash = location.hash; return; }
-    const busy = playApi()?.busy?.() || (window.BiryeongBeastEvent?.busy?.() ? '청화호수에서 기다리기' : ''); // vD.06.1 이벤트 대기도 같이 묻는다
+    const busy = playApi()?.busy?.() || (window.BiryeongBeastEvent?.busy?.() ? '청화호수 대기' : ''); // vD.06.1 이벤트 대기도 같이 묻는다
     if (busy && location.hash !== lastHash) {
       const target = location.hash;
       skipHash = true; location.replace(lastHash || '#/'); // 일단 제자리로
-      leaveAsk(() => { playApi()?.interrupt?.('자리를 떠나'); window.BiryeongBeastEvent?.cancelWait?.(); location.hash = target; });
+      const left = playApi()?.busy?.() ? playApi()?.busyLeft?.() : window.BiryeongBeastEvent?.busyLeft?.();
+      leaveAsk(() => { playApi()?.interrupt?.('자리를 떠나'); window.BiryeongBeastEvent?.cancelWait?.(); location.hash = target; }, busy, left || '');
       return;
     }
     lastHash = location.hash; route();

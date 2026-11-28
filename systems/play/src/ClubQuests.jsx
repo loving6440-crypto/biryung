@@ -38,7 +38,7 @@ export default function ClubQuests({ clubId }) {
         <ul className="mt-2"><Row q={b.dailyMeta} onClaim={() => claim('dailyMeta', b.dailyMeta.id)} /></ul>
       </section>
       <section className="rounded-lg bg-shade/25 p-3" aria-label="이번주에 할일">
-        <p className="mb-2 flex items-baseline justify-between text-sm text-gold"><span>이번주에 할일</span><small className="text-[10px] text-paper/50">월요일 0시에 새로 · 이번 주 수준 {b.tier}단계 (스탯 평균 {b.avg ?? '—'})</small></p>
+        <p className="mb-2 flex items-baseline justify-between text-sm text-gold"><span>이번주에 할일</span><small className="text-[10px] text-paper/50">일요일 0시에 새로 · 이번 주 수준 {b.tier}단계 (스탯 평균 {b.avg ?? '—'})</small></p>
         <ul className="space-y-1.5">{b.weekly.map((q) => <Row key={q.id} q={q} onClaim={() => claim('weekly', q.id)} />)}</ul>
         <ul className="mt-2 space-y-1.5">{b.weeklyMeta.map((q) => <Row key={q.id} q={q} onClaim={() => claim('weeklyMeta', q.id)} />)}</ul>
       </section>

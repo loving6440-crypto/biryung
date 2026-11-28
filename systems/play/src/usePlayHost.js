@@ -10,7 +10,7 @@ import { cancelCraft, recipeOf, startCraft, buyRecipe as buyRecipeAt } from '@va
 import { cook } from '@vault/game/cooking.js'
 import { markLineSeen } from '@vault/game/npcLines.js'
 import { canAddInventory, claimPending, limitNewGains } from '@vault/game/inventoryCapacity.js'
-import { LOST_FIND_CHANCE, LOST_FIND_ITEMS } from './lostFind.js'
+import { lostFindChance, LOST_FIND_ITEMS } from './lostFind.js'
 import * as Beasts from './beasts.js'
 import { sfx as __sfx } from '@vault/game/sfx.js' // vD.06.1 [테마 관리]의 효과음 끄기가 실행 화면에도 닿게
 globalThis.BiryeongSfx = __sfx
@@ -260,10 +260,24 @@ export function usePlayHost() {
     addLog(`${why} ${ended.join(' · ')}을(를) 멈췄다. (보상 없음)`)
   }, [commit, addLog])
   const busyLabel = (p) => (p.training ? '수련' : p.sleeping ? '잠' : p.resting ? '휴식' : Object.values(p.lessons ?? {}).some((l) => l.waitUntil) ? '수업 대기' : p.crafting ? '제작' : p.slowFight ? '느린 싸움' : null)
+  // V.01 대기 중 경고에 남은 시간: 하고 있는 대기 가운데 가장 늦게 끝나는 것
+  const busyLeftText = (p, now = Date.now()) => {
+    const ends = []
+    for (const k of ['training', 'sleeping', 'resting', 'crafting', 'slowFight', 'gathering', 'hunting']) {
+      const a = p?.[k]; if (!a) continue
+      const end = Number(a.until ?? a.endsAt ?? (a.startedAt != null && a.minutes != null ? a.startedAt + a.minutes * 60000 : NaN))
+      if (Number.isFinite(end)) ends.push(end)
+    }
+    for (const l of Object.values(p?.lessons ?? {})) if (l?.waitUntil) ends.push(Number(l.waitUntil))
+    const ms = Math.max(0, ...ends.filter(Number.isFinite)) - now
+    if (!(ms > 0)) return ''
+    const m = Math.ceil(ms / 60000), hh = Math.floor(m / 60), mm = m % 60
+    return hh ? `${hh}시간${mm ? ` ${mm}분` : ''}` : `${mm}분`
+  }
   /** 대기 활동 중이면 먼저 물어본다. */
   const guard = useCallback((run) => {
     const b = busyLabel(playerRef.current)
-    if (b) setConfirm({ text: `지금 ${b} 중이다. 그만두고 진행할까? (보상은 받지 못한다)`, run: () => { interruptAll('새 동작을 시작해'); run() } })
+    if (b) { const left = busyLeftText(playerRef.current); setConfirm({ text: `지금 ${b} 중이다.${left ? ` (끝나기까지 ${left} 남음)` : ''} 그만두고 진행할까? (보상은 받지 못한다)`, run: () => { interruptAll('새 동작을 시작해'); run() } }) }
     else run()
   }, [interruptAll])
 
@@ -515,7 +529,7 @@ export function usePlayHost() {
     { const en = result.enemy ?? enemyById(playerRef.current.huntExpedition?.encounter?.enemy?.id); const ab = afterBattleAilment(lost ? { ...vit, weakUntil: Date.now() + WEAK_MS } : vit, en, { lost, hpFrac: vit.hp / (vit.hpMax || 100) }); commit(ab.player); if (ab.got.length) gotText(ab.got, ab.player).forEach(addLog) } // vC.06 몸의 이상
     if (r.logs?.length) addLogs(r.logs)
     if (result.win) { countWin(result.enemy ?? enemyById(playerRef.current.huntExpedition?.encounter?.enemy?.id)); const c1 = playerRef.current; const eid = (result.enemy ?? playerRef.current.huntExpedition?.encounter?.enemy)?.id; commit(npcEvent(npcEvent(bumpDaily(bumpWeekly(eid ? questEvent(c1, { type: 'kill', id: eid }) : c1, 'wins'), 'wins'), 'win'), 'kill', eid)) } // vC.06
-    if (lost) { addLog(`${result.enemy?.name ?? '요괴'}에게 쓰러졌다. [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); wakeInInfirmary() }
+    if (lost) { addLog(`${result.enemy?.name ?? '요괴'}에게 쓰러졌다. [쇠약] 모든 육조 스탯이 5할로 줄었다. (6시간)`); wakeInInfirmary() }
   }
   // vC.06 지면 묻지 않고 곧장 양호실에서 눈을 뜬다. (패배 글자가 잠깐 보이도록 0.9초 뒤에 옮긴다)
   const wakeInInfirmary = () => {
@@ -556,7 +570,7 @@ export function usePlayHost() {
     { const ab = afterBattleAilment(p, enemy, { lost: !win, hpFrac: (p.hp || 0) / (p.hpMax || 100) }); if (ab.got.length) { p = ab.player; setTimeout(() => gotText(ab.got, ab.player).forEach(addLog), 0) } } // vC.06 몸의 이상
     commit(p)
     if (win) { bridge.quest('win', enemy?.id); countWin(enemy); addLog(r.granted ? `${enemy.name}을(를) 쓰러뜨렸다! 영력 +${r.granted}, 돈 +${r.granted}냥.` : `${enemy.name}을(를) 쓰러뜨렸다! 돈 +${r.money || 0}냥. (오늘 전투로 얻는 영력 3번은 모두 받았다)`) }
-    else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (24시간)`); wakeInInfirmary() }
+    else { addLog(`${enemy.name}에게 패했다.${r.lost ? ` 영력 -${r.lost}.` : ''} [쇠약] 모든 육조 스탯이 5할로 줄었다. (6시간)`); wakeInInfirmary() }
   }
   const startSlowFightAction = (enemyId) => guard(() => {
     const r = startSlowFight(playerRef.current, enemyId)
@@ -784,9 +798,10 @@ export function usePlayHost() {
   const investigate = (floor, area, text) => { interruptAll('새 동작을 시작해'); addLog(`본관 탐사 · ${floor} ${area}: ${text}`) }
   const investigateShrine = (area, label, text) => { interruptAll('새 동작을 시작해'); addLog(`사당 탐사 · ${area} ${label}: ${text}`) }
   globalThis.__BRY_INSPECT = { can: (id) => !!globalThis.BiryeongQuest?.inspectable?.(baseIdOf(id)), run: (id) => bridge.quest('inspect', baseIdOf(id)) }
-  // vD.04 탐사 지점을 볼 때마다 1% 확률로 [누군가 잃어버린~] 다섯 가지 중 하나(각 0.2%)를 줍는다
+  // vD.04 탐사 지점을 볼 때마다 [누군가 잃어버린~] 다섯 가지 중 하나를 줍는다 — V.01 안목(보정 포함) 1 → 1%, 40 → 10%
   const lostFind = (key) => {
-    if (Math.random() >= LOST_FIND_CHANCE) return
+    const ins = (effectiveStats(playerRef.current) || playerRef.current?.stats || {}).insight
+    if (Math.random() >= lostFindChance(ins)) return
     const id = LOST_FIND_ITEMS[Math.floor(Math.random() * LOST_FIND_ITEMS.length)]
     const cur = playerRef.current; if (!cur || !itemOf(id)) return
     if (!canAddInventory(cur.inventory, { [id]: 1 })) { addLog(`발치에 [${itemOf(id).name}]이(가) 떨어져 있었지만, 소지품이 가득 차 줍지 못했다.`); return }
@@ -1141,7 +1156,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     clubBoard: (clubId) => boardOf(ensureClubWeek(playerRef.current, clubId, effStats, openTierNow()), clubId),
     adminAilment: (id) => { if (!admin) return false; commit(addAilment(playerRef.current, id)); return true }, // vC.06 관리자 시험용
     // vC.06 인물의 부탁 — 조사 장소의 NpcQuests.jsx · 오른쪽 상태 창(app.js)이 부른다
-    npcPlace: (place) => { const e = effStats || playerRef.current.stats; const v = Object.values(e).filter(Number.isFinite); return placeView(playerRef.current, place, v.reduce((a, b) => a + b, 0) / Math.max(1, v.length), openTierNow(), Number(globalThis.BiryeongQuest?.routes?.NPC_QUESTS) === 1) }, // vD.04 관리자가 퀘스트를 공개해야 보인다
+    npcPlace: (place) => { const e = effStats || playerRef.current.stats; const v = Object.values(e).filter(Number.isFinite); return placeView(playerRef.current, place, v.reduce((a, b) => a + b, 0) / Math.max(1, v.length), openTierNow(), Number(globalThis.BiryeongQuest?.routes?.NPC_QUESTS) === 1, Number(globalThis.BiryeongQuest?.routes?.GOBLIN_QUESTS) === 1) }, // vD.04 관리자가 퀘스트를 공개해야 보인다
     npcActive: () => activeList(playerRef.current).map(({ q, pr, npc }) => ({ id: q.id, npc, title: q.title, where: q.where, goal: npcGoalText(q), cur: pr?.cur ?? 0, need: pr?.need ?? 1, done: !!pr?.done })),
     npcAct: (kind, id) => { const cur = playerRef.current; const r = kind === 'accept' ? acceptQuest(cur, id) : kind === 'abandon' ? abandonQuest(cur, id) : finishQuest(cur, id); if (r.error) { notify(r.error); return null } commit(r.player); addLog(r.log); persist(); return r.line ?? '' },
     clubEnsure: (clubId) => { const cur = playerRef.current; const nx = ensureClubWeek(cur, clubId, effStats, openTierNow()); if (nx !== cur) commit(nx) },
@@ -1153,7 +1168,7 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     // vC.06 [현재 상태] 칸: 몸의 이상 + 쇠약
     conditions: () => { const cur = playerRef.current, now = Date.now(); const list = activeAilments(cur, now).map((a) => ({ id: a.id, name: a.def.name, hanja: a.def.hanja, stack: a.stack, max: a.def.max, heavy: a.def.heavy, left: leftText(a.left), effect: a.def.effect, text: a.def.text })); const w = Math.max(cur?.weakUntil || 0, cur?.curseUntil || 0); if (w > now) list.unshift({ id: 'weak', name: WEAK_INFO.name, hanja: WEAK_INFO.hanja, stack: 1, max: 1, heavy: true, left: leftText(w - now), effect: WEAK_INFO.effect, text: WEAK_INFO.text }); for (const [k, t] of Object.entries(cur?.timed ?? {})) if (t.until > now) list.push({ id: `timed-${k}`, good: true, name: '음식의 기운', hanja: '', stack: 1, max: 1, heavy: false, left: leftText(t.until - now), effect: TIMED_LABEL[k]?.(t.v) ?? k, text: '음식을 먹고 기운이 돈다.' }); return list }, // vD.02 음식의 시간 기운도 보인다
     // vB.01: 시간이 드는 행동(느린 싸움 · 수업 대기 · 휴식 · 잠 · 수련 · 제작) 중인가 — 바깥(app.js)이 페이지를 떠나기 전에 묻는다
-    busy: () => busyLabel(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
+    busy: () => busyLabel(playerRef.current), busyLeft: () => busyLeftText(playerRef.current), interrupt: (why = '자리를 떠나') => interruptAll(why), // 도감: 안목으로 적 수치를 가린다
     // v1.3 본편: 아이템 이름 · 개수 · 장착한 무구 · 쓰기 · 유품 무구 · 제작법 열기 · 도감
     itemName: (id) => itemOf(id)?.name ?? id, count: countOfId,
     // vD.03 벼룩시장: 물건 설명 · 소지품 칸 · 장착 중인 것

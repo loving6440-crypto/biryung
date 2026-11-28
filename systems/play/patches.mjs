@@ -9,6 +9,20 @@ import { readFileSync } from 'node:fs'
  */
 import { VAULT_EDITS_D06 } from './vaultEdits.mjs' // V.01 보관고를 직접 고쳤던 것(D.06.7~18)을 끼워 넣기로
 export const SOURCE_PATCHES = [
+  // ── V.01 한 주는 일요일 ~ 토요일: 일요일 0시(KST)에 「지난 주」가 된다(랭킹 · 동아리 주간 · 주간 기록 모두) ──
+  {
+    file: 'game/activityCounters.js',
+    edits: [
+      ["/** 이 시각이 속한 주의 시작(월요일 00:00 KST)의 UTC ms. 서버의 랭킹 주차 계산과 똑같다. */", "/** 이 시각이 속한 주의 시작(일요일 00:00 KST — V.01)의 UTC ms. 서버의 랭킹 주차 계산(week0)과 똑같다. */"],
+      ["  const sinceMon = (dow + 6) % 7\n  return Math.floor(k / DAY_MS) * DAY_MS - sinceMon * DAY_MS - KST_MS", "  const sinceSun = dow // V.01 일요일이 한 주의 첫날\n  return Math.floor(k / DAY_MS) * DAY_MS - sinceSun * DAY_MS - KST_MS"],
+      ["  if (player.weekly?.weekStart === ws) return player\n", "  if (player.weekly?.weekStart === ws) return player\n  // V.01 예전(월요일 시작)으로 적힌 이번 주 기록은 지우지 않고 날짜만 일요일로 옮긴다\n  if (player.weekly?.weekStart === ws + DAY_MS) return { ...player, weekly: { ...player.weekly, weekStart: ws } }\n"],
+    ],
+  },
+  { file: 'game/clubs.js', edits: [["(매주 월요일 0시에 새로 정해질 예정)", "(매주 일요일 0시에 새로 정해질 예정)"], ["매주 월요일 0시(KST)에 바뀌는", "매주 일요일 0시(KST)에 바뀌는"]] },
+  { file: 'ui/components/RankingPanel.jsx', edits: [["각자의 최고 기록 · 매주 월요일 0시에 리셋", "각자의 최고 기록 · 매주 일요일 0시에 리셋(일 ~ 토)"]] },
+  // ── V.01 쇠약 6시간 ──
+  { file: 'game/statCalc.js', edits: [["export const WEAK_MS = 24 * 3600 * 1000 // [쇠약] 지속 시간: 리얼타임 24시간", "export const WEAK_MS = 6 * 3600 * 1000 // [쇠약] 지속 시간: 리얼타임 6시간 (V.01: 24시간 → 6시간)"]] },
+  { file: 'game/progress.js', edits: [["    // 전투불능: [쇠약] 24시간(다시 쓰러지면 그때부터 24시간으로 갱신).", "    // 전투불능: [쇠약] 6시간(다시 쓰러지면 그때부터 6시간으로 갱신)."]] },
   {
     file: 'game/mbattle.js',
     edits: [
@@ -615,7 +629,7 @@ export function itemMatches(item, query0) {
     file: 'ui/components/locations/Battle.jsx',
     edits: [
       ["쓰러진 {b.enemy.name}의 영력과 돈이 흘러든다. (영력 +{b.enemy.reward}, 돈 +{b.enemy.reward}냥) (하루 {rewardLeft <= 0 ? '보상 소진' : '보상 한도 내'})", "쓰러진 {b.enemy.name}의 돈이 흘러든다. (돈 +{b.enemy.reward}냥 · 영력 +{b.enemy.reward}은 하루 3번의 승리까지만 — 오늘 남은 횟수 {rewardLeft}번)"],
-      ["오늘 영력을 얻는 승리는 <b className=\"text-gold\">{rewardLeft}회</b> 남았다.", "오늘 전투로 영력을 얻는 승리는 <b className=\"text-gold\">{rewardLeft}회</b> 남았다(퇴마 실습 · 추가전투 · 개척을 통틀어 하루 3번). 돈은 이길 때마다 받는다."],
+      ["오늘 영력을 얻는 승리는 <b className=\"text-gold\">{rewardLeft}회</b> 남았다.", "오늘 전투로 영력을 얻는 승리는 <b className=\"text-gold\">{rewardLeft}회</b> 남았다(퇴마 실습 · 추가전투를 통틀어 하루 3번 — 개척에서 만나는 요괴는 영력을 주지 않는다). 돈은 이길 때마다 받는다."],
     ],
   },
   {
@@ -824,6 +838,14 @@ export function itemMatches(item, query0) {
 /** 한 파일의 원문에 조각을 적용한다. relPath: systems/vault/modules 기준 경로 */
 SOURCE_PATCHES.unshift(...VAULT_EDITS_D06) // 보관고 원본 위에 가장 먼저 끼운다(그때 고친 글이 원본 기준이라)
 // V.01 영능력 얻는 방법 세기: 일행 전투 화면값(viewOfMember)에도 한 판의 기록을 싣는다 — 다른 조각이 칸을 다 붙인 뒤에 끼운다
+// V.01 개척에서 만나는 요괴 · 수렵은 영력을 주지 않는다 — 하루 3번 영력은 퇴마 실습 · 추가전투에서만
+SOURCE_PATCHES.push({ file: 'game/huntField.js', edits: [
+  ["  const gain = win && !__capped ? Math.max(0, Math.min(s.encounter.rewardSpirit ?? 20, SPIRIT_BASELINE_MAX - player.spirit)) : 0", "  const gain = 0 // V.01 개척에서 만나는 요괴는 영력을 주지 않는다(하루 3번 영력은 퇴마 실습 · 추가전투에서만)"],
+  ["${__capped ? '(오늘 전투로 얻는 영력 3번은 모두 받았다)' : `영력 +${gain}`}", "${itemList ? '' : '(개척 요괴는 영력을 주지 않는다)'}"],
+] })
+SOURCE_PATCHES.push({ file: 'game/hunt.js', edits: [
+  ["  const spiritGain = __capped ? 0 : enemy.reward.spirit ?? 0\n", "  const spiritGain = 0 // V.01 수렵도 영력을 주지 않는다(하루 3번 영력은 퇴마 실습 · 추가전투에서만)\n"],
+] })
 SOURCE_PATCHES.push({ file: 'game/mbattle.js', edits: [["  dmgCut: m.dmgCut || 0,\n})", "  dmgCut: m.dmgCut || 0,\n  bryStat: m.bryStat || {},\n})"]] })
 
 export function applyPatches(relPath, text) {

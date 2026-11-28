@@ -143,7 +143,7 @@ body,button,dialog{font-family:var(--ui-font-family)}
 .mkt-tabs{display:flex;gap:6px;margin:12px 0 10px}.mkt-tab{padding:6px 16px;background:#182a39;border:1px solid #4b6470;color:#d9cdb0}
 .mkt-tab.on{background:#3a3020;border-color:#d4b078;color:#ffe3a3}
 .mkt-cart{margin-bottom:12px;padding:10px 12px;border:1px solid #6b5a36;background:rgba(60,46,24,.25)}.mkt-cart .panel-label{margin-top:0}
-.mkt-list{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.mkt-list{list-style:none;margin:0;padding:0;display:grid;gap:5px;max-height:min(520px,60vh);overflow-y:auto;overscroll-behavior:contain;padding-right:4px} /* V.01 */
 .mkt-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 9px;background:rgba(18,32,44,.7);border:1px solid #2f4554}
 .mkt-row b{color:#f1dfb4;font-weight:600}.mkt-row em{font-style:normal;color:#d4b078;font-variant-numeric:tabular-nums}
 .mkt-name{flex:1 1 220px;min-width:0;display:flex;flex-direction:column}.mkt-name small{color:#9a9483;font-size:11px;line-height:1.4}
@@ -248,11 +248,12 @@ body,button,dialog{font-family:var(--ui-font-family)}
 .codex-state{font-size:10px;color:#d9c393;white-space:nowrap}
 .codex-side small{font-size:9px;color:#8399a0;max-width:130px}
 .codex-use{padding:4px 10px;font-size:10px}
-.toast-stack{position:fixed;inset:auto 16px 16px auto;margin:0;padding:0;border:0;background:transparent;overflow:visible;z-index:2147483000;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:min(320px,calc(100vw - 32px))}
-.toast{display:flex;flex-direction:column;gap:3px;padding:10px 13px;background:#101d2d;border:1px solid #d0af73;box-shadow:inset 0 0 0 3px #080f1c,5px 5px 0 #030914;animation:toast-in .25s ease-out;transition:opacity .5s}
-.toast strong{font-size:10px;letter-spacing:.12em;color:#d6b87d}.toast span{font-size:12px;color:#f0e4c8;line-height:1.6}
+/* V.01 알림은 화면 한가운데(바로 보이게) — 누르는 것은 막지 않는다 */
+.toast-stack{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;padding:0;border:0;background:transparent;overflow:visible;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:8px;pointer-events:none;width:min(380px,calc(100vw - 32px));max-width:none}
+.toast{display:flex;flex-direction:column;gap:4px;padding:13px 16px;text-align:center;background:#101d2d;border:1px solid #d0af73;box-shadow:inset 0 0 0 3px #080f1c,5px 5px 0 #030914;animation:toast-in .25s ease-out;transition:opacity .5s}
+.toast strong{font-size:11px;letter-spacing:.12em;color:#d6b87d}.toast span{font-size:13px;color:#f0e4c8;line-height:1.65;word-break:keep-all}
 .toast.is-leaving{opacity:0}
-@keyframes toast-in{from{transform:translateY(8px);opacity:0}}
+@keyframes toast-in{from{transform:scale(.94);opacity:0}}
 @media (max-width:1300px){.status-panel{min-height:527px}}
 @media (max-width:790px){.status-panel{min-height:0}.status-spacer{min-height:14px}.profile-stats{grid-template-columns:repeat(3,1fr)}.stat-alloc{grid-template-columns:1fr}.panel-dialog{height:92vh}.panel-body{padding:14px 13px 18px}.panel-head{padding:12px 13px 10px}.panel-tabs,.panel-chips{padding-left:13px;padding-right:13px}}
 @media (max-width:500px){.profile-card,.profile-photo-row{flex-direction:column;align-items:flex-start}.profile-avatar{width:88px;height:88px}.scene-choices{grid-template-columns:1fr}}
@@ -391,6 +392,11 @@ body.is-gated > :not(#gate){display:none !important}
 .gate-submit{margin-top:4px;padding:11px;font-size:13px;font-weight:700;background:#d5b579;border:1px solid #eccf9e;color:#121b24}
 .gate-submit:hover{background:#f0d295}.gate-submit:disabled{opacity:.6}
 .gate-note{display:block;margin-top:16px;font-size:10px;line-height:1.7;color:#7f9193}
+/* V.01 비밀번호를 잊었을 때 */
+.gate-link{display:block;margin:12px auto 0;padding:4px 6px;background:none;border:0;font-size:11px;color:#c9b07e;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.gate-link:hover{color:#f0d295}
+.gate-info{margin:0 0 12px;padding:9px 10px;font-size:11px;line-height:1.7;color:#d9cfb8;background:rgba(213,181,121,.08);border:1px solid rgba(213,181,121,.28);word-break:keep-all;overflow-wrap:anywhere}
+.gate-logo-sm{font-size:26px;margin:0 auto 4px;text-align:center}
 
 /* ── 관리자 · 칭호 기능 ── */
 .perk-line{margin:3px 0 0;font-size:10.5px;color:#9fd8c8}
@@ -713,7 +719,15 @@ body.is-opening{overflow:hidden}
 .story-vote-opt{display:grid;grid-template-columns:minmax(140px,1.2fr) 1fr auto;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:#d8cdb4}
 .story-vote-opt b{font-weight:normal}
 .story-vote-bar{height:6px;background:#0a1420;border:1px solid #2a3b4c}.story-vote-bar i{display:block;height:100%;background:#d4b078}
-.story-vote-who{margin:2px 0 4px 14px;font-size:10.5px;color:#9fc3c8;word-break:keep-all}
+.story-vote-who{margin:2px 0 4px 14px;font-size:10.5px;color:#9fc3c8;word-break:keep-all;max-height:150px;overflow-y:auto;overscroll-behavior:contain}
+/* V.01 관리자 · 선택 집계: 장 고르기 */
+.story-vote-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
+.story-vote-tab{border:1px solid #4b6470;background:#182a39;color:#d8d4c2;font-size:11px;padding:5px 10px}
+.story-vote-tab.has-vote{border-color:#c6a46f}
+.story-vote-tab.is-on{background:#d5b579;color:#121b24;border-color:#eccf9e;font-weight:700}
+/* V.01 길게 쌓이는 기록은 정해진 높이의 상자 안에서 스크롤 */
+.scroll-box{max-height:min(420px,60vh);overflow-y:auto;overscroll-behavior:contain;border:1px solid #2c3e50;background:rgba(7,14,24,.45);padding:6px 8px}
+
 .scene-layer .scene-line.is-n .scene-text p{font-style:normal}
 .scene-layer .scene-line .scene-text p.is-italic{font-style:italic}
 /* ───────── v1.9 서버 관리 ───────── */
@@ -724,7 +738,7 @@ body.is-opening{overflow:hidden}
 .server-save{margin:10px 0;padding:12px 14px;border:1px solid #d4b078;background:#0f1d2b}
 .server-dl{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;margin:0 0 10px;font-size:12px;color:#d8cdb4}
 .server-dl dt{color:#9fc3c8}.server-dl dd{margin:0;word-break:break-all}
-.server-audit{max-height:280px;overflow:auto;padding:8px 10px;border:1px solid #33475a;background:#0a1420}
+.server-audit{max-height:min(420px,60vh);overflow:auto;padding:8px 10px;border:1px solid #33475a;background:#0a1420}
 .server-audit p{margin:0 0 4px;font-size:11px;line-height:1.6;color:#b9c6c2;word-break:break-all}
 /* ───────── v1.9.4 첫 화면 왼쪽: 주요 이야기 · 공지사항 ───────── */
 .lore-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 0 2px}
@@ -786,6 +800,7 @@ body.is-opening{overflow:hidden}
 .leave-ask{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(3,8,16,.72)}
 .leave-ask-box{width:min(92vw,380px);padding:20px 22px;background:#0f1d2b;border:1px solid #d4b078;box-shadow:6px 6px 0 #030914}
 .leave-ask-text{margin:0 0 16px;font:14px/1.8 'KoPub Batang',serif;color:#f0e4c8;word-break:keep-all}
+.leave-ask-left{margin:-8px 0 16px;font-size:13px;color:#d5b579;word-break:keep-all}
 .leave-ask-row{display:flex;justify-content:flex-end;gap:8px}
 
 /* vB.04 오방색: 산문 北 · 黑 / 강학당 東 · 靑 / 생활관 西 · 白 / 비령산 南 · 赤 / 사당 中 · 黃 */
@@ -977,3 +992,34 @@ body.is-opening{overflow:hidden}
 .theme-switch{min-width:54px;padding:3px 8px;font-size:11px;background:#0a1321;border:1px solid #455769;color:#a0b2b3;cursor:pointer}
 .theme-switch[aria-pressed="true"]{background:#d4b078;border-color:#d4b078;color:#0b1522}
 .theme-vol input{flex:1;accent-color:#d4b078}.theme-vol small{width:34px;text-align:right;font-size:10px;color:#a0b2b3}
+
+.admin-find{width:100%;box-sizing:border-box;margin:0 0 6px;padding:6px 9px;background:#0a1420;border:1px solid #33475a;color:#f0e4c8;font-size:12px}
+
+/* V.01 비밀번호 재설정 요청 */
+.admin-temp-pw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;letter-spacing:.08em;padding:1px 6px;border:1px solid rgba(213,181,121,.45);color:#f0d295;background:rgba(0,0,0,.25);user-select:all}
+.admin-reset-list{max-height:min(260px,45vh)}
+
+/* V.01 동아리 알림(붉은) */
+.toast.is-alert{background:#2a1013;border-color:#e0675d;box-shadow:inset 0 0 0 3px #12060a,5px 5px 0 #08030a}
+.toast.is-alert strong{color:#ff9b8f}.toast.is-alert span{white-space:pre-line;text-align:left;font-size:12px}
+.status-menu button .menu-alert{position:absolute;top:4px;right:4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#d9443a;color:#fff;font:700 10px/17px sans-serif;text-align:center;box-shadow:0 0 0 2px #182a39;animation:menu-alert-pulse 1.6s ease-in-out infinite}
+@keyframes menu-alert-pulse{50%{box-shadow:0 0 0 2px #182a39,0 0 0 5px rgba(217,68,58,.35)}}
+.club-alert{margin:0 0 12px;padding:10px 12px;border:1px solid #e0675d;background:rgba(217,68,58,.12)}
+.club-alert-head{margin:0 0 6px;font-size:12px;color:#ff9b8f;word-break:keep-all}
+.club-alert ul{margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:#f0e4c8}
+
+/* V.01 모바일: 좁은 화면에서 단추 · 짧은 이름이 한 글자씩 세로로 쌓이지 않게 */
+.codex-use,.quest-row>button,.codex-side>button,.admin-side>button,.club-tab,.story-vote-tab,.gate-tabs button{white-space:nowrap;flex-shrink:0;word-break:keep-all}
+.quest-row-text,.codex-text{min-width:0;flex:1 1 auto}
+.codex-side{flex-shrink:0}
+button,label,.panel-label,.codex-text strong{word-break:keep-all}
+.play-scope button{word-break:keep-all}
+@media (max-width:520px){
+  .quest-row{flex-wrap:wrap}
+  .quest-row>button{margin-left:auto}
+  .codex-row{flex-wrap:wrap}
+  .codex-row .codex-side{margin-left:auto}
+  .admin-side{flex-wrap:wrap;justify-content:flex-end}
+  .panel-head h2,.panel-head h3{word-break:keep-all}
+  .toast-stack{width:min(380px,calc(100vw - 24px))}
+}

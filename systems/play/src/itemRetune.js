@@ -7,6 +7,8 @@
 // 적용: reskin.js(실행 화면) · systems/sheets/export.mjs(표 · 도감)
 const H = 3 // 짧은 기운의 시간(시간)
 export const ITEM_RETUNE = {
+  // V.01 쇠약이 6시간으로 줄어 핫바도 「15분으로 단축」
+  hotbar: { effect: { weakCap: 15 * 60 * 1000 }, effectText: '현재 지속 중인 [쇠약]의 남은 유효시간을 15분으로 단축한다.' },
   // ── 음식(회복만 하던 것) ──
   'lost-love-letter': { effect: { mp: 20, buff: { stat: 'comprehension', amount: 2, hours: 6 } }, effectText: '의지력 +20 / 이해 +2 (6시간)' },
   'rice-cake': { effect: { hp: 15, mp: 15, shortenAil: ['hangi'] }, effectText: '체력 +15 / 의지력 +15 / [한기] 남은 시간 5분' },
@@ -91,7 +93,7 @@ export const ITEM_TEXT_FIX = {
   'yarn-doll': { addTags: [BATTLE_TAG] }, 'jaeaek-charm': { addTags: [BATTLE_TAG] },
   'nw-mugwort-rope': { party: false, desc: '쑥대를 한지 띠에 꽂아 꼰 금줄. 몸에 둘러 두면 들이치는 기운이 반으로 꺾인다.' },
   'nw-raccoon-tag': { desc: '벽조목 패에 봉인 가루로 너구리 발톱을 붙였다. 쥐고 있으면 날아드는 것이 한 번은 비껴 맞는다.' },
-  'goblin-mask': { effectText: '착용 시 모든 공격력에 +200% 보정. 단, 돌발 확률이 50% 늘어나고, 일반 공격이 (호전/3)% 확률로 상대 대신 우리 편을 친다 — 나를 포함한 일행 가운데 하나(혼자면 나 자신). 맞은 사람의 체력은 1 아래로 내려가지 않는다.' },
+  'goblin-mask': { desc: "도깨비들이 '도깨비 대장이 쓰고 다닌다'고 평가하는 탈. 대장이라는 건 대체 누군지 알 수 없지만, 그것을 썼을 때 사람이 변하는 모습을 보면 꽤 호전적이다.", effectText: '착용 시 모든 공격력에 +200% 보정. 단, 돌발 확률이 50% 늘어나고, 일반 공격이 (호전/3)% 확률로 상대 대신 우리 편을 친다 — 나를 포함한 일행 가운데 하나(혼자면 나 자신). 맞은 사람의 체력은 1 아래로 내려가지 않는다.' },
   'hwatu-paulownia': { effectText: '장착자가 받는 모든 피해가 10%(올림) 줄어든다.' },
   energy: { effectText: '1회에 한하여 전투불능 패널티 없이, 또한 전투를 종료하지 않고 체력 1로 부활시킨다. 의지력은 회복되지 않는다. 전투불능이 되기 전 미리 먹어둬야 효과가 바로 발휘되며, 전투불능 이후에는 사용할 수 없다. 한 전투에 1회만 쓸 수 있다 (부활에 쓰고 나서도 같은 전투에서는 다시 마실 수 없다).' },
 }

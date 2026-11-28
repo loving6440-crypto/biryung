@@ -25,7 +25,7 @@
     bad_url: '서버 주소가 맞지 않습니다. GitHub 의 SUPABASE_URL 은 https://xxxx.supabase.co 까지만 넣어 주세요.', bad_key: '서버 키가 맞지 않습니다. GitHub 의 SUPABASE_KEY 에 Publishable key(sb_publishable_…)를 넣었는지 확인해 주세요.', not_exposed: 'Supabase 의 Data API 가 public 스키마를 내보내지 않고 있습니다. Integrations › Data API › Settings 의 Exposed schemas 에 public 을 넣어 주세요.',
     login_required: '다시 로그인해 주세요.', banned: '이 계정은 정지되어 있습니다.', muted: '지금은 글을 남길 수 없습니다(운영자 조치).', forbidden: '권한이 없습니다.',
     invalid_username: '아이디는 2~16자(한글 · 영문 · 숫자 · _)로 적어 주세요.', invalid_password: '비밀번호는 4자 이상으로 적어 주세요.', username_taken: '이미 명부에 있는 아이디입니다.',
-    invalid_credentials: '아이디 또는 비밀번호가 맞지 않습니다.', user_not_found: '해당 계정을 찾을 수 없습니다.', too_many_requests: '요청이 너무 많습니다. 잠시 뒤 다시 해 주세요.',
+    invalid_credentials: '아이디 또는 비밀번호가 맞지 않습니다.', no_reset: '임시 비밀번호로 들어온 계정이 아닙니다. 다시 로그인해 주세요.', user_not_found: '해당 계정을 찾을 수 없습니다.', too_many_requests: '요청이 너무 많습니다. 잠시 뒤 다시 해 주세요.',
     invalid_profile: '프로필 입력값을 확인해 주세요.', invalid_post: '글은 1~500자로 적어 주세요.', invalid_memo: '제목(1~100자)과 메모(1~3,000자)를 확인해 주세요.', invalid_comment: '댓글은 1~1,200자로 적어 주세요.',
     invalid_dm: '대화는 1~2,000자로 적어 주세요.', not_found: '대상을 찾을 수 없거나 볼 수 없습니다.', not_self: '자기 계정에는 할 수 없습니다.', party_full: '일행이 이미 가득 찼습니다(3명까지).', not_leader: '파티장만 할 수 있습니다(더 초대하기 · 전투 열기).', invalid_value: '입력값을 확인해 주세요.', save_too_large: '기록이 너무 커서 서버에 올리지 못했습니다(프로필 사진을 줄여 주세요).',
   };
@@ -238,14 +238,55 @@
       } catch (e) { window.alert(e.message); }
     }
     set(SES_KEY, id);
+    if (r.must_change) set(MUSTCHG_KEY(id), '1'); // V.01 임시 비밀번호로 들어왔다 → 새 비밀번호부터
     try { await pullSave(id, r.token, true); } catch (_) { /* 기록은 다음에 맞춘다 */ }
     (() => { const pend = get(PENDING_KEY(id)); if (pend != null) { set(saveKey(id), pend); del(PENDING_KEY(id)); } })();
-    return { id };
+    return { id, mustChange: !!r.must_change };
+  }
+  /* V.01 임시 비밀번호로 들어온 뒤: 새 비밀번호를 정하기 전에는 들어가지 못한다 */
+  const MUSTCHG_KEY = (id) => `biryeong-must-change:${id}`;
+  function forceNewPassword(id, t) {
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    document.getElementById('gate')?.remove();
+    document.body.classList.add('is-gated');
+    const gate = el('div', 'gate'); gate.id = 'gate'; gate.dataset.forceNewPw = '';
+    const box = el('div', 'gate-box');
+    const form = el('form', 'gate-form'); form.noValidate = true;
+    const mk = (fid, label) => { const w = el('label', 'gate-field'); w.htmlFor = fid; const i = el('input'); i.id = fid; i.type = 'password'; i.autocomplete = 'new-password'; i.required = true; w.append(el('span', '', label), i); return [w, i]; };
+    const [w1, p1] = mk('gateNewPw', '새 비밀번호'), [w2, p2] = mk('gateNewPw2', '새 비밀번호 확인');
+    const err = el('p', 'gate-error'); err.setAttribute('role', 'alert'); err.hidden = true;
+    const go = el('button', 'gate-submit', '새 비밀번호로 바꾸고 입산'); go.type = 'submit';
+    const out = el('button', 'gate-link', '로그아웃'); out.type = 'button';
+    out.addEventListener('click', () => { del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); });
+    form.append(w1, w2, err, go);
+    box.append(el('p', 'gate-logo gate-logo-sm', '비령'), el('p', 'gate-sub', '새 비밀번호 정하기'), el('p', 'gate-info', '임시 비밀번호로 들어왔습니다. 앞으로 쓸 새 비밀번호를 정해 주세요. (임시 비밀번호는 이제 쓸 수 없게 됩니다)'), form, out);
+    gate.append(box); document.body.append(gate); p1.focus();
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault(); err.hidden = true;
+      const a = p1.value, b = p2.value;
+      if (a.length < 4) { err.textContent = ERR.invalid_password; err.hidden = false; return; }
+      if (a !== b) { err.textContent = '새 비밀번호 확인이 맞지 않습니다.'; err.hidden = false; return; }
+      go.disabled = true;
+      try {
+        const r = await rpc('bry_pw_reset_finish', { p_token: t, p_new: a });
+        if (!r?.ok) throw Object.assign(new Error(errorText(r?.error || 'error')), { code: r?.error });
+        const acc = readAcc(); const u = acc.users[id]; if (u) { u.salt = newSalt(); u.hash = hashPw(u.salt, a); writeAcc(acc); }
+        del(MUSTCHG_KEY(id));
+        window.alert('새 비밀번호로 바꾸었습니다. 다음부터는 새 비밀번호로 로그인해 주세요.');
+        location.hash = '#/'; location.reload();
+      } catch (e) {
+        go.disabled = false; err.textContent = e.message; err.hidden = false;
+        if (e.code === 'no_reset') { del(MUSTCHG_KEY(id)); setTimeout(() => location.reload(), 1500); }
+      }
+    });
   }
   /* 들어와 있는 동안: 계정 상태(정지 · 관리자)를 서버와 맞추고, 기록을 주기적으로 올린다. */
   async function serverBoot() {
     if (await wipeCheck()) { location.reload(); return; } // 서버가 비워졌다 → 이 브라우저의 옛 기록도 비우고 처음 화면으로
     const id = session(), t = token(id); if (!t) return;
+    if (get(MUSTCHG_KEY(id))) {
+      try { const st = await rpc('bry_pw_reset_state', { p_token: t }); if (st?.must_change) { forceNewPassword(id, t); return; } del(MUSTCHG_KEY(id)); } catch (_) { forceNewPassword(id, t); return; }
+    }
     try {
       const me = (await rpc('bry_me', { p_token: t })).user;
       const acc = readAcc(), u = acc.users[id], was = !!u.admin;
@@ -367,6 +408,9 @@
   codeIn.required = false; codeWrap.hidden = true; codeWrap.classList.add('gate-admin');
   const error = h('p', 'gate-error'); error.setAttribute('role', 'alert'); error.hidden = true;
   const submit = h('button', 'gate-submit', '입산'); submit.type = 'submit';
+  const info = h('p', 'gate-info'); info.hidden = true; info.setAttribute('role', 'status');
+  const forgot = h('button', 'gate-link', '비밀번호를 잊었어요'); forgot.type = 'button'; forgot.hidden = !SERVER; forgot.dataset.gateForgot = '';
+  forgot.addEventListener('click', () => setMode(mode === 'reset' ? 'login' : 'reset'));
   const note = h('small', 'gate-note', SERVER ? '계정과 기록은 비령 서버에 보관됩니다. 어느 기기에서든 같은 아이디로 이어집니다.' : '계정과 기록은 이 브라우저에만 보관됩니다. 다른 기기와는 아직 이어지지 않습니다.');
   let mode = Object.keys(readAcc().users).length ? 'login' : 'join';
   const tabBtn = (m, label) => { const b = h('button', '', label); b.type = 'button'; b.dataset.mode = m; b.addEventListener('click', () => setMode(m)); return b; };
@@ -376,7 +420,11 @@
     for (const b of tabs.children) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
     pw2Wrap.hidden = m !== 'join'; pw2In.required = m === 'join';
     pwIn.autocomplete = m === 'join' ? 'new-password' : 'current-password';
-    submit.textContent = m === 'join' ? '명부에 올리고 입산' : '입산';
+    submit.textContent = m === 'join' ? '명부에 올리고 입산' : m === 'reset' ? '임시 비밀번호 요청하기' : '입산';
+    pwWrap.hidden = m === 'reset'; pwIn.required = m !== 'reset';
+    forgot.hidden = !SERVER || m === 'join'; forgot.textContent = m === 'reset' ? '← 로그인으로 돌아가기' : '비밀번호를 잊었어요';
+    if (m === 'reset') { info.textContent = '아이디를 적고 요청하면 임시 비밀번호가 만들어집니다. 임시 비밀번호는 관리자에게 받아 [로그인]에 적어 주세요. 들어오면 곧바로 새 비밀번호를 정하게 됩니다.'; info.hidden = false; }
+    else if (m === 'join') info.hidden = true;
     error.hidden = true;
   }
   // '비령' 다섯 번 → 관리자 코드 칸
@@ -390,6 +438,17 @@
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const id = idIn.value, pw = pwIn.value, code = codeWrap.hidden ? '' : codeIn.value.trim();
+    if (mode === 'reset') { // V.01 임시 비밀번호 요청
+      if (!id.trim()) return fail('아이디를 적어 주세요.');
+      submit.disabled = true;
+      try {
+        const r = await rpc('bry_pw_reset_request', { p_username: norm(id) });
+        if (r?.error) { submit.disabled = false; return fail(errorText(r.error)); }
+      } catch (e) { submit.disabled = false; return fail(e.message); }
+      submit.disabled = false; setMode('login'); idIn.value = norm(id);
+      info.textContent = `「${norm(id)}」의 임시 비밀번호를 요청했습니다. 관리자에게 임시 비밀번호를 받아 아래 비밀번호 칸에 적고 입산해 주세요. (3일 동안 쓸 수 있습니다. 예전 비밀번호도 그대로 쓸 수 있습니다)`; info.hidden = false;
+      pwIn.focus(); return;
+    }
     if (!id.trim() || !pw) return fail('아이디와 비밀번호를 적어 주세요.');
     if (mode === 'join' && pw !== pw2In.value) return fail('비밀번호 확인이 맞지 않습니다.');
     submit.disabled = true;
@@ -397,6 +456,7 @@
       if (mode === 'join' && !/^[a-z0-9_가-힣]{2,16}$/.test(norm(id))) { submit.disabled = false; return fail(ERR.invalid_username); }
       const sr = await serverEnter(mode, id, pw, code);
       if (sr.error) { submit.disabled = false; return fail(sr.error); }
+      if (sr.mustChange) { forceNewPassword(sr.id, token(sr.id)); return; }
       location.hash = '#/'; location.reload(); return;
     }
     let admin = false;
@@ -410,7 +470,7 @@
   });
   if (relogin) note.textContent = '비령 서버가 연결되었습니다. 쓰던 아이디와 비밀번호로 한 번 더 로그인하면 계정과 기록이 서버로 올라갑니다.';
   form.append(idWrap, pwWrap, pw2Wrap, codeWrap, error, submit);
-  box.append(logo, sub, tabs, form, note);
+  box.append(logo, sub, tabs, info, form, forgot, note);
   gate.append(box);
   document.body.append(gate);
   setMode(mode);

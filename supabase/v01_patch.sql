@@ -15,6 +15,8 @@
 --   6) 대화 로그 내려받기 전용 함수(1000건씩 · 분당 60쪽 제한, 방 정보는 첫 쪽에만)
 --   7) bry_status 버전 'V.01'
 --   8) 모바일 · 컴퓨터 기록 맞추기: 다른 기기가 그 사이 올린 기록을 덮어쓰지 않는다(bry_save_put 에 p_base)
+--   9) 한 주를 일요일 ~ 토요일로(랭킹 주차) — 이번 주 기록은 그대로 이어진다
+--  10) 비밀번호 잊었을 때 임시 비밀번호(로그인 화면 → 관리자가 전해 준다)
 --  지우는 데이터: 3)의 비본편 줄, 탈퇴 계정의 표, 관리자가 지운 표가 남아 있던 경우 그 줄. 그 밖에는 건드리지 않는다.
 -- ═══════════════════════════════════════════════════════════════════
 begin;
@@ -351,6 +353,120 @@ begin
 end $$;
 revoke all on function public.bry_save_get(text, boolean) from public;
 grant execute on function public.bry_save_get(text, boolean) to anon, authenticated;
+
+-- ── 9) 한 주는 일요일 ~ 토요일(V.01) ────────────────────────────────
+-- 랭킹 주차를 일요일 0시(한국 시각)부터로. 예전 월요일로 적힌 기록은 그 주의 일요일로 옮긴다(여러 번 실행해도 같다).
+create or replace function biryeong_private.week0(p_offset int default 0) returns date language sql stable as $$
+  select ((date_trunc('week', (now() at time zone 'Asia/Seoul') + interval '1 day') - interval '1 day') - make_interval(weeks => p_offset))::date $$;
+update biryeong_private.scores s set week_start = s.week_start - 1
+  where extract(isodow from s.week_start) = 1
+    and not exists (select 1 from biryeong_private.scores o where o.account_id = s.account_id and o.course = s.course and o.week_start = s.week_start - 1);
+
+-- ── 10) 비밀번호 잊었을 때: 임시 비밀번호(V.01) ─────────────────────────
+-- 로그인 화면에서 아이디를 적으면 임시 비밀번호가 만들어진다(본인에게는 보이지 않는다).
+-- 관리자가 [서버 관리 → 비밀번호 재설정 요청]에서 확인해 전해 준다 → 그것으로 로그인 → 곧바로 새 비밀번호를 정한다.
+-- 예전 비밀번호도 그대로 쓸 수 있다(남이 요청해도 잠기지 않는다). 임시 비밀번호는 3일이 지나면 쓸 수 없다.
+create table if not exists biryeong_private.pw_resets (
+  account_id   bigint primary key references biryeong_private.accounts(id) on delete cascade,
+  temp_pw      text not null,
+  temp_hash    text not null,
+  requested_at timestamptz not null default now(),
+  used_at      timestamptz
+);
+alter table biryeong_private.pw_resets enable row level security;
+revoke all on biryeong_private.pw_resets from public, anon, authenticated;
+
+create or replace function public.bry_pw_reset_request(p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare u text := lower(btrim(coalesce(p_username, ''))); a biryeong_private.accounts; client text := ip(); tmp text;
+  al constant text := 'abcdefghjkmnpqrstuvwxyz23456789';
+begin
+  if u = '' or length(u) > 40 then return jsonb_build_object('error', 'invalid_username'); end if;
+  if hits('pwreq:' || u, 86400) >= 3 or hits('pwreqip:' || client, 3600) >= 10 then return jsonb_build_object('error', 'too_many_requests'); end if;
+  insert into throttle(key) values ('pwreq:' || u), ('pwreqip:' || client);
+  select * into a from accounts where username = u;
+  if found then
+    select string_agg(substr(al, 1 + (get_byte(x.r, i) % length(al)), 1), '' order by i) into tmp
+      from (select gen_random_bytes(8) as r) x, generate_series(0, 7) i;
+    insert into pw_resets(account_id, temp_pw, temp_hash, requested_at, used_at)
+      values (a.id, tmp, crypt(tmp, gen_salt('bf', 8)), now(), null)
+      on conflict (account_id) do update set temp_pw = excluded.temp_pw, temp_hash = excluded.temp_hash, requested_at = now(), used_at = null;
+  end if;
+  return jsonb_build_object('ok', true); -- 아이디가 있는지는 알려 주지 않는다
+end $$;
+
+create or replace function public.bry_login(p_username text, p_password text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare u text := lower(btrim(coalesce(p_username, ''))); a biryeong_private.accounts; client text := ip(); r biryeong_private.pw_resets; temp boolean := false;
+begin
+  if length(u) > 40 or length(coalesce(p_password,'')) > 128 then return jsonb_build_object('error','invalid_credentials'); end if;
+  if hits('login:' || u, 600) >= 10 or hits('loginip:' || client, 600) >= 40 then
+    return jsonb_build_object('error','too_many_requests');
+  end if;
+  select * into a from accounts where username = u;
+  if not found then
+    insert into throttle(key) values ('login:' || u),('loginip:' || client);
+    return jsonb_build_object('error','invalid_credentials');
+  end if;
+  if a.pw_hash <> crypt(coalesce(p_password, ''), a.pw_hash) then
+    select * into r from pw_resets where account_id = a.id and requested_at > now() - interval '3 days';
+    if found and r.temp_hash = crypt(coalesce(p_password, ''), r.temp_hash) then temp := true;
+    else
+      insert into throttle(key) values ('login:' || u),('loginip:' || client);
+      return jsonb_build_object('error','invalid_credentials');
+    end if;
+  end if;
+  if a.banned_until is not null and a.banned_until > now() then return jsonb_build_object('error','banned','until',a.banned_until); end if;
+  if temp then update pw_resets set used_at = now() where account_id = a.id;
+  else delete from pw_resets where account_id = a.id and used_at is null; end if; -- 예전 비밀번호를 기억해 냈다 → 요청은 지운다
+  update accounts set last_seen=now() where id=a.id;
+  return jsonb_build_object('token', new_session(a.id), 'user', user_json(a), 'must_change', temp);
+end $$;
+
+-- 임시 비밀번호로 들어온 계정인가(새 비밀번호를 정해야 하는가)
+create or replace function public.bry_pw_reset_state(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  return jsonb_build_object('must_change', exists(select 1 from pw_resets where account_id = a.id and used_at is not null));
+end $$;
+
+create or replace function public.bry_pw_reset_finish(p_token text, p_new text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token);
+begin
+  if not exists(select 1 from pw_resets where account_id = a.id and used_at is not null) then return jsonb_build_object('ok', false, 'error', 'no_reset'); end if;
+  if length(coalesce(p_new, '')) < 4 or length(p_new) > 128 then return jsonb_build_object('ok', false, 'error', 'invalid_password'); end if;
+  update accounts set pw_hash = crypt(p_new, gen_salt('bf', 8)) where id = a.id;
+  delete from pw_resets where account_id = a.id;
+  delete from sessions where account_id = a.id and token_hash <> h(p_token);
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- 관리자: 요청 목록(임시 비밀번호가 보인다) · 지우기
+create or replace function public.bry_admin_pw_resets(p_token text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token);
+begin
+  delete from pw_resets where requested_at < now() - interval '3 days';
+  return jsonb_build_object('resets', (select coalesce(jsonb_agg(jsonb_build_object('username', u.username, 'display_name', u.display_name, 'name', s.data #>> '{profile,name}',
+      'temp_pw', r.temp_pw, 'requested_at', r.requested_at, 'used_at', r.used_at, 'expires_at', r.requested_at + interval '3 days') order by r.requested_at desc), '[]'::jsonb)
+    from pw_resets r join accounts u on u.id = r.account_id left join saves s on s.account_id = u.id));
+end $$;
+
+create or replace function public.bry_admin_pw_reset_clear(p_token text, p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token);
+begin
+  delete from pw_resets r using accounts u where u.id = r.account_id and u.username = lower(btrim(coalesce(p_username, '')));
+  perform log(a, 'pw_reset_clear', lower(btrim(coalesce(p_username, ''))), '');
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.bry_pw_reset_request(text), public.bry_pw_reset_state(text), public.bry_pw_reset_finish(text, text),
+  public.bry_admin_pw_resets(text), public.bry_admin_pw_reset_clear(text, text) from public;
+grant execute on function public.bry_pw_reset_request(text), public.bry_pw_reset_state(text), public.bry_pw_reset_finish(text, text),
+  public.bry_admin_pw_resets(text), public.bry_admin_pw_reset_clear(text, text), public.bry_login(text, text) to anon, authenticated;
 
 -- ── 7) 버전 ───────────────────────────────────────────────────────
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$

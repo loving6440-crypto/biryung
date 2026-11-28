@@ -453,7 +453,7 @@
   window.addEventListener('biryeong:routes', () => { redraw(); setTimeout(tick, 300); });
   window.addEventListener('biryeong:saved', () => setTimeout(tick, 500));
 
-  window.BiryeongBeastEvent = { open, finished, title: TITLE, board, trackerBox, tick, quests: QUESTS, rules: RULES, state: st, choose, busy: () => !!waitOf('north') && !st().done.north && open(), cancelWait, _here: (k) => { here = k ? { key: k, hash: location.hash } : null; } };
+  window.BiryeongBeastEvent = { open, finished, title: TITLE, board, trackerBox, tick, quests: QUESTS, rules: RULES, state: st, choose, busy: () => !!waitOf('north') && !st().done.north && open(), busyLeft: () => { const w = waitOf('north'), q = byId.north, sp = q && stepOf(q); if (!w || !sp?.wait) return ''; const m = Math.max(0, Math.ceil((w.at + sp.wait - Date.now()) / 60000)); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`; }, /* V.01 나가기 경고에 남은 시간 */ cancelWait, _here: (k) => { here = k ? { key: k, hash: location.hash } : null; } };
   setTimeout(() => { waitLoop(); tick(); }, 1500);
   setInterval(() => { if (!document.hidden) tick(); }, 2500); // 본편 장면이 먼저 나온 뒤에도 이어지게
 })();

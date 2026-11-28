@@ -9,8 +9,9 @@ const w = {}
 const ctx = { window:w }
 for (const f of ['titles.js','titles2.js','titles-final.js']) vm.runInNewContext(txt(f),ctx,{filename:f})
 const finals = w.BIRYEONG_ACHIEVEMENTS.filter((a)=>a.group==='final')
-test('최종 업적은 16종이며 단독 10단계와 50종 종합 업적이 모두 있다', () => {
-  assert.equal(finals.length,16)
+test('최종 업적은 17종이며 단독 10단계와 50종 종합 업적 · 100만 냥(V.01)이 모두 있다', () => {
+  assert.equal(finals.length,17)
+  assert.ok(finals.find(x=>x.id==='final-money'))
   for(let tier=1;tier<=10;tier++){
     const a=finals.find(x=>x.id===`final-extra-${tier}`)
     assert.ok(a)

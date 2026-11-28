@@ -38,7 +38,7 @@ export default function NpcQuests({ place }) {
               <p className="flex flex-wrap items-baseline gap-2 text-[13px]">
                 <b style={{ color: who.color }}>{who.name}</b>
                 <span className="text-paper">「{q.title}」</span>
-                <span className="text-[10px] text-paper/50">{goalText(q)}{pr ? ` · ${pr.cur} / ${pr.need}` : ''} · 보상 {rewardText(reward)}</span>
+                {state !== 'rest' && <span className="text-[10px] text-paper/50">{goalText(q)}{pr ? ` · ${pr.cur} / ${pr.need}` : ''} · 보상 {rewardText(reward)}{q.god ? ' · 하루 하나' : ''}</span>}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed break-keep text-paper/85">“{said[q.id] ?? line}”</p>
               <div className="mt-1.5 flex flex-wrap gap-2">

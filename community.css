@@ -130,7 +130,7 @@
 .party-dock.is-min .community-tabs,.party-dock.is-min .party-body{display:none}
 @media(max-width:600px){.party-dialog.party-dock{inset:auto 6px 6px 6px;width:auto;height:min(420px,60dvh)}.party-sound{font-size:0 !important}.party-sound::first-letter{font-size:13px}}
 /* vD.01 우편함 */
-.community-mail-list{display:flex;flex-direction:column;gap:10px}
+.community-mail-list{display:flex;flex-direction:column;gap:10px;max-height:min(560px,62dvh);overflow-y:auto;overscroll-behavior:contain;padding-right:4px} /* V.01 */
 .mail-card .mail-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#e9cf98}
 .mail-card .mail-head time{font-size:11px;color:#8fa3a6}
 .mail-card .mail-note{margin:6px 0 0;color:#cbbf9f;font-size:13px}
@@ -142,8 +142,8 @@
 .party-leader-tag{margin-left:4px;padding:0 5px;border:1px solid #d4b07899;border-radius:8px;color:#f3d79e;font-size:10px;font-weight:normal}
 
 /* vD.02.3 팝업 공지 */
-.popup-notice{border:0;padding:0;background:transparent;max-width:min(440px,92vw);z-index:2147483002}
-.popup-notice::backdrop{background:rgba(3,7,16,.66)}
+.popup-notice{border:0;padding:0;background:transparent;max-width:min(440px,92vw);z-index:2147483002;margin:18px auto auto} /* V.01 관리자 공지는 화면 위쪽(가운데는 놀랄 수 있어서) */
+.popup-notice::backdrop{background:rgba(3,7,16,.35)}
 .popup-notice-box{background:#0d1a2b;border:2px solid #c9a961;border-radius:14px;padding:20px 22px;color:#efe6ce;box-shadow:0 18px 60px rgba(0,0,0,.6);text-align:center}
 .popup-notice-over{margin:0;font-size:11px;letter-spacing:.3em;color:#c9a961}
 .popup-notice h2{margin:6px 0 10px;font-size:20px;color:#f2d24a}
@@ -158,3 +158,9 @@
 .party-call-bell:hover,.party-call-bell:focus-visible{background:#38455b;outline:2px solid #d4b078;outline-offset:2px}
 .party-call-bell:disabled{opacity:.4;cursor:wait}
 .party-notice-permit{font-size:11px;padding:4px 7px;white-space:nowrap}
+
+/* V.01 낮새들의 터: 이번 주 · 지금까지의 기록 */
+.community-feed-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px;border-bottom:1px solid #50606b;margin:19px 0 12px}
+.community-feed-head .community-stack-title{border:0;margin:0;padding-bottom:8px;flex:1;min-width:200px}
+.community-feed-switch{margin-bottom:8px}
+.community-week-head{margin:16px 0 8px;font-size:12px;letter-spacing:.06em;color:#c9a961;border-left:3px solid #c9a961;padding-left:8px}
