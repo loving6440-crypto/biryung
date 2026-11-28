@@ -74,7 +74,7 @@ test('V.01: 산출물은 소스에서 다시 만든 것 — 화면 묶음 · 도
   assert.ok(codex.includes('무구보관소에서 무구를 일반 강화(10~12)할 때 쓰는 재료(2·3·4개 필요).'));
   assert.ok(light.includes('.party-call-bell'), '일행 호출 종도 화이트 모드');
   const html = read('index.html');
-  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01'));
+  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01-2'));
 });
 
 test('V.01: 매점 판매가는 개척 터 레벨로 — 같은 터 같은 종류는 같은 값, 터가 어려울수록 비싸다', () => {
@@ -137,4 +137,16 @@ test('V.01: 기본 영능력 얻는 방법을 실제로 세고, 채우면 준다
   const pt = read('systems/play/patches.mjs'), host = read('systems/play/src/usePlayHost.js');
   assert.ok(pt.includes("nurse: (p.psyProg?.nurse || 0) + 1") && host.includes('globalThis.__BRY_PSY_STAT = (stat, meta)') && host.includes('psyProgress: (id) =>'));
   assert.ok(pt.includes("globalThis.__BRY_PSY_STAT?.(me.bryStat") && pt.includes("globalThis.__BRY_PSY_STAT?.(state.bryStat"));
+});
+
+test('V.01: 모바일 · 컴퓨터 기록 맞추기 — 다른 기기가 올린 기록을 덮어쓰지 않는다', () => {
+  const sql = read('supabase/v01_patch.sql'), auth = read('auth.js');
+  assert.ok(sql.includes('drop function if exists public.bry_save_put(text, jsonb);') && sql.includes('p_base timestamptz default null'));
+  assert.ok(sql.includes("return jsonb_build_object('ok', false, 'conflict', true, 'updated_at', cur.updated_at, 'device', cur.data ->> 'syncDevice')"));
+  assert.ok(read('supabase/schema.sql').trimEnd().endsWith(sql.trimEnd()));
+  assert.ok(auth.includes('args.p_base = meta.at') && auth.includes("e.code === 'schema_missing' && args.p_base"), '기준 시각을 보내고, 서버가 아직이면 예전처럼');
+  assert.ok(auth.includes('if (!opt.force && meta.at && !touchedSince(id)) return false;'), '켜 두기만 한 화면은 올리지 않는다');
+  assert.ok(auth.includes('setInterval(() => { if (!document.hidden && !idle()) checkOther(); }, 60000)') && auth.includes("window.addEventListener('focus', () => checkOther())"));
+  assert.ok(auth.includes('if (dirty && (ask || touchedSince(id)))'), '들어올 때 이 기기에서 한 것이 없으면 다른 기기 기록을 받는다');
+  assert.ok(auth.includes('leaving = true; location.reload();'), '받아 새로고침할 때 닫히는 화면이 옛 기록을 올리지 못한다');
 });

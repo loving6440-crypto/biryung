@@ -2173,6 +2173,7 @@ notify pgrst, 'reload schema';
 --   5) 접속 주소(ip) 판별을 Cloudflare 실제 주소 → X-Forwarded-For 첫 항목 순으로 바꾼다
 --   6) 대화 로그 내려받기 전용 함수(1000건씩 · 분당 60쪽 제한, 방 정보는 첫 쪽에만)
 --   7) bry_status 버전 'V.01'
+--   8) 모바일 · 컴퓨터 기록 맞추기: 다른 기기가 그 사이 올린 기록을 덮어쓰지 않는다(bry_save_put 에 p_base)
 --  지우는 데이터: 3)의 비본편 줄, 탈퇴 계정의 표, 관리자가 지운 표가 남아 있던 경우 그 줄. 그 밖에는 건드리지 않는다.
 -- ═══════════════════════════════════════════════════════════════════
 begin;
@@ -2462,6 +2463,53 @@ begin
 end $$;
 revoke all on function public.bry_room_msgs_export(text, bigint, bigint) from public;
 grant execute on function public.bry_room_msgs_export(text, bigint, bigint) to anon, authenticated;
+
+-- ── 8) 모바일 · 컴퓨터 기록 맞추기(V.01) ──────────────────────────────
+-- 예전: 두 기기가 서로의 기록을 모른 채 「내 것」을 올려 다른 기기에서 한 것을 덮어썼다.
+-- 이제: 기기는 「내가 마지막으로 맞춘 서버 기록 시각(p_base)」을 함께 보낸다. 그 사이 다른 기기가 올렸으면
+--       덮어쓰지 않고 conflict 를 돌려준다 → 화면이 다른 기기 기록을 받아 오거나(이 기기에서 한 것이 없을 때),
+--       어느 쪽을 남길지 묻는다. p_base 없이 부르면(예전 화면) 예전처럼 그냥 쓴다.
+drop function if exists public.bry_save_put(text, jsonb);
+create or replace function public.bry_save_put(p_token text, p_data jsonb, p_base timestamptz default null) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text; ph text; cur biryeong_private.saves;
+begin
+  if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'invalid_save'; end if;
+  if octet_length(p_data::text) > 1000000 then raise exception 'save_too_large'; end if;
+  if p_base is not null then
+    select * into cur from saves where account_id = a.id for update;
+    if found and cur.updated_at is distinct from p_base then
+      return jsonb_build_object('ok', false, 'conflict', true, 'updated_at', cur.updated_at, 'device', cur.data ->> 'syncDevice');
+    end if;
+  end if;
+  if jsonb_typeof(p_data -> 'profile') = 'object' and (p_data -> 'profile') ? 'photo' then
+    ph := p_data #>> '{profile,photo}';
+    if coalesce(ph, '') = '' then delete from photos where account_id = a.id;
+    elsif ph like 'data:image/%' and octet_length(ph) <= 400000 then
+      insert into photos (account_id, photo) values (a.id, ph) on conflict (account_id) do update set photo = excluded.photo, updated_at = now() where photos.photo is distinct from excluded.photo;
+    end if;
+    p_data := jsonb_set(p_data, '{profile}', (p_data -> 'profile') - 'photo');
+  end if;
+  insert into saves (account_id, data) values (a.id, p_data)
+    on conflict (account_id) do update set data = excluded.data, updated_at = clock_timestamp() returning updated_at into t;
+  nm := left(btrim(coalesce(p_data #>> '{profile,name}', '')), 40);
+  if nm <> '' and nm is distinct from a.display_name then update accounts set display_name = nm where id = a.id; end if;
+  return jsonb_build_object('ok', true, 'updated_at', t);
+end $$;
+revoke all on function public.bry_save_put(text, jsonb, timestamptz) from public;
+grant execute on function public.bry_save_put(text, jsonb, timestamptz) to anon, authenticated;
+
+create or replace function public.bry_save_get(p_token text, p_meta boolean default false) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); r jsonb;
+begin
+  select case when p_meta then jsonb_build_object('updated_at', s.updated_at, 'device', s.data ->> 'syncDevice')
+    else jsonb_build_object('updated_at', s.updated_at, 'device', s.data ->> 'syncDevice', 'data', case when ph.photo is not null and jsonb_typeof(s.data -> 'profile') = 'object' then jsonb_set(s.data, '{profile,photo}', to_jsonb(ph.photo)) else s.data end) end
+    into r from saves s left join photos ph on ph.account_id = s.account_id where s.account_id = a.id;
+  return coalesce(r, jsonb_build_object('updated_at', null));
+end $$;
+revoke all on function public.bry_save_get(text, boolean) from public;
+grant execute on function public.bry_save_get(text, boolean) to anon, authenticated;
 
 -- ── 7) 버전 ───────────────────────────────────────────────────────
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$

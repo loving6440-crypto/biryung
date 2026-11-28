@@ -85,23 +85,90 @@
   const cloudMeta = (id) => { try { return JSON.parse(get(CLOUD_KEY(id)) || '{}') || {}; } catch (_) { return {}; } };
   // 서버에서 받은 기록은 '대기 칸'에 두었다가 다음 번 화면을 열 때 맨 먼저 옮긴다(열려 있던 화면이 닫히며 옛 기록으로 덮어쓰지 못하게).
   (() => { const id = get(SES_KEY); if (!id) return; const pend = get(PENDING_KEY(id)); if (pend != null) { set(saveKey(id), pend); del(PENDING_KEY(id)); } })();
+  /* ── V.01 모바일 · 컴퓨터 기록 맞추기 ──
+   * 예전에는 기기마다 「내 것」을 그냥 올려서, 켜 둔 다른 기기가 방금 한 것을 덮어썼고, 들어올 때도 이 기기 기록이
+   * 조금이라도 바뀌어 있으면 서버(다른 기기) 기록을 말없이 버렸다.
+   * 이제: ① 올릴 때 「마지막으로 맞춘 서버 기록 시각(base)」을 함께 보내, 그 사이 다른 기기가 올렸으면 덮어쓰지 않는다.
+   *       ② 화면을 다시 보거나 1분마다 서버 기록이 바뀌었는지 가볍게 묻는다.
+   *       ③ 다른 기기가 올린 기록이 있으면: 이 기기에서 그 뒤로 직접 한 것이 없으면 말없이 받아 오고(새로고침),
+   *          이 기기에서도 한 것이 있으면 어느 쪽을 남길지 묻는다. */
+  const DEVICE_KEY = 'biryeong-device', ACT_KEY = (id) => `biryeong-act:${id}`;
+  const deviceId = () => { let d = get(DEVICE_KEY); if (!d) { d = `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; set(DEVICE_KEY, d); } return d; };
+  const writeMeta = (id, m) => set(CLOUD_KEY(id), JSON.stringify({ ...m, syncedAt: Date.now() }));
+  // 마지막으로 맞춘 뒤 이 기기에서 직접 누르거나 친 적이 있는가(켜 두기만 한 화면의 시간 흐름은 「한 것」이 아니다)
+  const touchedSince = (id) => Number(get(ACT_KEY(id)) || 0) > Number(cloudMeta(id).syncedAt || 0);
+  let actMark = 0;
+  ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, () => {
+    const id = get(SES_KEY); if (!id || Date.now() - actMark < 3000) return; actMark = Date.now(); set(ACT_KEY(id), String(actMark));
+  }, { passive: true, capture: true }));
+  let noBase = false; // 서버에 아직 V.01 SQL 이 없으면 예전처럼 보낸다
   /* 기록 올리기: 이 브라우저의 기록이 마지막으로 맞춘 것과 다르면 서버에 올린다. */
   let pushing = false;
   async function pushSave(opt = {}) {
-    const id = session(), t = token(id); if (!t || pushing) return false;
+    const id = session(), t = token(id); if (!t || pushing || syncing || leaving) return false;
     if (opt.paced && Date.now() - lastPush < PUSH_GAP) return false;
     const local = get(saveKey(id)); if (local == null) return false;
-    const meta = cloudMeta(id), s = sig(local); if (meta.sig === s) return false;
+    const meta = cloudMeta(id), s = sig(local); if (meta.sig === s && !opt.force) return false;
+    // V.01 마지막으로 맞춘 뒤 이 기기에서 직접 한 것이 없으면(켜 두기만 한 화면) 올리지 않는다 — 다른 기기에서 한 것을 덮지 않게
+    if (!opt.force && meta.at && !touchedSince(id)) return false;
     let data; try { data = JSON.parse(local); } catch (_) { return false; }
+    data.syncDevice = deviceId();
     // vD.04.3 프로필 사진은 바뀌었을 때만 함께 보낸다(서버는 사진을 따로 두고, 키가 없으면 그대로 둔다 · null 이면 지운다)
     const prof = data && typeof data.profile === 'object' && data.profile ? data.profile : null;
     const ph = prof ? sig(String(prof.photo || '')) : meta.ph;
     if (prof) { if (meta.ph === ph) delete prof.photo; else if (!prof.photo) prof.photo = null; }
     const body = JSON.stringify(data);
     pushing = true; lastPush = Date.now();
-    try { const r = await rpc('bry_save_put', { p_token: t, p_data: data }, { keepalive: !!opt.keepalive && body.length < 60000 }); set(CLOUD_KEY(id), JSON.stringify({ at: r.updated_at, sig: s, ph })); return true; }
+    try {
+      const args = { p_token: t, p_data: data };
+      if (!noBase && !opt.force && meta.at) args.p_base = meta.at;
+      let r;
+      try { r = await rpc('bry_save_put', args, { keepalive: !!opt.keepalive && body.length < 60000 }); }
+      catch (e) { if (e.code === 'schema_missing' && args.p_base) { noBase = true; delete args.p_base; r = await rpc('bry_save_put', args); } else throw e; }
+      if (r && r.conflict) {
+        pushing = false;
+        // 그 사이 서버에 올라간 것이 이 기기의 것이면(답을 못 받았던 것) 그냥 다시 올린다
+        if (r.device && r.device === deviceId()) { writeMeta(id, { ...meta, at: r.updated_at }); return pushSave({ ...opt, paced: false }); }
+        if (!document.hidden && !opt.keepalive) resolveOther(id, t, r.updated_at);
+        return false; // 화면을 닫거나 가릴 때는 덮어쓰지 않는다 — 다음에 열 때 맞춘다
+      }
+      writeMeta(id, { at: r.updated_at, sig: s, ph }); return true;
+    }
     catch (e) { if (e.code === 'save_too_large' && !pushSave.warned) { pushSave.warned = true; console.warn('[비령]', e.message); } return false; }
     finally { pushing = false; }
+  }
+  /* 다른 기기가 올린 기록이 있다 → 받아 오거나(이 기기에서 한 것이 없을 때) 묻는다 */
+  let syncing = false, leaving = false; // leaving: 다른 기기 기록을 받아 새로고침하는 중 — 닫히는 화면이 옛 기록을 올리지 못하게
+  async function resolveOther(id, t, when0) {
+    if (syncing) return; syncing = true;
+    try {
+      const local = get(saveKey(id)), meta = cloudMeta(id);
+      const dirty = local != null && sig(local) !== meta.sig;
+      if (dirty && touchedSince(id)) {
+        const when = new Date(when0 || Date.now()).toLocaleString('ko-KR');
+        if (!window.confirm(`다른 기기(모바일 · 컴퓨터)에서 저장한 기록이 있습니다. (${when})\n\n[확인] 다른 기기의 기록을 불러온다\n[취소] 이 기기의 기록을 남기고 서버에 덮어쓴다`)) {
+          syncing = false; await pushSave({ force: true }); return;
+        }
+      }
+      const full = await rpc('bry_save_get', { p_token: t, p_meta: false });
+      if (!full || !full.data) return;
+      const text = JSON.stringify(full.data);
+      set(PENDING_KEY(id), text); writeMeta(id, { at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) });
+      try { sessionStorage.setItem('biryeong-synced-notice', '1'); } catch (_) { /* 무시 */ }
+      leaving = true; location.reload();
+    } catch (_) { /* 다음에 다시 */ } finally { syncing = false; }
+  }
+  /* 서버 기록이 바뀌었는지 가볍게 묻는다(시각만) */
+  async function checkOther() {
+    const id = session(), t = token(id); if (!t || syncing || pushing) return;
+    try {
+      const m = await rpc('bry_save_get', { p_token: t, p_meta: true });
+      if (!m || !m.updated_at) return;
+      const meta = cloudMeta(id);
+      if (m.updated_at === meta.at) return;
+      if (m.device && m.device === deviceId()) { writeMeta(id, { ...meta, at: m.updated_at }); return; } // 내가 올린 것(답을 못 받았던 것)
+      await resolveOther(id, t, m.updated_at);
+    } catch (_) { /* 다음에 다시 */ }
   }
   /* 기록 받기: 서버 것이 더 새로우면 받아 온다. 돌려주는 값: 'pulled'(받아서 대기 칸에 둠) · 'kept' · 'none' */
   async function pullSave(id, t, ask) {
@@ -109,16 +176,17 @@
     const m = await rpc('bry_save_get', { p_token: t, p_meta: true });
     if (!m || !m.updated_at) return 'none';
     if (m.updated_at === meta.at) return 'kept';
+    if (m.device && m.device === deviceId() && meta.at) { writeMeta(id, { ...meta, at: m.updated_at }); return 'kept'; }
     const dirty = local != null && sig(local) !== meta.sig;
-    if (dirty) {
-      if (!ask) return 'kept'; // 이 기기에서 한 것이 아직 안 올라갔다 → 이 기기 것을 올린다
+    // V.01 들어올 때: 이 기기 기록이 바뀌어 있어도, 마지막으로 맞춘 뒤 이 기기에서 직접 한 것이 없으면 다른 기기 기록을 받는다
+    if (dirty && (ask || touchedSince(id))) {
       const when = new Date(m.updated_at).toLocaleString('ko-KR');
-      if (!window.confirm(`서버에 저장된 기록이 있습니다. (${when})\n\n[확인] 서버의 기록을 불러온다\n[취소] 이 기기의 기록을 서버에 덮어쓴다`)) return 'kept';
+      if (!window.confirm(`서버에 다른 기기(모바일 · 컴퓨터)에서 저장한 기록이 있습니다. (${when})\n\n[확인] 서버의 기록을 불러온다\n[취소] 이 기기의 기록을 서버에 덮어쓴다`)) { setTimeout(() => pushSave({ force: true }), 1500); return 'kept'; }
     }
     const full = await rpc('bry_save_get', { p_token: t, p_meta: false });
     if (!full || !full.data) return 'none';
     const text = JSON.stringify(full.data);
-    set(PENDING_KEY(id), text); set(CLOUD_KEY(id), JSON.stringify({ at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) })); // vD.04.3 받은 사진은 다시 올리지 않는다
+    set(PENDING_KEY(id), text); writeMeta(id, { at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) }); // vD.04.3 받은 사진은 다시 올리지 않는다
     return 'pulled';
   }
   /* vD.06.2 서버 기록을 통째로 지웠을 때(supabase/reset_all.sql) 이 브라우저에 남은 옛 계정 · 기록 · 접속 표도 함께 지운다.
@@ -182,16 +250,20 @@
       const me = (await rpc('bry_me', { p_token: t })).user;
       const acc = readAcc(), u = acc.users[id], was = !!u.admin;
       if ((me.role === 'admin') !== was) { if (me.role === 'admin') u.admin = true; else delete u.admin; writeAcc(acc); location.reload(); return; }
-      if ((await pullSave(id, t, false)) === 'pulled') { location.reload(); return; }
+      if ((await pullSave(id, t, false)) === 'pulled') { leaving = true; location.reload(); return; }
     } catch (e) {
       if (e.code === 'banned') { window.alert(ERR.banned); del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
       if (e.code === 'login_required') { del(TOKEN_KEY(id)); del(SES_KEY); location.reload(); return; }
     }
     setInterval(() => { if (!document.hidden && !idle()) pushSave({ paced: true }); }, 30000); // vD.04.3 자리를 비운 동안엔 올리지 않는다(돌아오거나 화면을 가리면 올린다)
-    window.addEventListener('biryeong:active', () => pushSave({ paced: true }));
-    document.addEventListener('visibilitychange', () => { if (document.hidden) pushSave({ keepalive: true }); });
+    setInterval(() => { if (!document.hidden && !idle()) checkOther(); }, 60000); // V.01 다른 기기가 올린 기록이 있는지(시각만) 1분마다
+    window.addEventListener('biryeong:active', () => { checkOther(); pushSave({ paced: true }); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pushSave({ keepalive: true }); else checkOther(); }); // V.01 다시 보면 곧바로 맞춘다
+    window.addEventListener('focus', () => checkOther());
     window.addEventListener('pagehide', () => { pushSave({ keepalive: true }); });
     setTimeout(pushSave, 4000);
+    // V.01 다른 기기 기록을 받아 새로고침했으면 한 줄 알린다
+    try { if (sessionStorage.getItem('biryeong-synced-notice')) { sessionStorage.removeItem('biryeong-synced-notice'); setTimeout(() => window.BiryeongApp?.toast?.('기록 맞춤', '다른 기기(모바일 · 컴퓨터)에서 진행한 기록을 불러왔다.'), 1500); } } catch (_) { /* 무시 */ }
   }
   const newSalt = () => { const a = new Uint8Array(12); (window.crypto || {}).getRandomValues?.(a); return Array.from(a, (b) => (b || Math.floor(Math.random() * 256)).toString(16).padStart(2, '0')).join(''); };
 
