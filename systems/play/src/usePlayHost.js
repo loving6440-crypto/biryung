@@ -32,7 +32,7 @@ import { openSomeonesBag, startWait as startExploreWait, claimWait as claimExplo
 import { deposit, withdraw } from '@vault/game/locker.js'
 import { playHoljjak as playHoljjakGame } from '@vault/game/holjjak.js'
 import { GOBLIN_GAMES } from '@vault/game/hike.js'
-import { clubOf } from '@vault/game/clubs.js'
+import { clubOf, CLUBS } from '@vault/game/clubs.js'
 import { ITEMS } from '@vault/game/items.js'
 import { COOK_RECIPES as COOKS_ALL } from '@vault/game/cooking.js'
 import { PSYCHICS, BESTIARY_ENEMIES, PS_INFO } from '@vault/game/battle.js'
@@ -55,6 +55,7 @@ import { makeStoryEnemy, dropOf, bossRecipes, STORY_FOES } from './storyBoss.js'
 import { saveBossSlot as __saveBossSlot } from '@vault/game/bossSlots.js'
 import { STORY_ITEMS, STORY_RECIPES } from '../../biryeong/reskin.data.js'
 import { baseIdOf, enhTotal } from '@vault/game/items.js'
+import { notePsyBattle, psyCheck, psyProgressOf } from './psyUnlock.js' // V.01 영능력 얻는 방법
 
 const LOG_MAX = 80
 const COOK_IDS = { has: (id) => COOKS_ALL.some((r) => r.id === id) }
@@ -207,6 +208,7 @@ export function usePlayHost() {
       if (cur === before && !r.logs.length && !r.unlocked?.length && r.player !== cur && onlyFraction(cur, r.player) && !timedRegenDue(cur, now)) return
       last = now
       let np = r.player
+      if (cur.resting && !np.resting) { const u = psyCheck(np, PSYCHICS); if (u.got.length) { np = u.player; u.logs.forEach(addLog) } } // V.01 형상 기억: 양호실 10회
       { // vD.02 음식의 시간 기운: 1분마다 체력 · 의지력이 조금씩(전투 중에는 쉰다)
         const tv = (k) => { const t = np.timed?.[k]; return t && t.until > now ? Number(t.v) || 0 : 0 }
         const hr = tv('hpRegen'), mr = tv('mpRegen')
@@ -483,6 +485,15 @@ export function usePlayHost() {
     commit({ ...cur, spirit: (cur.spirit || 0) + Math.floor(n) }); addLog(`상대의 영력 ${Math.floor(n)}을(를) 앗아왔다.`)
   }
   globalThis.__BRY_SPIRIT_STEAL = stealSpirit
+  // V.01 한 판이 끝나면 전투 화면(Battle.jsx · MultiBattle.jsx)이 그 판의 기록을 넘긴다 → 영능력 얻는 방법을 쌓고, 채우면 준다
+  globalThis.__BRY_PSY_STAT = (stat, meta) => {
+    const cur = playerRef.current
+    if (!cur) return
+    const r = notePsyBattle(cur, stat, meta, PSYCHICS)
+    if (r.player !== cur) commit(r.player)
+    for (const t of r.logs) { addLog(t); bridge.toast?.('영능력', t) }
+    if (r.got.length) persist()
+  }
   const countWin = (enemy) => {
     bump('battleWins')
     if (!enemy) return
@@ -1134,6 +1145,10 @@ const openTierNow = () => Math.max(1, Math.min(10, Number(globalThis.BiryeongQue
     npcActive: () => activeList(playerRef.current).map(({ q, pr, npc }) => ({ id: q.id, npc, title: q.title, where: q.where, goal: npcGoalText(q), cur: pr?.cur ?? 0, need: pr?.need ?? 1, done: !!pr?.done })),
     npcAct: (kind, id) => { const cur = playerRef.current; const r = kind === 'accept' ? acceptQuest(cur, id) : kind === 'abandon' ? abandonQuest(cur, id) : finishQuest(cur, id); if (r.error) { notify(r.error); return null } commit(r.player); addLog(r.log); persist(); return r.line ?? '' },
     clubEnsure: (clubId) => { const cur = playerRef.current; const nx = ensureClubWeek(cur, clubId, effStats, openTierNow()); if (nx !== cur) commit(nx) },
+    // V.01 오른쪽 [동아리] 창(app.js): 동아리 목록 · 내 동아리 — 다른 동아리의 할일은 미리 보기(저장하지 않는다)
+    psyProgress: (id) => psyProgressOf(playerRef.current, id), // V.01 도감: 영능력 얻는 방법 진행(n회 / n회)
+    clubList: () => CLUBS.map(({ id, name, room, floor }) => ({ id, name, room, floor })),
+    clubMine: () => countsRef.current.club?.id ?? null,
     clubClaim: (clubId, kind, id) => { const r = claimClub(playerRef.current, clubId, kind, id); if (r.error) { notify(r.error); return false } commit(r.player); addLog(r.log); persist(); return true },
     // vC.06 [현재 상태] 칸: 몸의 이상 + 쇠약
     conditions: () => { const cur = playerRef.current, now = Date.now(); const list = activeAilments(cur, now).map((a) => ({ id: a.id, name: a.def.name, hanja: a.def.hanja, stack: a.stack, max: a.def.max, heavy: a.def.heavy, left: leftText(a.left), effect: a.def.effect, text: a.def.text })); const w = Math.max(cur?.weakUntil || 0, cur?.curseUntil || 0); if (w > now) list.unshift({ id: 'weak', name: WEAK_INFO.name, hanja: WEAK_INFO.hanja, stack: 1, max: 1, heavy: true, left: leftText(w - now), effect: WEAK_INFO.effect, text: WEAK_INFO.text }); for (const [k, t] of Object.entries(cur?.timed ?? {})) if (t.until > now) list.push({ id: `timed-${k}`, good: true, name: '음식의 기운', hanja: '', stack: 1, max: 1, heavy: false, left: leftText(t.until - now), effect: TIMED_LABEL[k]?.(t.v) ?? k, text: '음식을 먹고 기운이 돈다.' }); return list }, // vD.02 음식의 시간 기운도 보인다

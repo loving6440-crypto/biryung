@@ -229,7 +229,7 @@ export function stolenTurn(state, s, id, ctx, rng, stats, mpNow0, H) {
     s.ps = {}
     s.curse = 0
     s.bound = false
-    if (had) bits.push('몸에 걸린 것을 모두 털어냈다')
+    bits.push(had ? '몸에 걸린 것을 모두 털어냈다' : '털어낼 것이 없었다(걸린 것이 없다)')
   }
   if (k.gd && !s.bound) { s.guard = true; bits.push('막기 자세를 잡았다') }
   const alive = s.ehp > 0

@@ -3520,10 +3520,6 @@
     ],
     "PSY_SEAL_ROUNDS": 3,
     "PS_INFO": {
-      "bryBuff": {
-        "label": "오방기",
-        "desc": "선택한 육조 능력치 +5"
-      },
       "itemSeal": {
         "label": "아이템 봉인",
         "desc": "아이템을 쓸 수 없다."

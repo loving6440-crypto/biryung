@@ -1,8 +1,15 @@
+# 비령 V.01
+
+서버 적용: Supabase SQL Editor 에서 **`supabase/v01_patch.sql`** 한 번 실행(새 DB 는 `supabase/schema.sql`). 자세한 내용은 `V01_README.md`.
+지난 패치 파일은 `supabase/old/` 에 기록으로만 남겼습니다 — 다시 실행하지 마세요.
+
+---
+
 # D.06.6 보안·부하 개선
 
 원본 D.06.5의 화면과 게임 데이터를 유지하며 Node 서버 및 Supabase 연결 보호를 보강한 배포본입니다.
 
-**기존 Supabase DB에 반드시 `supabase/security_patch_D.06.6.sql`을 1회 실행해야 권한 변경이 실제 적용됩니다.** 전체 실행 안내는 `SECURITY_D.06.6.md`를 참조하세요.
+**(V.01부터는 `supabase/v01_patch.sql` 하나로 대신합니다.)** 전체 실행 안내는 `SECURITY_D.06.6.md`를 참조하세요.
 
 ---
 

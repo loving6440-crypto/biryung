@@ -7,7 +7,100 @@ import { readFileSync } from 'node:fs'
  *   @story/…    → systems/play/src/…   (비령 쪽 모듈)
  *   @biryeong/… → systems/biryeong/…
  */
+import { VAULT_EDITS_D06 } from './vaultEdits.mjs' // V.01 보관고를 직접 고쳤던 것(D.06.7~18)을 끼워 넣기로
 export const SOURCE_PATCHES = [
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["    enemyId: mb.enemy.id,\n", "    enemyId: mb.enemy.id,\n    partySize: mb.enemy.partySize || 1, // V.01 3인용 보스를 2인으로(도깨비불)\n"],
+      ["      borrowedPsychic: m.borrowedPsychic||null,\n", "      borrowedPsychic: m.borrowedPsychic||null,\n      bryStat: m.bryStat || {}, // V.01 영능력 얻는 방법(한 판의 기록)\n"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/MultiBattle.jsx',
+    edits: [
+      ["  const me = view.members.find((m) => m.id === meId)\n", "  const me = view.members.find((m) => m.id === meId)\n  // V.01 판이 끝나면 한 번: 내 한 판 기록을 영능력 얻는 방법에 넘긴다(psyUnlock.js)\n  const psyNoted = useRef(false)\n  useEffect(() => {\n    if (!view.over || psyNoted.current || !me) return\n    psyNoted.current = true\n    globalThis.__BRY_PSY_STAT?.(me.bryStat, { party: true, size: view.members.length, win: view.over === 'win', boss: !!view.boss, partySize: view.partySize })\n  }, [view.over, me, view.members.length, view.boss, view.partySize])\n"],
+    ],
+  },
+  // ── V.01 영능력 얻는 방법 세기(psyUnlock.js): 한 판 동안 state.bryStat 에 모은다 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      ["export function playerTurn(state, action, ctx, rng = Math.random) {", "/** V.01 영능력 얻는 방법을 세는 칸(한 판) — psyUnlock.js */\nexport function bryStatAdd(s, k, v = 1, max = false) { const b = { ...(s.bryStat || {}) }; b[k] = max ? Math.max(b[k] || 0, v) : (b[k] || 0) + v; s.bryStat = b; return s }\nexport function playerTurn(state, action, ctx, rng = Math.random) {"],
+      ["      s.guard = true\n      ev.push({ kind: 'player', text: '막기 자세를 취했다.' })", "      s.guard = true\n      bryStatAdd(s, 'g')\n      ev.push({ kind: 'player', text: '막기 자세를 취했다.' })"],
+      ["  if (act === 'attack') {\n    let r, buffNote = ''", "  if (act === 'attack') {\n    bryStatAdd(s, 'a'); if (ctx.rash) bryStatAdd(s, 'rash')\n    let r, buffNote = ''"],
+      ["    mpCost = mpCostOf(stats, amount)\n    const n = scanTurns(stats, s.enemy, amount)", "    mpCost = mpCostOf(stats, amount)\n    bryStatAdd(s, 'sc', mpCost, true)\n    const n = scanTurns(stats, s.enemy, amount)"],
+      ["    s.queue = [reroll, ...s.queue.slice(1)]", "    s.queue = [reroll, ...s.queue.slice(1)]\n    bryStatAdd(s, 'mist')"],
+      ["  return { ...r, state: s, events: ev, mpCost }\n}", "  if (mpCost > 0) bryStatAdd(s, 'mp', mpCost)\n  return { ...r, state: s, events: ev, mpCost }\n}"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["    if (rr.hit) m.act = { action: 'attack', forced: true }", "    if (rr.hit) m.act = { action: 'attack', forced: true, rash: true }"],
+      ["forced: !!act.forced }, rng)", "forced: !!act.forced, rash: !!act.rash }, rng)"],
+      ["  m.ps = r.state.ps || {}\n  mb.es = r.state.es || {}", "  m.ps = r.state.ps || {}\n  if (r.state.bryStat) m.bryStat = r.state.bryStat\n  mb.es = r.state.es || {}"],
+      ["    t.php = r.state.php\n    t.phpMax = r.state.phpMax ?? t.phpMax", "    t.php = r.state.php\n    if (prevPhp > t.php) { const b = { ...(t.bryStat || {}) }; b.hit = (b.hit || 0) + 1; if (intent === 'smash' && !v.guard) b.smash = (b.smash || 0) + 1; t.bryStat = b }\n    t.phpMax = r.state.phpMax ?? t.phpMax"],
+      ["function finishIfOver(mb) {\n  if (mb.over) return true", "function finishIfOver(mb) {\n  // V.01 3인 전투에서 다른 일행이 모두 쓰러지고 혼자 남았다(내려쬐는 빛)\n  if (mb.members.length === 3 && aliveOf(mb).length === 1 && mb.members.filter((x) => x.status === 'down' || x.pendingDeath).length === 2) { const x = aliveOf(mb)[0]; x.bryStat = { ...(x.bryStat || {}), alone: 1 } }\n  if (mb.over) return true"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Battle.jsx',
+    edits: [
+      ["        resolve(state, 'attack', { forced: true }) // 돌발로 억지로 움직인 턴은 '직접 고른 턴'이 아니다 (칠성낙인)", "        resolve(state, 'attack', { forced: true, rash: true }) // 돌발로 억지로 움직인 턴은 '직접 고른 턴'이 아니다 (칠성낙인)"],
+      ["      onFinish({ win: state.over === 'win', fled: state.over === 'fled', enemy: state.enemy, hp: state.php, mp: mpRef.current, log: fullLogRef.current })", "      globalThis.__BRY_PSY_STAT?.(state.bryStat, { party: false, size: 1, win: state.over === 'win', boss: !!state.enemy?.boss, partySize: state.enemy?.partySize }) // V.01 영능력 얻는 방법\n      onFinish({ win: state.over === 'win', fled: state.over === 'fled', enemy: state.enemy, hp: state.php, mp: mpRef.current, log: fullLogRef.current })"],
+    ],
+  },
+  {
+    file: 'game/progress.js',
+    edits: [
+      ["    p = bumpWeekly(p, rs.kind === 'bed' ? 'nurseRest' : 'nurseCounsel', 1, now)", "    p = bumpWeekly(p, rs.kind === 'bed' ? 'nurseRest' : 'nurseCounsel', 1, now)\n    p = { ...p, psyProg: { ...(p.psyProg || {}), nurse: (p.psyProg?.nurse || 0) + 1 } } // V.01 형상 기억: 양호실 이용(누적)"],
+    ],
+  },
+  // ── V.01 영능력 점검: 혼자 · 일행 전투에서 다르게 돌던 것 맞추기 ──
+  {
+    file: 'game/battle.js',
+    edits: [
+      // 생존본능: 효험을 걸어도 도주 확률이 같으니(신속 그대로) 의지력 10을 받지 않는다
+      ["  const buffed = !!ctx.buff && mpNow >= mpCostOf(stats, BUFF_COST)", "  const buffed = false // V.01 생존본능은 효험과 상관없다 — 효험 의지력을 받지 않는다"],
+      // 형상 기억: 「100까지」 회복 — 최대 체력을 넘지 않고, 이미 100보다 많으면 깎지 않는다
+      ["    if (healSelf) s.php = 100", "    if (healSelf) s.php = Math.max(Math.floor(s.php), Math.min(s.phpMax ?? 100, 100))"],
+      ["${healSelf ? '자신의' : '일행의'} 체력을 100으로 되돌렸다", "${healSelf ? '자신의' : '일행의'} 체력을 100까지 되돌렸다(최대 체력은 넘지 않는다)"],
+      // 벽사진경: 일행의 의지력을 채우는 영능력 — 혼자 싸울 때는 의지력만 날아가므로 쓰지 못하게
+      ["    if (id === 'earth-step' && state.myTurns > 0)", "    if (id === 'warding-scripture' && !state.party)\n      return { state, events: [{ kind: 'warn', text: '벽사진경은 일행 전투에서만 쓸 수 있다.' }], mpCost: 0, invalid: true }\n    if (id === 'earth-step' && state.myTurns > 0)"],
+    ],
+  },
+  {
+    file: 'game/mbattle.js',
+    edits: [
+      ["if (healed) healed.php = Math.min(healed.phpMax, 100)", "if (healed) healed.php = Math.max(healed.php, Math.min(healed.phpMax, 100)) // V.01 100까지 — 더 많으면 그대로"],
+      // 벽사진경을 나에게 쓰면 아래(selfMpRestoration)에서 한 번만 채운다 — 예전엔 두 번 채워져 의지력이 늘었다
+      ["if (target) target.mp = Math.min(target.mpMax, target.mp + (r.healMpAmount || 0))", "if (target && target.id !== m.id) target.mp = Math.min(target.mpMax, target.mp + (r.healMpAmount || 0))"],
+      // 진리의 어둠: 내가 바친 의지력만큼 다른 일행이 받는다(의지력이 0인 일행도 받는다)
+      ["x.mp+Math.floor(x.mp*0.5)", "x.mp+Math.max(0,Math.floor(r.shareMpAmount||0))"],
+      // 영력결계 중에도 쓸 수 있는 「적을 노리지 않는」 영능력 — 혼자 싸울 때와 같은 목록
+      ["export const BARRIER_ALLY_SKILLS = ['survival', 'echo-form', 'falling-light', 'karmic-recompense', 'warding-scripture', 'earth-step', 'seven-stars','steal-agwi','steal-geumdwaeji','steal-geuseundae-2','steal-mangtae-halabeom','steal-songaksi','steal-imae-mangryang','steal-myogwi','steal-dokgak-gwi']", "export const BARRIER_ALLY_SKILLS = ['survival', 'echo-form', 'falling-light', 'karmic-recompense', 'warding-scripture', 'earth-step', 'seven-stars','steal-agwi','steal-geumdwaeji','steal-geuseundae-2','steal-mangtae-halabeom','steal-songaksi','steal-imae-mangryang','steal-myogwi','steal-dokgak-gwi','steal-scarecrow','steal-mongdangbi','steal-gumiho-2','steal-noho-seung','steal-chokru-gwi','steal-yeoksin-2','steal-geumdwaeji-2']"],
+    ],
+  },
+  {
+    file: 'ui/components/locations/Battle.jsx',
+    edits: [
+      ["(id === 'survival' || id === 'monkey-paw' || id === 'dokkaebi-fire')", "(id === 'monkey-paw' || id === 'dokkaebi-fire')"],
+      ["    if (barrierOn(cur.enemy) && !['survival','echo-form','falling-light','karmic-recompense','earth-step','seven-stars','warding-scripture','steal-geumdwaeji','steal-songaksi','steal-myogwi','steal-dokgak-gwi'].includes(id)) {", "    if (barrierOn(cur.enemy) && !['survival', 'echo-form', 'falling-light', 'karmic-recompense', 'warding-scripture', 'earth-step', 'seven-stars','steal-agwi','steal-geumdwaeji','steal-geuseundae-2','steal-mangtae-halabeom','steal-songaksi','steal-imae-mangryang','steal-myogwi','steal-dokgak-gwi','steal-scarecrow','steal-mongdangbi','steal-gumiho-2','steal-noho-seung','steal-chokru-gwi','steal-yeoksin-2','steal-geumdwaeji-2'].includes(id)) {"],
+      // 칠성낙인: 일행 전투처럼 혼자 싸울 때도 영능력 공격(원숭이 손 · 빼앗은 영능력)에 더한 호전이 실린다
+      ["      r = psychicTurn(pre.state, id, {\n        stats,\n", "      r = psychicTurn(pre.state, id, {\n        stats: cur.starBonus ? withHidden(stats, { aggression: stats.aggression + cur.starBonus }) : stats,\n"],
+    ],
+  },
+  // ── V.01 매점 판매가: 개척에서 나오는 재료는 「그 재료를 주는 가장 쉬운 개척 터의 레벨(관련 스탯 평균)」로 값을 정한다 ──
+  //   예전에는 칸마다 제각각인 칸 레벨 ÷ 4 라서, 같은 터에서도 들쑥날쑥했다(벽돌 4냥 · 취나물 3냥 …).
+  //   식물 · 장애물: 1 + 터 레벨 × 0.6 · 동물: 그 1.25배 · 드물게 나오면 √확률로 나눠 더 비싸게 · 영물: 8 + 터 레벨 × 2.6 · 요괴: 단계 × 5
+  {
+    file: 'game/sell.js',
+    edits: [
+      ["    for (const n of [...(site.nodes ?? []), ...spirits]) {\n      const sp = HUNT_SPECIES[n.species]\n      for (const r of sp?.rewards ?? []) {\n        const chance = Math.max(0.05, r.chance ?? 1)\n        const v = sp.kind === 'spirit' ? Math.round(n.level / 3) + 10 : Math.round(n.level / 4 / Math.sqrt(chance))\n        put(r.item, Math.max(1, v))\n      }\n    }",
+       "    const L = Number.isFinite(site.targetStat) ? site.targetStat : 1\n    for (const n of [...(site.nodes ?? []), ...spirits]) {\n      const sp = HUNT_SPECIES[n.species]\n      for (const r of sp?.rewards ?? []) {\n        const chance = Math.max(0.05, r.chance ?? 1)\n        const base = 1 + L * 0.6\n        const v = sp.kind === 'spirit' ? Math.round(8 + L * 2.6) : Math.round(base * (sp.kind === 'animal' ? 1.25 : 1) / Math.sqrt(chance))\n        put(r.item, Math.max(1, v))\n      }\n    }"],
+    ],
+  },
   // ── vC.06 개척 터: 레벨을 만렙 40 기준으로 · 이름 · 설명 · 순서(huntLevels.js) · 개척 기록 칸 고정 ──
   {
     file: 'game/huntSites.js',
@@ -729,6 +822,10 @@ export function itemMatches(item, query0) {
 ]
 
 /** 한 파일의 원문에 조각을 적용한다. relPath: systems/vault/modules 기준 경로 */
+SOURCE_PATCHES.unshift(...VAULT_EDITS_D06) // 보관고 원본 위에 가장 먼저 끼운다(그때 고친 글이 원본 기준이라)
+// V.01 영능력 얻는 방법 세기: 일행 전투 화면값(viewOfMember)에도 한 판의 기록을 싣는다 — 다른 조각이 칸을 다 붙인 뒤에 끼운다
+SOURCE_PATCHES.push({ file: 'game/mbattle.js', edits: [["  dmgCut: m.dmgCut || 0,\n})", "  dmgCut: m.dmgCut || 0,\n  bryStat: m.bryStat || {},\n})"]] })
+
 export function applyPatches(relPath, text) {
   // 같은 파일에 묶음이 여럿이면 적힌 차례대로 모두 끼운다(앞 묶음만 쓰고 뒤를 건너뛰지 않는다).
   for (const p of SOURCE_PATCHES.filter((x) => relPath.replace(/\\/g, '/').endsWith(x.file))) {

@@ -414,6 +414,7 @@ html[data-theme="light"] .dex-line{color:#455746}
 html[data-theme="light"] .dex-line b{color:#2b8751}
 html[data-theme="light"] .dex-line.is-lore span{color:#2c553a}
 html[data-theme="light"] .dex-line.is-from span{color:#375b60}
+html[data-theme="light"] .dex-line.is-progress span{color:#2a8650}
 html[data-theme="light"] .dex-line.is-hidden span,html[data-theme="light"] .dex-note.is-hidden,html[data-theme="light"] .dex-special.is-hidden{color:#708ea9}
 html[data-theme="light"] .dex-note{color:#2c553a}
 html[data-theme="light"] .dex-stats{color:#24452f}
@@ -489,7 +490,24 @@ html[data-theme="light"] .case-para{color:#264a32}
 html[data-theme="light"] .case-oracle{background:#eef5ec;border:1px solid #47c9d1}
 html[data-theme="light"] .case-oracle b{color:#419aa0}
 html[data-theme="light"] .case-oracle p{color:#2c5539}
-html[data-theme="light"] .note-form input,html[data-theme="light"] .note-form textarea{background:#eff5ed;border:1px solid #708ca9;color:#24452f}
+html[data-theme="light"] .club-tab{border:1px solid #7096a9;background:#e8f1e5;color:#295036}
+html[data-theme="light"] .club-tab:hover{border-color:#27874f}
+html[data-theme="light"] .club-tab.is-on{background:#2a8650;color:#ecf3ea;border-color:#2c563a}
+html[data-theme="light"] .club-tab.is-mine:not(.is-on){border-color:#39905d;color:#206f41}
+html[data-theme="light"] .club-sec{background:#ecf3ea;border:1px solid #deebda}
+html[data-theme="light"] .club-sec-head{color:#227143}
+html[data-theme="light"] .club-sec-head small{color:#576e59}
+html[data-theme="light"] .club-list.club-meta{border-top:1px dashed #deebd9}
+html[data-theme="light"] .club-q{border:1px solid #e0ecdc;background:#eaf2e8}
+html[data-theme="light"] .club-q-label{color:#24462f}
+html[data-theme="light"] .club-q.is-claimed .club-q-label{color:#68846a}
+html[data-theme="light"] .club-q-state{color:#2a8650}
+html[data-theme="light"] .club-q.is-claimed .club-q-state{color:#68846a}
+html[data-theme="light"] .club-q-note{color:#5a735c}
+html[data-theme="light"] .club-q-foot{color:#465847}
+html[data-theme="light"] .club-q-bar{background:#eff5ed}
+html[data-theme="light"] .club-q-bar i{background:#2a8650}
+html[data-theme="light"] .club-q-reward{color:#2a8650}
 html[data-theme="light"] .leave-ask{background:rgba(242,247,240,0.72)}
 html[data-theme="light"] .leave-ask-box{background:#ebf3e9;border:1px solid #2b8751;box-shadow:6px 6px 0 #f1f6ef}
 html[data-theme="light"] .leave-ask-text{color:#24452f}
@@ -715,6 +733,8 @@ html[data-theme="light"] .popup-notice::backdrop{background:rgba(242,247,240,0.6
 html[data-theme="light"] .popup-notice-box{background:#ecf3e9;border:2px solid #369e61;color:#23432e;box-shadow:0 18px 60px rgba(245,249,243,0.6)}
 html[data-theme="light"] .popup-notice-over{color:#369e61}
 html[data-theme="light"] .popup-notice h2{color:#2c9658}
+html[data-theme="light"] .party-call-bell{border:1px solid rgba(54,158,97,0.6);background:#e7f0e3;color:#206f41}
+html[data-theme="light"] .party-call-bell:hover,html[data-theme="light"] .party-call-bell:focus-visible{background:#ddead9;outline:2px solid #2b8751}
 
 /* 손으로 고른 몇 가지 */
 html[data-theme="light"]{color-scheme:light}

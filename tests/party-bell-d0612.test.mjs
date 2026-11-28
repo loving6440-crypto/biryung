@@ -24,7 +24,7 @@ test('D.06.12: 화면 입력창의 작은 호출 종과 수신 처리', () => {
   assert.ok(c.includes('.party-call-bell'))
 })
 test('D.06.12: 서버 권한·일행 제한·호출 남발 방지와 기존 SQL 재실행 파일', () => {
-  const m=file('supabase/party_bell_D.06.12.sql'), schema=file('supabase/schema.sql')
+  const m=file('supabase/old/party_bell_D.06.12.sql'), schema=file('supabase/schema.sql')
   assert.ok(m.includes('create table if not exists biryeong_private.room_bells'))
   assert.ok(m.includes("r.members @> jsonb_build_array(jsonb_build_object('u', a.username))"))
   assert.ok(m.includes("r.status = 'open'"))

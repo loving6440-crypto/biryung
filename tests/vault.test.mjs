@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import * as Vault from '../systems/vault/index.mjs';
+import { applyPatches as applyPatchesSync } from '../systems/play/patches.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const VAULT = join(ROOT, 'systems/vault');
@@ -443,7 +444,7 @@ tB01('vB.01: 지신성 없음 · 수업 랭킹은 서버로 · 업데이트 노�
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   assertB01.ok(!/data-community="social"/.test(html) && !/data-community-tab="social"/.test(html), '지신성 단추가 없다')
   const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8')
-  assertB01.ok(/const UPDATE_NOTES = \[\];/.test(app) && !/v: 'v1\.\d/.test(app), '예전 노트는 지웠다(vC.01: 모두 비움)')
+  assertB01.ok(!/UPDATE_NOTES/.test(app) && !/v: 'v1\.\d/.test(app), '예전 노트는 지웠다(V.01: 업데이트 노트 창 자체를 동아리 창으로 바꿨다)')
   assertB01.ok(/정말 나가겠습니까\? 지금 나가면 보상을 얻을 수 없습니다\./.test(app))
   const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
   for (const fn of ['bry_rank', 'bry_rank_submit', 'bry_notes', 'bry_admin_note_post', 'bry_admin_note_delete']) assertB01.ok(new RegExp(`function public\\.${fn}\\(`).test(sql), fn)
@@ -582,7 +583,7 @@ test('vC.02: 육조 스탯 만렙 40 · 추가전투 1~10단계 재조정(보스
 test('vC.04: app.js 는 없는 이름(App)을 부르지 않는다 — 업데이트 노트 화면이 비어 버리던 원인', () => {
   const app = readFileSync(join(ROOT, 'app.js'), 'utf8')
   assert.ok(!/(^|[^.\w])App\.[a-zA-Z]+\(/.test(app), 'app.js 안에서는 Auth · window.BiryeongApp 를 쓴다')
-  assert.ok(/function renderNotes\(\)[\s\S]{0,400}Auth\.isAdmin\(\)/.test(app))
+  assert.ok(/function renderClubs\(\)/.test(app) && !/function renderNotes\(\)/.test(app), 'V.01 업데이트 노트 창 → 동아리 창')
 })
 
 test('vC.05: 막기는 1d(인내)만큼 더 막는다 · 튜토리얼 체력/의지력 기억 · 업적 · 아이템 가나다순', async () => {
@@ -684,7 +685,11 @@ test('vC.07.6: 보스 전투 준비(출발 뒤 아이템 3 · 영능력 2) · �
   assert.ok(sp.includes('<BattleBag') && sp.includes('mates={view.members.filter') && sp.includes('mb.acks = {') && !sp.includes('function ItemPicker'))
   assert.ok(sp.includes('fx: weaponFx(player)') && sp.includes('bringLimit: !!limit'))
   const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8')
-  assert.ok(pt.includes('mb.enemy.bringLimit') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('stealUses: m.stealUses || {}') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('mpMax:m.mpMax') && readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'),'utf8').includes('amount: act.amount'))
+  // V.01 보관고 원본은 그대로 두고 끼워 넣은 결과(빌드가 쓰는 글)로 확인한다
+  const mbp = applyPatchesSync('game/mbattle.js', readFileSync(join(ROOT, 'systems/vault/modules/game/mbattle.js'), 'utf8'))
+  assert.ok(pt.includes('mb.enemy.bringLimit') && mbp.includes('stealUses: m.stealUses || {}') && mbp.includes('mpMax:m.mpMax') && mbp.includes('amount: act.amount'))
+  for (const m of mbp.matchAll(/stealUses: m\.stealUses \|\| \{\},[\s\S]{0,400}/g)) assert.ok(!m[0].slice(10).includes('stealUses:'), '같은 칸이 두 번 적히지 않는다')
+  assert.ok(mbp.includes('if (__borrow) { m.borrowPsychic -= 1') && !mbp.includes('typeof __borrow'), '붉은여우 부적 빌려 쓰기는 한 번 쓰면 줄어든다')
 })
 
 test('vD.01: 뒷산 탐사 · 얼굴 그림 매끈하게 · 퀘스트 잔상 · 띠링 · 우편함 · 상태 설명 · 옆 창 일행 대화', () => {
@@ -1023,7 +1028,7 @@ test('vD.06: 이벤트 「학생 괴담 수칙」 — 관리자 공개 · 신수
   assert.ok(ev.includes("key: 'beast'") && ev.includes('6: \'이름 없는 것에게는 이름을 불러 주어라\''))
   const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
   assert.ok(q.includes("sync.adminRoute(adminCode(), 'BEAST_EVENT'") && q.includes('최초에 이름을 정하면 이름을 바꿀 수 없습니다. 확인하셨습니까?'))
-  assert.ok(readFileSync(join(ROOT, 'index.html'), 'utf8').includes('beast-event.js?v=D.06'))
+  assert.ok(readFileSync(join(ROOT, 'index.html'), 'utf8').includes('beast-event.js?v=V.01'))
   const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8'); assert.ok(pt.includes('data-beast-locked') && pt.includes('아직 공개되지 않았다.'))
   const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8'); assert.ok(sp.includes("st.p === 'smear' && act === 'call'"))
   const bc = readFileSync(join(ROOT, 'systems/play/src/BeastCare.jsx'), 'utf8'); assert.ok(!bc.includes('이름 바꾸기') && !bc.includes('아기 ') && bc.includes('NAME_NOTICE'))

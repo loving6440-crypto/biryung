@@ -106,7 +106,7 @@ Object.assign(T, {
     'foxfire#1': { mp:10, m:3, p:1, sf:0.20 },
     'bulgasari#1': { mp:40, sp:3, spiritToMp:true },
     'geuseundae#1': { mp:40, m:3, p:1, sil:5 },
-    'geuseundae#2': { mp:0, shareRemainingMp:true },
+    'geuseundae#2': { mp:0, shareRemainingMp:true, partyOnly:true }, // V.01 혼자면 의지력만 날아간다
     'yagwanggwi#1': { mp:15, mimicEnemy:true, onceBattle:true },
     'dalgyal-gwisin#1': { mp:10, randomAilments:2, st:100, stunTurns:2 },
     'dungap-jwi#1': { mp:20, m:0.4, n:3, st:10 },
@@ -115,7 +115,7 @@ Object.assign(T, {
     'mongdal-gwisin#1': { mp:30, enemyAtkHalf:5 },
     'dokgak-gwi#1': { mp:10, extraTurns:2 },
     'jangsanbeom#1': { mp:20, rv:5, editEnemyQueue:true },
-    'jangsanbeom#2': { mp:10, redirectNext:true },
+    'jangsanbeom#2': { mp:10, redirectNext:true, partyOnly:true }, // V.01 혼자면 대상을 바꿀 일행이 없다
     'heokkaebi#1': { mp:15, rv:5, deleteOneAction:true },
     'daemang#1': { mp:30, m:1, p:1, ls:1 },
     'songaksi#1': { mp:50, firstTurnStatBuff:true },

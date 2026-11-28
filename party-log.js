@@ -10,21 +10,36 @@
   };
   const safeId = (id) => { const n = Number(id); if (!Number.isSafeInteger(n) || n < 1) throw new Error('대화방 번호를 확인할 수 없습니다.'); return n; };
 
-  // 서버에서 300개씩 제공하는 메시지를 id 커서로 끝까지 조회한다. 현재 화면의 마지막 300개만 저장하지 않는다.
-  async function collect(roomId, call) {
-    const id = safeId(roomId), msgs = [];
-    let after = 0;
+  // V.01 서버 부하: 내려받기 전용 함수(bry_room_msgs_export)로 1000건씩, 쪽 사이를 잠깐 쉬며 끝까지 모은다.
+  //   · 방 정보는 첫 쪽에만 받는다(화면용 bry_room_msgs 는 300건마다 방 정보를 다시 만든다).
+  //   · 서버가 「요청이 많다」고 하면 몇 초 쉬었다가 같은 자리부터 다시 받는다.
+  //   · 서버에 아직 V.01 SQL 이 없으면 예전 함수(300건씩)로, 역시 쉬어 가며 받는다.
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function collect(roomId, call, opt = {}) {
+    const id = safeId(roomId), msgs = [], pause = opt.pause ?? 250;
+    let after = 0, room = null, legacy = false, busy = 0;
     while (true) {
-      const page = await call('bry_room_msgs', { p_room: id, p_after: after });
+      let page;
+      try {
+        page = await call(legacy ? 'bry_room_msgs' : 'bry_room_msgs_export', { p_room: id, p_after: after });
+      } catch (e) {
+        if (!legacy && e?.code === 'schema_missing') { legacy = true; continue; }
+        if (/too_many_requests|요청이 너무 많/.test(`${e?.code || ''} ${e?.message || ''}`) && busy < 6) { busy += 1; await sleep(opt.busyWait ?? 5000); continue; }
+        throw e;
+      }
+      busy = 0;
       const batch = page?.msgs;
       if (!Array.isArray(batch)) throw new Error('서버의 대화 내역 형식이 올바르지 않습니다.');
+      if (!room || after === 0) room = page?.room || room;
       for (const msg of batch) {
         const next = Number(msg.id);
         if (!Number.isSafeInteger(next) || next <= after) throw new Error('대화 내역의 순서가 올바르지 않습니다.');
         msgs.push(msg); after = next;
       }
       if (msgs.length > 100000) throw new Error('기록이 10만 건을 초과하여 한 번에 저장할 수 없습니다.');
-      if (batch.length < 300) return { messages: msgs, room: page?.room };
+      const more = legacy ? batch.length >= 300 : (page?.more ?? batch.length >= 1000);
+      if (!more || !batch.length) return { messages: msgs, room: legacy ? page?.room || room : room };
+      if (pause > 0) await sleep(pause);
     }
   }
 

@@ -2,34 +2,60 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
-import { enhCostFor as vaultCost } from '../systems/vault/modules/game/items.js';
+// V.01 보관고 원본은 그대로 두고, 빌드가 끼워 넣은 결과의 강화 비용 함수와 맞춘다
+import { applyPatches } from '../systems/play/patches.mjs';
+import { readFileSync as __r } from 'node:fs';
+import { runInNewContext as __run } from 'node:vm';
+const __items = applyPatches('game/items.js', __r(new URL('../systems/vault/modules/game/items.js', import.meta.url), 'utf8'));
+const __fn = __items.match(/export function enhCostFor\(level\) \{[\s\S]*?\n\}/)[0].replace('export ', '');
+const __vc = __run(`const ENH_MAX = 15; ${__fn}; enhCostFor`);
+const vaultCost = (lv) => { const r = __vc(lv); return r && { ...r }; };
 import { enhCostFor as coreCost } from '../systems/rules/items.js';
 
 const source = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
 const loadPartyLog = () => {
-  const ctx = createContext({ window: {}, Intl, Date, Number, String });
+  const ctx = createContext({ window: {}, Intl, Date, Number, String, setTimeout, Promise });
   runInContext(source('party-log.js'), ctx);
   return ctx.window.BiryeongPartyLog;
 };
 
-test('D.06.8: 대화 로그는 300건 초과 기록도 빠짐없이 오름차순 수집', async () => {
+test('D.06.8: 대화 로그는 300건 초과 기록도 빠짐없이 오름차순 수집(서버에 V.01 함수가 없을 때의 예전 길)', async () => {
   const archive = Array.from({ length: 607 }, (_, i) => ({ id: i + 100, name: `사람${i % 2}`, u: 'abc', body: `메시지 ${i}`, at: '2026-11-26T09:00:00Z' }));
   const calls = [];
   const call = async (name, args) => {
+    if (name === 'bry_room_msgs_export') { const e = new Error('없음'); e.code = 'schema_missing'; throw e; }
     assert.equal(name, 'bry_room_msgs');
     assert.equal(args.p_room, 12);
     calls.push(args.p_after);
     return { room: { id: 12, status: 'ended' }, msgs: archive.filter(x => x.id > args.p_after).slice(0, 300) };
   };
   const log = loadPartyLog();
-  const result = await log.collect(12, call);
+  const result = await log.collect(12, call, { pause: 0 });
   assert.equal(result.messages.length, 607);
   assert.equal(result.messages.at(0).id, 100);
   assert.equal(result.messages.at(-1).id, 706);
-  assert.equal(calls.length, 3);
-  assert.equal(calls[0], 0);
-  assert.equal(calls[1], 399);
-  assert.equal(calls[2], 699);
+  assert.deepEqual(calls, [0, 399, 699]);
+});
+
+test('V.01: 대화 로그 내려받기는 전용 함수로 1000건씩 · 쪽 사이 쉬기 · 요청 제한이면 기다렸다 이어 받기', async () => {
+  const archive = Array.from({ length: 2345 }, (_, i) => ({ id: i + 1, name: '사람', u: 'abc', body: `메시지 ${i}`, at: '2026-11-26T09:00:00Z' }));
+  const calls = []; let refused = false; const stamps = [];
+  const call = async (name, args) => {
+    assert.equal(name, 'bry_room_msgs_export');
+    if (args.p_after === 1000 && !refused) { refused = true; const e = new Error('요청이 너무 많습니다.'); e.code = 'too_many_requests'; throw e; }
+    calls.push(args.p_after); stamps.push(Date.now());
+    const msgs = archive.filter(x => x.id > args.p_after).slice(0, 1000);
+    return { room: args.p_after === 0 ? { id: 12, status: 'ended', everyone: [{ u: 'abc', name: '사람' }] } : { id: 12, status: 'ended' }, msgs, more: msgs.length === 1000 };
+  };
+  const log = loadPartyLog();
+  const result = await log.collect(12, call, { pause: 30, busyWait: 10 });
+  assert.equal(result.messages.length, 2345);
+  assert.deepEqual(calls, [0, 1000, 2000]);
+  assert.ok(refused);
+  assert.ok(stamps[1] - stamps[0] >= 25, '쪽 사이를 쉰다');
+  assert.equal(result.room.everyone.length, 1, '방 정보는 첫 쪽의 것을 쓴다');
+  const sql = source('supabase/schema.sql');
+  assert.ok(sql.includes('function public.bry_room_msgs_export') && sql.includes("throttle_do('roomexport:' || a.id, 60, 60)") && sql.includes('limit 1000'));
 });
 
 test('D.06.8: HTML 내보내기에는 XSS 입력을 문자로 이스케이프하고 대화방 메타데이터 포함', () => {

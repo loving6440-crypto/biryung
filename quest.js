@@ -1050,6 +1050,9 @@
     if (server) sync.adminRoutes(adminCode()).then((r) => { const row = Array.isArray(r) ? r.find((x) => x.flag === 'BEAST_EVENT') : null; if (Array.isArray(r)) drawEv(Number(row?.option) === 1 && !!row?.open_at); }).catch(() => {});
 
     body.append(h('p', 'panel-label', '선택 집계 · 누가 무엇을 골랐나'));
+    body.append(para('모두의 선택과 동일한 서버 투표 기록입니다. 탈퇴 계정은 제외하며, 선택 수정 후에는 최신 항목만 표시합니다.'));
+    const refreshAdminVotes = btn('ghost-btn codex-use', '선택 기록 새로고침', () => { void loadAdminVotes(); });
+    body.append(refreshAdminVotes);
     const votes = h('div', 'story-votes'); body.append(votes); votes.append(para('불러오는 중…'));
     const drawVotes = (rows) => {
       votes.replaceChildren();
@@ -1064,7 +1067,25 @@
           const line = h('div', 'story-vote-opt'); const bar = h('i'); bar.style.width = `${pct}%`; const track = h('span', 'story-vote-bar'); track.append(bar);
           line.append(h('b', '', `${CIRC[i]} ${o}`), track, h('small', '', `${list.length}명 · ${pct}%`));
           sec.append(line);
-          if (list.length) sec.append(h('p', 'story-vote-who', list.map((r) => nameOf[r.account] || r.name || r.account || r.player_id?.slice(0, 8)).join(', ')));
+          if (list.length) {
+            const who = h('div', 'story-vote-who');
+            list.forEach((r) => {
+              const entry = h('div', 'story-vote-voter');
+              entry.append(h('span', '', nameOf[r.account] || r.name || r.account || r.player_id?.slice(0, 8) || '이름 없음'));
+              if (server && r.account) {
+                entry.append(btn('ghost-btn codex-use', '삭제', async () => {
+                  if (!window.confirm(`${r.account} 계정의 「${id}」 선택 1표를 영구 삭제할까요?\n※ 복구가 어려우므로 정상 기록은 삭제하지 마세요.`)) return;
+                  try {
+                    const result = await sync.adminDeleteChoice(adminCode(), r.account, id);
+                    if (!result?.deleted) { toast('선택 기록', '삭제할 기록이 이미 없습니다.'); }
+                    await loadAdminVotes();
+                  } catch (e) { toast('선택 기록', `삭제 실패 — ${e?.message || e}`); }
+                }));
+              }
+              who.append(entry);
+            });
+            sec.append(who);
+          }
         });
         if (c.vote) sec.append(routeControls(id, c));
         votes.append(sec);
@@ -1104,7 +1125,25 @@
       return rows;
     };
     const loadVotes = (rows) => (server ? sync.adminRoutes(adminCode()).then((r) => { srvRoutes = Array.isArray(r) ? r : []; drawVotes(rows); }).catch(() => drawVotes(rows)) : drawVotes(rows));
-    if (server) Promise.resolve(sync.adminNames ? sync.adminNames(adminCode()) : []).then((ns) => { (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; }); }).catch(() => {}).then(() => sync.adminChoices(adminCode())).then((rows) => { if (!Array.isArray(rows)) throw new Error(rows?.error || '투표 내역 응답 형식 오류'); return loadVotes(rows); }).catch((e) => { votes.replaceChildren(para(`서버 선택 기록을 읽지 못했다 — ${e?.message || e}. 로컬 기록은 참고용이며 서버 집계가 아니다.`)); drawVotes(localVotes()); });
+    let refreshingVotes = false;
+    async function loadAdminVotes() {
+      if (!server || refreshingVotes) return;
+      refreshingVotes = true; refreshAdminVotes.disabled = true;
+      votes.replaceChildren(para('서버에서 최신 투표를 불러오는 중…'));
+      try {
+        const [ns, rows, routes] = await Promise.all([
+          sync.adminNames ? sync.adminNames(adminCode()).catch(() => []) : [],
+          sync.adminChoices(adminCode()),
+          sync.adminRoutes(adminCode()).catch(() => [])
+        ]);
+        if (!Array.isArray(rows)) throw new Error(rows?.error || '투표 내역 응답 형식 오류');
+        (Array.isArray(ns) ? ns : []).forEach((n) => { if (n.username && n.display_name) nameOf[n.username] = n.display_name; });
+        srvRoutes = Array.isArray(routes) ? routes : [];
+        drawVotes(rows);
+      } catch (e) { votes.replaceChildren(para(`서버 선택 기록을 읽지 못했다 — ${e?.message || e}. 로컬 기록을 서버 집계로 표시하지 않습니다.`)); }
+      finally { refreshingVotes = false; refreshAdminVotes.disabled = false; }
+    }
+    if (server) void loadAdminVotes();
     else { drawVotes(localVotes()); votes.prepend(para('서버 연결 전 — 이 브라우저에 있는 계정들의 선택만 모았다.')); }
   }
 

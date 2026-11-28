@@ -41,6 +41,11 @@
       let detail = null;
       try { detail = await res.json(); } catch (_) { /* non-json error */ }
       const missing = res.status === 404 && (detail?.code === 'PGRST202' || /Could not find the function/i.test(detail?.message || ''));
+      // V.01 관리자 코드: 서버가 틀린 코드는 403, 서로 다른 틀린 코드 5번 뒤 1시간 동안은 429 로 답한다
+      if (/^rpc\/story_admin_/.test(path) && (res.status === 429 || res.status === 403)) {
+        const e = new Error(res.status === 429 ? '관리자 코드를 5번 틀려 1시간 동안 다시 시도할 수 없어요.' : '관리자 코드가 맞지 않습니다.');
+        e.code = res.status === 429 ? 'admin_locked' : 'admin_code'; throw e;
+      }
       throw new Error(missing ? `서버 RPC가 없습니다 (${path}). D.06.16 관리자 스토리 SQL을 적용하고 API 스키마를 새로고침하세요.` :
         `${detail?.message || `supabase ${res.status}`} (${detail?.code || res.status}; ${path})`);
     }
@@ -100,6 +105,12 @@
     adminRoute: async (code, flag, option, openAt) => { if (!enabled) return null; try { await call('rpc/story_admin_route', { method: 'POST', body: { p_code: code, p_flag: flag, p_option: option, p_open_at: openAt } }); return { ok: true }; } catch (e) { return { error: e.message }; } },
     adminNames: async (code) => { if (!enabled) return []; try { return await call('rpc/story_admin_names', { method: 'POST', body: { p_code: code }, read: true }); } catch (_) { return []; } },
     adminChoices: async (code) => (enabled ? call('rpc/story_admin_choices', { method:'POST', body:{ p_code:code }, read:true }) : []),
+    adminDeleteChoice: async (code, account, branch) => {
+      if (!enabled) throw new Error('서버 연결이 필요합니다.');
+      const r = await call('rpc/story_admin_choice_delete', { method:'POST', body:{p_code:code,p_account:account,p_branch:branch}, read:true });
+      if (!r?.ok) throw new Error(r?.error || '서버에서 투표 삭제를 확인하지 못했습니다.');
+      return r;
+    },
     contribTotals: async () => (enabled ? call('story_contrib_totals?select=event,total,players') : []),
   };
 })();

@@ -643,6 +643,7 @@ body.is-opening{overflow:hidden}
 .dex-line b{display:inline-block;min-width:44px;margin-right:6px;color:#d4b078;font-weight:normal}
 .dex-line.is-lore span{color:#d8cdb4}
 .dex-line.is-from span{color:#9fc3c8}
+.dex-line.is-progress span{color:#d5b579;font-variant-numeric:tabular-nums}
 .dex-line.is-hidden span,.dex-note.is-hidden,.dex-special.is-hidden{color:#5f7385;letter-spacing:.2em}
 .dex-note{margin:2px 0 4px;font-size:11px;line-height:1.7;color:#d8cdb4;word-break:keep-all}
 .dex-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0 2px;font-size:11px;color:#f0e4c8;font-variant-numeric:tabular-nums}
@@ -758,10 +759,29 @@ body.is-opening{overflow:hidden}
 .case-oracle b{display:block;margin-bottom:8px;font:10px 'Galmuri9',monospace;letter-spacing:.3em;color:#5fb8be}
 .case-oracle p{margin:0;white-space:pre-line;font:13px/1.9 'Galmuri9',monospace;color:#9fe9ee}
 @media (max-width:1080px){.lore-panel{display:block !important}.lore-panel .paper-seal,.lore-panel .gold-rule,.lore-panel .paper-spacer{display:none}.lore-panel p:not(.fine-label){grid-column:auto !important;grid-row:auto !important}.notice-list{max-height:300px}}
-/* vB.01 업데이트 노트(관리자 작성) */
-.note-form{display:flex;flex-direction:column;gap:6px;margin:6px 0 12px}
-.note-form input,.note-form textarea{width:100%;padding:7px 9px;background:#08111d;border:1px solid #3d5063;color:#f0e4c8;font:12px/1.6 var(--ui-font-family,sans-serif);box-sizing:border-box;resize:vertical}
-.note-box .note-del{margin-top:6px}
+/* V.01 동아리 창(예전 업데이트 노트 자리) */
+.club-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}
+.club-tab{border:1px solid #4b6470;background:#182a39;color:#d8d4c2;font-size:12px;padding:6px 10px}
+.club-tab:hover{border-color:#dab976}
+.club-tab.is-on{background:#d5b579;color:#121b24;border-color:#eccf9e;font-weight:700}
+.club-tab.is-mine:not(.is-on){border-color:#c6a46f;color:#f3d6a5}
+.club-sec{background:#0d1a29;border:1px solid #33475a;padding:11px 12px;margin:10px 0}
+.club-sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 8px;color:#ddc28e;font-size:13px}
+.club-sec-head small{font-size:10px;color:#8faaa9}
+.club-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.club-list.club-meta{margin-top:8px;padding-top:8px;border-top:1px dashed #3c4a54}
+.club-q{border:1px solid #2f4152;background:#12212f;padding:7px 9px}
+.club-q-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.club-q-label{font-size:12px;color:#ece3cb;line-height:1.55;word-break:keep-all}
+.club-q.is-claimed .club-q-label{color:#7f8f93;text-decoration:line-through}
+.club-q-state{flex:none;font-size:10px;color:#d5b579}
+.club-q.is-claimed .club-q-state{color:#7f8f93}
+.club-q-note{display:block;font-size:10px;color:#8ea0a3;margin-top:2px}
+.club-q-foot{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10px;color:#a9b7b5}
+.club-q-bar{flex:1;height:5px;background:#07101b;overflow:hidden}
+.club-q-bar i{display:block;height:100%;background:#d5b579}
+.club-q-num{font-variant-numeric:tabular-nums}
+.club-q-reward{color:#d5b579}
 /* vB.01 시간이 드는 행동 중 나가기 확인 */
 .leave-ask{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(3,8,16,.72)}
 .leave-ask-box{width:min(92vw,380px);padding:20px 22px;background:#0f1d2b;border:1px solid #d4b078;box-shadow:6px 6px 0 #030914}

@@ -5,7 +5,7 @@ import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runInNewContext} from 'node:vm';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
-const sql=readFileSync(join(root,'supabase/story_choice_revision_D.06.15.sql'),'utf8');
+const sql=readFileSync(join(root,'supabase/old/story_choice_revision_D.06.15.sql'),'utf8');
 const quest=readFileSync(join(root,'quest.js'),'utf8');
 const code=readFileSync(join(root,'sync.js'),'utf8');
 function instance(handler){

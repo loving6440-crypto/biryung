@@ -31,7 +31,7 @@ test('In-memory limiter and concurrent request caps enforce ceilings', () => {
 });
 
 test('Sensitive direct Supabase table writes are revoked in migration and browser uses credentialed RPC',()=>{
-  const patch=read('supabase/security_patch_D.06.6.sql');
+  const patch=read('supabase/old/security_patch_D.06.6.sql');
   const sync=read('sync.js');
   assert.match(patch,/revoke all on table public\.story_choices, public\.story_contrib, public\.story_progress, public\.cloud_saves/);
   assert.match(patch,/story_choice_once_account_branch/);

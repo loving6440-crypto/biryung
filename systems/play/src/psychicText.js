@@ -31,6 +31,14 @@ export const PSYCHIC_DETAIL_FIX = {
   },
 }
 
+// V.01 영능력 점검: 실제 처리와 맞춘 글(시트 글 위에 덮어쓴다 — 빼앗은 영능력 포함)
+export const V01_PSYCHIC_TEXT = {
+  'echo-form': { detail: '의지력을 50만큼 소모한다. 자신 또는 일행 중 한 명의 체력을 100까지 회복시킨다(최대 체력은 넘지 않고, 이미 100보다 많으면 그대로 둔다).' },
+  'warding-scripture': { detail: '일행 전투에서만 쓸 수 있다. 원하는 만큼 의지력을 사용해 지정한 일행 한 사람(나 포함)의 의지력을 그만큼 회복한다.' },
+  'steal-geuseundae-2': { detail: '일행 전투에서만 쓸 수 있다. 내 의지력을 즉시 50% 깎고, 깎은 만큼을 나를 제외한 아군 전원이 저마다 회복한다.' },
+  'steal-jangsanbeom-2': { detail: '일행 전투에서만 쓸 수 있다. 의지력 10 소모. 상대의 다음 공격이 특정한 대상에게 향하도록 유도할 수 있다. 만약 단체 공격인 경우 인원수만큼 맞는다.' },
+}
+
 /** 영능력 목록(PSYCHICS 또는 도감 자료)에 덮어쓴다. label 대신 id 로 찾는다. */
 export function applyPsychicFix(list) {
   for (const p of list) {
@@ -42,5 +50,6 @@ export function applyPsychicFix(list) {
     if (f.mp !== undefined && f.mp !== null) p.mp = f.mp
     if (f.detail) p.detail = f.detail
   }
+  for (const p of list) { const v = V01_PSYCHIC_TEXT[p.id]; if (v?.detail) p.detail = v.detail }
   return list
 }

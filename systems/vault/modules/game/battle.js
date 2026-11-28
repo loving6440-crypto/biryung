@@ -769,7 +769,6 @@ export function effectLine(enemy, def, second = false) {
 // ───────── 상태 이상 (v-B.05) ─────────
 /** 내게 걸리는 상태(state.ps). 값은 남은 턴 수(독은 겹 수). 상대 턴이 시작될 때마다 1씩 준다(병만 상대 턴이 끝날 때). */
 export const PS_INFO = {
-  bryBuff: {label:'오방기', desc:'선택한 육조 능력치 +5'},
   itemSeal: { label: '아이템 봉인', desc: '아이템을 쓸 수 없다.' },
   thorns: { label: '들러붙음', desc: '일반 공격·부적을 쓸 때마다 체력이 빠진다.' },
   scramble: { label: '홀린 귀', desc: '다음에 고른 행동이 무작위로 바뀐다.' },
@@ -791,7 +790,7 @@ export const PS_INFO = {
   statSwap: { label: '뒤섞임', desc: '스탯 두 개가 맞바뀌었다.' },
   plague: { label: '역병', desc: '라운드 끝마다 피해, 옆 사람에게 옮는다.' },
 }
-const PS_DATA = { bryBuff: ['bryBuffStat','bryBuffAmount'], thorns: ['thornsDie'], poison: ['poisonDie'], guardTrap: ['guardTrapDie'], burn: ['burnPct'], statSwap: ['swap'], plague: ['plagueDie'], paralyze: ['paralyzeChance'], statDown: ['downStat'] }
+const PS_DATA = { thorns: ['thornsDie'], poison: ['poisonDie'], guardTrap: ['guardTrapDie'], burn: ['burnPct'], statSwap: ['swap'], plague: ['plagueDie'], paralyze: ['paralyzeChance'], statDown: ['downStat'] }
 const PS_NOTICK = ['poison', 'sleep']
 const PS_END = ['vulnerable']
 const dropPs = (ps, k) => {
@@ -840,7 +839,7 @@ export function tickEnemyStatus(es, when = 'start', fresh = []) {
 }
 /** 상태 이상이 반영된 스탯(서러움·날개 그늘·무구 봉인·뒤섞임). 걸린 게 없으면 원래 객체 그대로. */
 export function afflictStats(stats, ps) {
-  if (!stats || !ps || !(ps.statDown > 0 || ps.blind > 0 || ps.weaponSeal > 0 || ps.statSwap > 0 || ps.bryBuff > 0)) return stats
+  if (!stats || !ps || !(ps.statDown > 0 || ps.blind > 0 || ps.weaponSeal > 0 || ps.statSwap > 0)) return stats
   const out = { ...stats }
   out.fx = ps.weaponSeal > 0 ? null : stats.fx
   out.special = ps.weaponSeal > 0 ? null : stats.special
@@ -855,7 +854,6 @@ export function afflictStats(stats, ps) {
     out[k] = Math.floor((out[k] || 0) / 2)
   }
   if (ps.blind > 0) out.insight = Math.max(1, Math.floor((out.insight || 0) / 2))
-  if(ps.bryBuff > 0 && STAT6.includes(ps.bryBuffStat)) out[ps.bryBuffStat] = (out[ps.bryBuffStat]||0) + Math.max(0,Math.floor(ps.bryBuffAmount||0))
   return out
 }
 /** 화면에 붙일 상태 칩: [{ key, label, n, unit, desc }] */
@@ -1222,7 +1220,7 @@ export function enemyTurn(state, ctx, rng = Math.random) {
   const esSnap = { ...s.es }
   // 쌓인 기세·빼앗은 기운·마왕의 거울이 공격력에 얹힌다 (원래 적 데이터는 그대로 둔다)
   const base = s.enemy
-  const atkNow = Math.max(1,Math.floor((base.atk + (s.es.atkBonus || 0) + (s.es.atkUp ? s.es.atkUp.amt : 0) + (s.es.statCopy > 0 ? Math.floor(Math.max(...STAT6.map((k) => Number(ctx.stats?.[k]) || 0)) / 2) : 0) ) * (s.es.bryAttackHalfAct||s.es.bryAttackHalf>0 ? 0.5 : 1)))
+  const atkNow = base.atk + (s.es.atkBonus || 0) + (s.es.atkUp ? s.es.atkUp.amt : 0) + (s.es.statCopy > 0 ? Math.floor(Math.max(...STAT6.map((k) => Number(ctx.stats?.[k]) || 0)) / 2) : 0)
   const enemy = atkNow !== base.atk ? { ...base, atk: atkNow } : base
   let intent0 = s.queue[0]
   if (intent0 === 'special' && stats.special === 'willow' && !ctx.willowHandled && die(100, rng) <= Math.floor(stats.comprehension / 2)) {
@@ -1246,7 +1244,6 @@ export function enemyTurn(state, ctx, rng = Math.random) {
     }
   }
   const hurt = (raw, label, { blockable = true, kind } = {}) => {
-    s.bryLastRaw = Math.max(0,Math.floor(raw));
     // 내려쬐는 빛: 사용한 직후 들어오는 공격은 무조건 '막기'한 것으로 취급한다(1회 소모). (v71)
     if (s.fallingLight) {
       s.fallingLight = false
@@ -1326,11 +1323,6 @@ export function enemyTurn(state, ctx, rng = Math.random) {
       ev.push({ kind: 'warn', text: '국화의 효과! 전투당 최초로 전투불능이 될 피해를 무효화했다.' })
       return
     }
-    if (s.bryReflectNextRaw && dmg > 0) {
-      const reflected=Math.max(0,Math.floor(raw));s.ehp=Math.max(0,s.ehp-reflected);s.bryReflectNextRaw=false;
-      ev.push({kind:'warn',text:`묘귀의 반격! 원래 피해 ${reflected}을(를) 되돌렸다.`})
-    }
-    if(s.bryFatalPrevent && s.php-dmg<=0) { s.php=16;s.bryFatalPrevent=false;ev.push({kind:'warn',text:'금돼지의 가호! 체력 16을 남기고 살아남았다.'});return }
     s.php -= dmg
     wake(dmg)
   }
@@ -1339,7 +1331,6 @@ export function enemyTurn(state, ctx, rng = Math.random) {
     let d = Math.max(0, Math.floor(raw))
     if ((s.ps.vulnerable || 0) > 0) d = Math.ceil(d * 1.25)
     if (ctx.reduction > 0 && d > 0) d -= Math.floor(d * Math.min(1, ctx.reduction))
-    if(s.bryFatalPrevent && s.php-d<=0){s.php=16;s.bryFatalPrevent=false;ev.push({kind:'warn',text:'금돼지의 가호! 체력 16을 남기고 살아남았다.'});return}
     s.php -= d
     ev.push({ kind: 'enemy', dmg: d, text: `${text} ${d} 피해!` })
     wake(d)
@@ -1938,7 +1929,6 @@ export function enemyTurn(state, ctx, rng = Math.random) {
   }
   if (liesN) s.lies = Array.from({ length: liesN }, (_, i) => fakeIntent(s.queue[i], rng))
 
-  if (s.bryFatalPreventTurns > 0) { s.bryFatalPreventTurns -= 1; if (!s.bryFatalPreventTurns) s.bryFatalPrevent=false }
   if (s.php <= 0) {
     s.php = 0
     if ((s.survived | 0) < maxSurvives(stats) && mp - mpDrain >= 2) {

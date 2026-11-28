@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const q=fs.readFileSync('quest.js','utf8'), s=fs.readFileSync('sync.js','utf8'),sql=fs.readFileSync('supabase/story_admin_repair_D.06.16.sql','utf8');
+const q=fs.readFileSync('quest.js','utf8'), s=fs.readFileSync('sync.js','utf8'),sql=fs.readFileSync('supabase/old/story_admin_repair_D.06.16.sql','utf8');
 test('스토리 업로드와 공개는 서버 확인 후 로컬 반영',()=>{
  assert.match(q,/if \(server\) \{ const r = await sync\.adminSet\([\s\S]*?if \(!r\?\.ok\)/);
  assert.match(q,/if \(!r\?\.ok\)[^\n]*return; \} \}\n\s*const all = localStore\(\);/);

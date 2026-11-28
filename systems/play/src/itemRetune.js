@@ -81,6 +81,9 @@ export const NEW_STORE = {
 //   effectText · desc: 덮어쓴다 · addTags: 없으면 더한다 · party: 일행 전용 여부
 const BATTLE_TAG = '전투 중 사용 가능'
 export const ITEM_TEXT_FIX = {
+  // V.01 D.06.8 강화 재료 순서(10~12강 은입사 장식 2·3·4개 · 13~15강 주사 호신부 1·2·3개) — 도감 · 시트에도 같은 글이 나가게
+  'silver-inlay': { effectText: '무구보관소에서 무구를 일반 강화(10~12)할 때 쓰는 재료(2·3·4개 필요).', desc: '무구에 은실을 박아 넣는 장인의 장식. 무구의 중상급 강화에 쓰이는 정교한 장식이다.' },
+  'cinnabar-charm': { effectText: '무구보관소에서 무구를 일반 강화(13~15)할 때 쓰는 재료.' },
   'beginner-godok': { effectText: '일행 전투 중에만: 3라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },
   'nw-centipede-jar': { effectText: '일행 전투 중에만: 2라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },
   'nw-sealed-godok': { effectText: '일행 전투 중에만: 5라운드 동안 적이 받는 모든 피해가 20% 늘어난다(보스에게도 듣는다).', addTags: [BATTLE_TAG] },

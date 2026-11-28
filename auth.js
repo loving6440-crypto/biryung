@@ -165,7 +165,8 @@
       try {
         const c = await rpc('bry_claim_admin', { p_token: r.token, p_code: code });
         if (c.ok) { const a2 = readAcc(); a2.users[id].admin = true; writeAcc(a2); }
-        else window.alert('관리자 코드가 맞지 않아 일반 계정으로 들어갑니다. (Supabase 에 등록한 관리자 코드를 확인해 주세요.)');
+        else if (c.error === 'admin_locked') window.alert('관리자 코드를 5번 틀려 1시간 동안 다시 시도할 수 없어요. 이번에는 일반 계정으로 들어갑니다.');
+        else window.alert('관리자 코드가 맞지 않아 일반 계정으로 들어갑니다. (Supabase 에 등록한 관리자 코드를 확인해 주세요. 5번 틀리면 1시간 동안 막힙니다.)');
       } catch (e) { window.alert(e.message); }
     }
     set(SES_KEY, id);

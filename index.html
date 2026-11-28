@@ -10,33 +10,34 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="assets/favicon.png" type="image/png" sizes="64x64">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-kopub@1.0">
-  <link rel="stylesheet" href="styles.css?v=D.06.7b-codex1">
-  <link rel="stylesheet" href="play/play.css?v=D.06.6">
-  <link rel="stylesheet" href="theme-light.css?v=D.06.6">
-  <script src="theme-boot.js?v=D.06.6"></script>
-  <script src="game-data.js?v=D.06.6" defer></script>
-  <script src="config.js?v=D.06.6" defer></script>
-  <script src="auth.js?v=D.06.6" defer></script>
-  <script src="titles.js?v=D.06.6" defer></script>
-  <script src="titles2.js?v=D.06.6" defer></script>
-  <script src="story.js?v=D.06.6" defer></script>
-  <script src="play/play.js?v=D.06.12-price" defer></script>
-  <script src="story-data.js?v=D.06.9" defer></script>
-  <script src="sync.js?v=D.06.16-admin" defer></script>
-  <script src="codex-data.js?v=D.06.7-pricefix1" defer></script>
-  <script src="app.js?v=D.06.12-bell" defer></script>
-  <script src="quest.js?v=D.06.16-admin" defer></script>
-  <script src="opening.js?v=D.06.6" defer></script>
-  <script src="server.js?v=D.06.6" defer></script>
-  <script src="market.js?v=D.06.6" defer></script>
-  <script src="cafe.js?v=D.06.6" defer></script>
-  <script src="adapt.js?v=D.06.11" defer></script>
-  <script src="beast-event.js?v=D.06.6" defer></script>
-  <script src="bgm.js?v=D.06.11" defer></script>
-  <script src="community.js?v=D.06.6" defer></script>
-  <script src="party-log.js?v=D.06.8" defer></script>
-  <script src="party.js?v=D.06.12-bell" defer></script>
-  <link rel="stylesheet" href="community.css?v=D.06.12-bell">
+  <link rel="stylesheet" href="styles.css?v=V.01-codex1">
+  <link rel="stylesheet" href="play/play.css?v=V.01">
+  <link rel="stylesheet" href="theme-light.css?v=V.01">
+  <script src="theme-boot.js?v=V.01"></script>
+  <script src="game-data.js?v=V.01" defer></script>
+  <script src="config.js?v=V.01" defer></script>
+  <script src="auth.js?v=V.01" defer></script>
+  <script src="titles.js?v=V.01" defer></script>
+  <script src="titles2.js?v=V.01" defer></script>
+  <script src="titles-final.js?v=V.01" defer></script>
+  <script src="story.js?v=V.01" defer></script>
+  <script src="play/play.js?v=V.01-price" defer></script>
+  <script src="story-data.js?v=V.01" defer></script>
+  <script src="sync.js?v=V.01" defer></script>
+  <script src="codex-data.js?v=V.01-pricefix1" defer></script>
+  <script src="app.js?v=V.01-final" defer></script>
+  <script src="quest.js?v=V.01" defer></script>
+  <script src="opening.js?v=V.01" defer></script>
+  <script src="server.js?v=V.01" defer></script>
+  <script src="market.js?v=V.01" defer></script>
+  <script src="cafe.js?v=V.01" defer></script>
+  <script src="adapt.js?v=V.01" defer></script>
+  <script src="beast-event.js?v=V.01" defer></script>
+  <script src="bgm.js?v=V.01" defer></script>
+  <script src="community.js?v=V.01" defer></script>
+  <script src="party-log.js?v=V.01" defer></script>
+  <script src="party.js?v=V.01-bell" defer></script>
+  <link rel="stylesheet" href="community.css?v=V.01-bell">
 </head>
 <body>
   <div class="world-dots" aria-hidden="true"></div>
@@ -127,10 +128,11 @@
         <div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div>
         <div class="panel-heading"><span>기밀 문서</span><span>NO. 001</span></div>
         <div class="lore-tabs" role="tablist" aria-label="기밀 문서">
-          <button type="button" role="tab" data-lore-tab="story" aria-selected="true">주요 이야기</button>
-          <button type="button" role="tab" data-lore-tab="notice" aria-selected="false">공지사항<i class="lore-new" hidden></i></button>
+          <button type="button" role="tab" data-lore-tab="notice" aria-selected="true">공지사항<i class="lore-new" hidden></i></button>
+          <button type="button" role="tab" data-lore-tab="story" aria-selected="false">주요 이야기</button>
         </div>
-        <div class="lore-pane" id="loreStory" role="tabpanel">
+        <div class="lore-pane lore-notice" id="loreNotice" role="tabpanel"></div>
+        <div class="lore-pane" id="loreStory" role="tabpanel" hidden>
           <p class="fine-label">사건 분류 · 대규모 실종 / 2036.01.01</p>
           <div class="paper-seal" aria-hidden="true">禁</div>
           <h2 id="loreHeading">모든 무당이<br><em>사라진 밤.</em></h2>
@@ -143,7 +145,6 @@
           <div class="info-index"><span>현재 상태</span><strong class="red">비령 통제 중</strong></div>
           <div class="lore-volumes" id="loreVolumes"></div>
         </div>
-        <div class="lore-pane lore-notice" id="loreNotice" role="tabpanel" hidden></div>
       </aside>
 
       <section class="map-section" aria-labelledby="mapHeading">
@@ -236,7 +237,7 @@
           <button type="button" data-menu="codex"><i>鑑</i><span>업적 / 도감</span></button>
           <button type="button" data-menu="money"><i>錢</i><span>소지금</span><b id="statusMoney">0냥</b></button>
           <button type="button" data-menu="market"><i>市</i><span>벼룩시장</span></button>
-          <button type="button" data-menu="notes"><i>報</i><span>업데이트 노트</span></button>
+          <button type="button" data-menu="clubs"><i>社</i><span>동아리</span></button>
         </div>
         <div class="status-tools" data-admin-slot></div>
       </aside>

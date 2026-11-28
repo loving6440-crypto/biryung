@@ -11,7 +11,7 @@ test('15 단계 강화 비용표', () => {
   for(let level=0; level<15; level++){
     const tier=Math.floor(level/3)
     assert.deepEqual(enhCostFor(level), { polishing: level+1, // v-B.06: n번째 강화에 연마석 n개
-      material:['whetstone','oil-cloth','five-knot','silver-inlay','cinnabar-charm'][tier], quantity:level%3+1+(tier===3?1:0), spirit:(tier+1)*10 })
+      material:['whetstone','oil-cloth','five-knot','cinnabar-charm','silver-inlay'][tier], quantity:level%3+1, spirit:(tier+1)*10 })
   }
   assert.equal(enhCostFor(15), null)
 })

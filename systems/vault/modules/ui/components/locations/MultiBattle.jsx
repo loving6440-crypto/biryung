@@ -37,10 +37,6 @@ export default function MultiBattle({ meId, view, stats, seen, specials, psychic
   const [mpTarget, setMpTarget] = useState(meId)
   const [buffArmed, setBuffArmed] = useState(false) // 효험을 켜 두었는가(다음 공격/부적/생존본능·원숭이 손·도깨비불에 적용)
   const [pawAmt, setPawAmt] = useState(1) // 원숭이 손: 깎을 체력
-  const [stealTarget,setStealTarget]=useState(meId)
-  const [stealStat,setStealStat]=useState('aggression')
-  const [stealQueueIndex,setStealQueueIndex]=useState(0)
-  const [stealQueueEdits,setStealQueueEdits]=useState({})
   const [echoTarget, setEchoTarget] = useState(meId) // 형상 기억: 체력을 회복시킬 대상(기본값은 자기 자신)
   const [karmicTarget, setKarmicTarget] = useState(meId) // 업인과보: 지정할 대상(기본값은 자기 자신)
   const [sending, setSending] = useState(false)
@@ -433,7 +429,7 @@ export default function MultiBattle({ meId, view, stats, seen, specials, psychic
           <p className="font-serif text-base text-gold">영능력</p>
           {(() => {
             // 보스 전투에서는 미리 가져가기로 고른 영능력(최대 2개, 효험은 제외)만 쓸 수 있다. (v71)
-            const mine = ownedPsychics([...(psychics||[]),...(me?.borrowedPsychic?[me.borrowedPsychic]:[])]).filter(p=>(p.default || p.id===me?.borrowedPsychic || !view.boss || !Array.isArray(me?.psychicBring) || me.psychicBring.includes(p.id)) && !(p.id==='steal-yagwanggwi' && me?.stealUses?.['steal-yagwanggwi']))
+            const mine = ownedPsychics(psychics).filter((p) => p.default || !view.boss || !Array.isArray(me?.psychicBring) || me.psychicBring.includes(p.id))
             if (!mine.length) return <p className="mt-2 text-sm text-paper/65">획득한 영능력이 없습니다.</p>
             const pawMax = Math.max(1, Math.floor(me?.php ?? 1) - 1)
             const aliveMates = view.members.filter((x) => x.status === 'alive')
@@ -532,26 +528,6 @@ export default function MultiBattle({ meId, view, stats, seen, specials, psychic
                           사용
                         </button>
                       </>
-                    ) : ['steal-agwi','steal-geumdwaeji','steal-songaksi','steal-mangtae-halabeom','steal-jangsanbeom-2','steal-jangsanbeom','steal-heokkaebi'].includes(s.id) ? (
-                      <div className="mt-2 flex flex-col gap-2">
-                        {['steal-agwi','steal-songaksi','steal-mangtae-halabeom','steal-jangsanbeom-2'].includes(s.id) && <select aria-label="영능력 대상" value={stealTarget||meId} onChange={e=>setStealTarget(e.target.value)} className="rounded-lg border border-edge/25 bg-ink-muted/60 p-2 text-paper">
-                          {view.members.filter(x=>s.id==='steal-agwi' ? x.status==='down'||x.pendingDeath : x.status==='alive').map(x=><option key={x.id} value={x.id}>{x.name}{x.id===meId?' (나)':''}</option>)}
-                        </select>}
-                        {s.id==='steal-songaksi' && <select aria-label="강화할 육조" value={stealStat} onChange={e=>setStealStat(e.target.value)} className="rounded-lg border border-edge/25 bg-ink-muted/60 p-2 text-paper">
-                         {[['insight','안목'],['aggression','호전'],['endurance','인내'],['control','절제'],['agility','신속'],['comprehension','이해']].map(([k,n])=><option key={k} value={k}>{n}</option>)}
-                        </select>}
-                        {s.id==='steal-jangsanbeom' && <div className="grid grid-cols-2 gap-1">
-                          {(view.queue||[]).slice(0,5).map((q,i)=><label key={i} className="text-xs text-paper/80">{i+1}번째
-                            <select aria-label={`${i+1}번째 적 행동`} disabled={q==='special'} value={stealQueueEdits[i]||q} onChange={e=>setStealQueueEdits(p=>({...p,[i]:e.target.value}))} className="mt-1 w-full rounded border border-edge/25 bg-ink-muted/60 p-1 text-paper">
-                              {(q==='special'?[['special','영능력(수정 불가)']]:[['jab','약공'],['guard','방어 태세'],['charge','기 모으기'],['smash','강공']].filter(([k])=> !(k==='charge'&&i===4))).map(([k,n])=><option key={k} value={k}>{n}</option>)}
-                            </select>
-                          </label>)}
-                        </div>}
-                        {s.id==='steal-heokkaebi' && <select aria-label="삭제할 적의 행동" value={stealQueueIndex} onChange={e=>setStealQueueIndex(+e.target.value)} className="rounded-lg border border-edge/25 bg-ink-muted/60 p-2 text-paper">
-                         {(view.queue||[]).slice(0,5).map((q,i)=><option key={i} value={i} disabled={q==='special'}>{i+1}번째 {INTENTS[q]?.label||q}{q==='special'?' (삭제 불가)':''}</option>)}
-                        </select>}
-                        <button type="button" className="flat-btn" disabled={!canAct} onClick={()=>send({action:'psychic',psychic:s.id,target:stealTarget||meId,statKey:stealStat,queueIndex:stealQueueIndex,queueEdits:Object.entries(stealQueueEdits).map(([index,intent])=>({index:Number(index),intent}))})}>사용</button>
-                      </div>
                     ) : (
                       s.use && (
                         <button type="button" data-psychic-use={s.id} disabled={!canAct || (barrierActive && ['cotton-mist', 'dokkaebi-fire'].includes(s.id))} onClick={() => send({ action: 'psychic', psychic: s.id })} className="flat-btn mt-2 justify-center disabled:opacity-40">

@@ -207,7 +207,18 @@ export function afterPlayer(prev, r, action) {
 }
 
 // ───────── 훅 2: 상대 턴 ─────────
+// V.01 혼자 싸울 때: 적의 차례에 다쳤는지 · 막지 않고 강공을 맞았는지 센다(영능력 얻는 방법 — psyUnlock.js)
 export function enemyTurn(state, engine, ctx) {
+  const r = enemyTurnSb(state, engine, ctx)
+  if (r?.state && Number(r.state.php) < Number(state?.php)) {
+    const b = { ...(r.state.bryStat || {}) }
+    b.hit = (b.hit || 0) + 1
+    if (state.queue?.[0] === 'smash' && !state.guard) b.smash = (b.smash || 0) + 1
+    r.state = { ...r.state, bryStat: b }
+  }
+  return r
+}
+function enemyTurnSb(state, engine, ctx) {
   if (!state?.enemy?.story?.pattern) return engine(state, ctx)
   let pre = withSb(state)
   const sb0 = pre.sb, p0 = pat(pre)

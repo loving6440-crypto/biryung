@@ -67,7 +67,6 @@ const withHidden = (stats, patch) => {
 export default function Battle({ encounter, stats, baseAggression, mp, hp, hpMax, seen, specials, rewardLeft, onStart, onMp, onHp, onFinish, onLog, onDown, onSpecialSeen, onScan, reviveOn, onReviveUsed, headbandOn = false, onHeadbandUsed, boostOn, onBoostUsed, psychics = [], onActive, usedItems = [], itemFx = null, onSpotItems, onGiveItem, onOpenItems, multi, slowFight, onStartSlow, onStopSlow, tutorialDone, tutorialRewardTaken, onTutorialDone, onClaimTutorialReward, onTutorialActive, roster, rosterIntro, onAfflict }) {
   // v-B.05: 둘레길 [추가전투]는 같은 화면에 다른 상대 목록(roster)을 넘긴다. 없으면 체육관 상대들.
   const list = roster ?? ENEMIES
-  const [stealStat,setStealStat] = useState('aggression')
   const [phase, setPhase] = useState('pick') // pick | fight | result
   const [tutorialOpen, setTutorialOpen] = useState(false) // 전투 안내(안내 NPC 자리 outskirtsGuide, v72: 자동으로 뜨지 않고, 이 화면에서 직접 열 때만 보여 준다)
   // 튜토리얼이 열려 있는 동안엔 사이드바(ProfileSidebar)의 체력·의지력 표시도 100으로 보여 달라는
@@ -492,7 +491,7 @@ export default function Battle({ encounter, stats, baseAggression, mp, hp, hpMax
       return
     }
     const buffed = !barrierOn(cur.enemy) && buffArmed && (id === 'survival' || id === 'monkey-paw' || id === 'dokkaebi-fire')
-    if (barrierOn(cur.enemy) && !['survival','echo-form','falling-light','karmic-recompense','earth-step','seven-stars','warding-scripture','steal-geumdwaeji','steal-songaksi','steal-myogwi','steal-dokgak-gwi'].includes(id)) {
+    if (barrierOn(cur.enemy) && !['survival','echo-form','falling-light','karmic-recompense','earth-step','seven-stars','warding-scripture'].includes(id)) {
       push([{kind:'warn',text:'영력결계를 보유하여 적을 향한 영능력은 사용할 수 없다.'}]);return
     }
     // v-B.05: 상태 이상(홀린 귀·연모·저림)
@@ -546,16 +545,10 @@ export default function Battle({ encounter, stats, baseAggression, mp, hp, hpMax
       onBoostUsed?.()
     }
     spend(-r.mpCost)
-    // D.06.7 — 독각귀의 즉시 추가 행동을 2번 예약한다.
-    if(r.extraTurns) r.state={...r.state,bryExtraTurns:(r.state.bryExtraTurns||0)+r.extraTurns}
     const bell = applyBell(r.state)
     setB(bell.state)
     push([...r.events, ...bell.events])
     if (bell.state.over) finish(bell.state)
-    else if((bell.state.bryExtraTurns||0)>0){
-      const nx={...bell.state,bryExtraTurns:bell.state.bryExtraTurns-1}
-      setB(nx);beginRef.current?.(nx)
-    }
     else runEnemy(bell.state)
   }
 
@@ -941,7 +934,7 @@ export default function Battle({ encounter, stats, baseAggression, mp, hp, hpMax
           <p className="font-serif text-base text-gold">영능력</p>
           {b.psySeal > 0 && <p className="mt-1 text-xs text-crimson" data-psy-seal-note>영능력이 봉인되어 있다. 앞으로 {b.psySeal}턴 동안 영능력·효험을 쓸 수 없다.</p>}
           {(() => {
-            const mine = ownedPsychics([...(psychics||[]),...(b?.bryMimic?[b.bryMimic]:[])]).filter(p=>!(p.id==='steal-yagwanggwi'&&b?.stealUses?.['steal-yagwanggwi']))
+            const mine = ownedPsychics(psychics)
             if (!mine.length) return <p className="mt-2 text-sm text-paper/65" data-psychic-empty>획득한 영능력이 없습니다.</p>
             const pawMax = Math.max(1, Math.floor(b.php) - 1)
             return (
@@ -981,8 +974,6 @@ export default function Battle({ encounter, stats, baseAggression, mp, hp, hpMax
                       </>
                     ) : s.id === 'warding-scripture' ? (
                       <div className="mt-2 flex gap-2"><input type="number" aria-label="전할 의지력" min="1" max={mp} value={mpGift} onChange={e=>setMpGift(Math.max(1,Math.floor(Number(e.target.value)||1)))} className="w-20 rounded bg-shade px-2 text-paper"/><button type="button" className="flat-btn" onClick={()=>usePsychic(s.id,{amount:mpGift})}>사용</button></div>
-                    ) : s.id === 'steal-songaksi' ? (
-                       <div className="mt-2 flex flex-wrap gap-2"><select aria-label="강화할 육조" value={stealStat} onChange={e=>setStealStat(e.target.value)} className="rounded bg-shade p-2 text-paper">{[['insight','안목'],['aggression','호전'],['endurance','인내'],['control','절제'],['agility','신속'],['comprehension','이해']].map(([k,n])=><option key={k} value={k}>{n}</option>)}</select><button type="button" className="flat-btn" onClick={()=>usePsychic(s.id,{statKey:stealStat})}>사용</button></div>
                     ) : s.id === 'language-barrier' ? (
                       <LanguageBarrierPicker picking={!!b.lbPick} queue={b.queue} cost={mpCostOf(stats, 20)} disabled={!myTurn || b.psySeal > 0} onReveal={() => usePsychic(s.id)} onConfirm={(picked) => usePsychic(s.id, { rerolls: picked })} />
                     ) : (

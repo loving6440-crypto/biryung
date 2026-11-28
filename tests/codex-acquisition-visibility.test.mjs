@@ -22,7 +22,7 @@ function renderPsychics(player) {
   const dexLine = (label, content, cls='') => { const p=node('p',`dex-line ${cls}`);p.append(node('b','',label),node('span','',content));return p }
   const code = `${js}\nrenderDexPsychics(body);`
   const body = node('div')
-  runInNewContext(code, { body, CODEX: { psychics }, dexPlayer: () => player, dexAll: () => false, h: node, dexLine })
+  runInNewContext(code, { body, CODEX: { psychics }, dexPlayer: () => player, dexAll: () => false, h: node, dexLine, playApi: () => ({ psyProgress: (id) => ({ text: `진행 ${id}` }) }) })
   return body
 }
 function walk(node) {
@@ -44,8 +44,11 @@ test('미습득 영능력은 얻는 방법만 공개되고 상세와 의지력�
     assert.ok(card, `도감 항목 누락: ${x.id}`)
     assert.equal(card.dataset.known, '0')
     const fields = walk(card).filter(y=>y.cls?.startsWith('dex-line'))
-    assert.deepEqual(fields.map(field=>field.children[0].value), ['얻는 방법'], `미습득 보안 공개 범위: ${x.id}`)
+    // V.01 미습득이면 얻는 방법 아래에 지금까지 채운 횟수(n회 / n회)
+    assert.deepEqual(fields.map(field=>field.children[0].value), ['얻는 방법', '지금까지'], `미습득 보안 공개 범위: ${x.id}`)
     assert.equal(fields[0].children[1].value, x.cond, `실제 습득 방법 일치: ${x.id}`)
+    if (x.stolen) assert.match(fields[1].children[1].value, x.boss ? /^보스 처치 0회 \/ 20회/ : /^처치 0회 \/ 30회$/, x.id)
+    else assert.equal(fields[1].children[1].value, `진행 ${x.id}`)
   }
 })
 test('습득 영능력은 능력 설명과 얻는 방법을 함께 공개한다', () => {
@@ -59,6 +62,12 @@ test('습득 영능력은 능력 설명과 얻는 방법을 함께 공개한다'
     assert.deepEqual(fields.map(field=>field.children[0].value), ['의지력 소모','상세 설명','영향받는 스탯','얻는 방법'])
     assert.equal(fields.at(-1).children[1].value,x.cond)
   }
+})
+test('V.01 빼앗은 영능력 진행: 그 적을 쓰러뜨린 수(여러 적에게서 나오면 가장 많이 쓰러뜨린 쪽)', () => {
+  const curse = psychics.find((x) => x.id === 'steal-curse')
+  const body = renderPsychics({ psychics: [], killCount: { [curse.src[0]]: 4, [curse.src[1]]: 12 } })
+  const card = skill(body, 'steal-curse')
+  assert.equal(walk(card).find((y) => y.cls === 'dex-line is-progress').children[1].value, '처치 12회 / 30회')
 })
 test('기본으로 주어지는 영능력도 얻는 방법을 유지한다', () => {
   const x=psychics.find(x=>x.always)
