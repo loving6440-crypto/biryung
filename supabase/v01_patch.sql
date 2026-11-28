@@ -17,6 +17,7 @@
 --   8) 모바일 · 컴퓨터 기록 맞추기: 다른 기기가 그 사이 올린 기록을 덮어쓰지 않는다(bry_save_put 에 p_base)
 --   9) 한 주를 일요일 ~ 토요일로(랭킹 주차) — 이번 주 기록은 그대로 이어진다
 --  10) 비밀번호 잊었을 때 임시 비밀번호(로그인 화면 → 관리자가 전해 준다)
+--  11) 기록 지킴: 빈 기록이 진행한 기록을 덮지 못한다 · 덮기 전 기록을 따로 남겨 관리자가 되돌린다
 --  지우는 데이터: 3)의 비본편 줄, 탈퇴 계정의 표, 관리자가 지운 표가 남아 있던 경우 그 줄. 그 밖에는 건드리지 않는다.
 -- ═══════════════════════════════════════════════════════════════════
 begin;
@@ -467,6 +468,91 @@ revoke all on function public.bry_pw_reset_request(text), public.bry_pw_reset_st
   public.bry_admin_pw_resets(text), public.bry_admin_pw_reset_clear(text, text) from public;
 grant execute on function public.bry_pw_reset_request(text), public.bry_pw_reset_state(text), public.bry_pw_reset_finish(text, text),
   public.bry_admin_pw_resets(text), public.bry_admin_pw_reset_clear(text, text), public.bry_login(text, text) to anon, authenticated;
+
+-- ── 11) 기록 지킴(V.01) ─────────────────────────────────────────────
+-- 빈 기록(프로필이 없는 것)이 이미 진행한 기록을 덮어쓰지 못하게 한다. 그리고 덮어쓰기 전의 기록을
+-- 한 시간에 한 벌씩 따로 남겨(계정마다 최근 12벌) 관리자가 [서버 관리 → 기록 보기]에서 되돌릴 수 있게 한다.
+create table if not exists biryeong_private.save_backups (
+  id         bigserial primary key,
+  account_id bigint not null references biryeong_private.accounts(id) on delete cascade,
+  data       jsonb not null,
+  saved_at   timestamptz not null default now()
+);
+create index if not exists save_backups_acc on biryeong_private.save_backups(account_id, saved_at desc);
+alter table biryeong_private.save_backups enable row level security;
+revoke all on biryeong_private.save_backups from public, anon, authenticated;
+
+create or replace function public.bry_save_put(p_token text, p_data jsonb, p_base timestamptz default null) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := who(p_token); t timestamptz; nm text; ph text; cur biryeong_private.saves;
+begin
+  if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'invalid_save'; end if;
+  if octet_length(p_data::text) > 1000000 then raise exception 'save_too_large'; end if;
+  select * into cur from saves where account_id = a.id for update;
+  if p_base is not null and found and cur.updated_at is distinct from p_base then
+    return jsonb_build_object('ok', false, 'conflict', true, 'updated_at', cur.updated_at, 'device', cur.data ->> 'syncDevice');
+  end if;
+  -- 프로필이 없는 빈 기록은 진행한 기록을 덮지 않는다
+  if coalesce(jsonb_typeof(p_data -> 'profile'), 'null') <> 'object' and cur.account_id is not null and jsonb_typeof(cur.data -> 'profile') = 'object' then
+    return jsonb_build_object('ok', false, 'error', 'blank_save', 'updated_at', cur.updated_at);
+  end if;
+  -- 덮기 전 기록을 한 시간에 한 벌 남긴다
+  if cur.account_id is not null and jsonb_typeof(cur.data -> 'profile') = 'object'
+     and not exists (select 1 from save_backups b where b.account_id = a.id and b.saved_at > now() - interval '1 hour') then
+    insert into save_backups(account_id, data) values (a.id, cur.data);
+    delete from save_backups where account_id = a.id and id not in (select id from save_backups where account_id = a.id order by saved_at desc limit 12);
+  end if;
+  if jsonb_typeof(p_data -> 'profile') = 'object' and (p_data -> 'profile') ? 'photo' then
+    ph := p_data #>> '{profile,photo}';
+    if coalesce(ph, '') = '' then delete from photos where account_id = a.id;
+    elsif ph like 'data:image/%' and octet_length(ph) <= 400000 then
+      insert into photos (account_id, photo) values (a.id, ph) on conflict (account_id) do update set photo = excluded.photo, updated_at = now() where photos.photo is distinct from excluded.photo;
+    end if;
+    p_data := jsonb_set(p_data, '{profile}', (p_data -> 'profile') - 'photo');
+  end if;
+  insert into saves (account_id, data) values (a.id, p_data)
+    on conflict (account_id) do update set data = excluded.data, updated_at = clock_timestamp() returning updated_at into t;
+  nm := left(btrim(coalesce(p_data #>> '{profile,name}', '')), 40);
+  if nm <> '' and nm is distinct from a.display_name then update accounts set display_name = nm where id = a.id; end if;
+  return jsonb_build_object('ok', true, 'updated_at', t);
+end $$;
+revoke all on function public.bry_save_put(text, jsonb, timestamptz) from public;
+grant execute on function public.bry_save_put(text, jsonb, timestamptz) to anon, authenticated;
+
+-- 관리자 기록 보기: 프로필이 빈 기록이어도 열린다(예전: cannot delete from scalar)
+create or replace function public.bry_admin_save(p_token text, p_username text) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); r jsonb;
+begin
+  select jsonb_build_object('updated_at', s.updated_at,
+      'profile', case when jsonb_typeof(s.data -> 'profile') = 'object' then (s.data -> 'profile') - 'photo' else null end,
+      'game', s.data -> 'game', 'titles', s.data -> 'titles', 'achievements', s.data -> 'achievements',
+      'backups', (select coalesce(jsonb_agg(jsonb_build_object('id', b.id, 'saved_at', b.saved_at, 'name', b.data #>> '{profile,name}',
+          'money', b.data #>> '{game,money}', 'spirit', b.data #>> '{game,spirit}') order by b.saved_at desc), '[]'::jsonb)
+        from save_backups b where b.account_id = s.account_id))
+    into r from saves s join accounts u on u.id = s.account_id where u.username = lower(coalesce(p_username, ''));
+  if r is null then raise exception 'not_found'; end if;
+  perform log(a, 'read_save', lower(p_username), '');
+  return r;
+end $$;
+
+-- 관리자: 남겨 둔 기록으로 되돌린다(지금 기록도 한 벌 남긴 뒤). 그 학생 화면은 다음 확인 때(1분 안) 받아 간다.
+create or replace function public.bry_admin_save_restore(p_token text, p_username text, p_backup bigint) returns jsonb
+  language plpgsql security definer set search_path = biryeong_private, public, extensions as $$
+declare a biryeong_private.accounts := adm(p_token); u biryeong_private.accounts; b biryeong_private.save_backups; t timestamptz;
+begin
+  select * into u from accounts where username = lower(btrim(coalesce(p_username, '')));
+  if not found then raise exception 'not_found'; end if;
+  select * into b from save_backups where id = p_backup and account_id = u.id;
+  if not found then raise exception 'not_found'; end if;
+  insert into save_backups(account_id, data) select u.id, s.data from saves s where s.account_id = u.id;
+  update saves set data = jsonb_set(b.data, '{syncDevice}', '"admin-restore"'), updated_at = clock_timestamp() where account_id = u.id returning updated_at into t;
+  if t is null then insert into saves(account_id, data) values (u.id, jsonb_set(b.data, '{syncDevice}', '"admin-restore"')) returning updated_at into t; end if;
+  perform log(a, 'save_restore', u.username, b.saved_at::text);
+  return jsonb_build_object('ok', true, 'updated_at', t);
+end $$;
+revoke all on function public.bry_admin_save_restore(text, text, bigint) from public;
+grant execute on function public.bry_admin_save_restore(text, text, bigint), public.bry_admin_save(text, text) to anon, authenticated;
 
 -- ── 7) 버전 ───────────────────────────────────────────────────────
 create or replace function public.bry_status() returns jsonb language sql stable security definer set search_path = biryeong_private as $$

@@ -21,6 +21,7 @@ truncate table
   biryeong_private.sessions,
   biryeong_private.pw_resets,
   biryeong_private.saves,
+  biryeong_private.save_backups,
   biryeong_private.photos,
   biryeong_private.friends,
   biryeong_private.grants,

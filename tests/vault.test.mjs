@@ -1028,7 +1028,7 @@ test('vD.06: 이벤트 「학생 괴담 수칙」 — 관리자 공개 · 신수
   assert.ok(ev.includes("key: 'beast'") && ev.includes('6: \'이름 없는 것에게는 이름을 불러 주어라\''))
   const q = readFileSync(join(ROOT, 'quest.js'), 'utf8')
   assert.ok(q.includes("sync.adminRoute(adminCode(), 'BEAST_EVENT'") && q.includes('최초에 이름을 정하면 이름을 바꿀 수 없습니다. 확인하셨습니까?'))
-  assert.ok(readFileSync(join(ROOT, 'index.html'), 'utf8').includes('beast-event.js?v=V.01-3'))
+  assert.ok(readFileSync(join(ROOT, 'index.html'), 'utf8').includes('beast-event.js?v=V.01-4'))
   const pt = readFileSync(join(ROOT, 'systems/play/patches.mjs'), 'utf8'); assert.ok(pt.includes('data-beast-locked') && pt.includes('아직 공개되지 않았다.'))
   const sp = readFileSync(join(ROOT, 'systems/play/src/StoryParty.jsx'), 'utf8'); assert.ok(sp.includes("st.p === 'smear' && act === 'call'"))
   const bc = readFileSync(join(ROOT, 'systems/play/src/BeastCare.jsx'), 'utf8'); assert.ok(!bc.includes('이름 바꾸기') && !bc.includes('아기 ') && bc.includes('NAME_NOTICE'))

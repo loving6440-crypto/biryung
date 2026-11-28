@@ -94,6 +94,9 @@
    *          이 기기에서도 한 것이 있으면 어느 쪽을 남길지 묻는다. */
   const DEVICE_KEY = 'biryeong-device', ACT_KEY = (id) => `biryeong-act:${id}`;
   const deviceId = () => { let d = get(DEVICE_KEY); if (!d) { d = `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; set(DEVICE_KEY, d); } return d; };
+  // V.01 기록 지킴: 프로필이 있는 기록만 「진행한 기록」이다
+  const hasProfile = (d) => !!(d && typeof d === 'object' && d.profile && typeof d.profile === 'object' && !Array.isArray(d.profile));
+  const localHasProfile = (id) => { try { return hasProfile(JSON.parse(get(saveKey(id)) || 'null')); } catch (_) { return false; } };
   const writeMeta = (id, m) => set(CLOUD_KEY(id), JSON.stringify({ ...m, syncedAt: Date.now() }));
   // 마지막으로 맞춘 뒤 이 기기에서 직접 누르거나 친 적이 있는가(켜 두기만 한 화면의 시간 흐름은 「한 것」이 아니다)
   const touchedSince = (id) => Number(get(ACT_KEY(id)) || 0) > Number(cloudMeta(id).syncedAt || 0);
@@ -112,6 +115,7 @@
     // V.01 마지막으로 맞춘 뒤 이 기기에서 직접 한 것이 없으면(켜 두기만 한 화면) 올리지 않는다 — 다른 기기에서 한 것을 덮지 않게
     if (!opt.force && meta.at && !touchedSince(id)) return false;
     let data; try { data = JSON.parse(local); } catch (_) { return false; }
+    if (!hasProfile(data)) return false; // V.01 프로필이 없는 빈 기록은 올리지 않는다(진행한 기록을 덮지 않게)
     data.syncDevice = deviceId();
     // vD.04.3 프로필 사진은 바뀌었을 때만 함께 보낸다(서버는 사진을 따로 두고, 키가 없으면 그대로 둔다 · null 이면 지운다)
     const prof = data && typeof data.profile === 'object' && data.profile ? data.profile : null;
@@ -121,7 +125,8 @@
     pushing = true; lastPush = Date.now();
     try {
       const args = { p_token: t, p_data: data };
-      if (!noBase && !opt.force && meta.at) args.p_base = meta.at;
+      // V.01 이 기기가 서버 기록과 한 번도 맞춘 적이 없으면 「처음(1970)」을 base 로 — 서버에 이미 기록이 있으면 덮지 않고 묻는다
+      if (!noBase && !opt.force) args.p_base = meta.at || '1970-01-01T00:00:00Z';
       let r;
       try { r = await rpc('bry_save_put', args, { keepalive: !!opt.keepalive && body.length < 60000 }); }
       catch (e) { if (e.code === 'schema_missing' && args.p_base) { noBase = true; delete args.p_base; r = await rpc('bry_save_put', args); } else throw e; }
@@ -132,6 +137,7 @@
         if (!document.hidden && !opt.keepalive) resolveOther(id, t, r.updated_at);
         return false; // 화면을 닫거나 가릴 때는 덮어쓰지 않는다 — 다음에 열 때 맞춘다
       }
+      if (!r || r.ok === false) return false; // blank_save 등: 서버가 받지 않았다
       writeMeta(id, { at: r.updated_at, sig: s, ph }); return true;
     }
     catch (e) { if (e.code === 'save_too_large' && !pushSave.warned) { pushSave.warned = true; console.warn('[비령]', e.message); } return false; }
@@ -152,6 +158,7 @@
       }
       const full = await rpc('bry_save_get', { p_token: t, p_meta: false });
       if (!full || !full.data) return;
+      if (!hasProfile(full.data) && localHasProfile(id)) { syncing = false; await pushSave({ force: true }); return; } // V.01 서버 것이 빈 기록이면 이 기기의 진행 기록을 지킨다(되살린다)
       const text = JSON.stringify(full.data);
       set(PENDING_KEY(id), text); writeMeta(id, { at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) });
       try { sessionStorage.setItem('biryeong-synced-notice', '1'); } catch (_) { /* 무시 */ }
@@ -185,6 +192,7 @@
     }
     const full = await rpc('bry_save_get', { p_token: t, p_meta: false });
     if (!full || !full.data) return 'none';
+    if (!hasProfile(full.data) && localHasProfile(id)) { setTimeout(() => pushSave({ force: true }), 1500); return 'kept'; } // V.01 빈 기록으로 덮지 않는다
     const text = JSON.stringify(full.data);
     set(PENDING_KEY(id), text); writeMeta(id, { at: full.updated_at, sig: sig(text), ph: sig(String(full.data?.profile?.photo || '')) }); // vD.04.3 받은 사진은 다시 올리지 않는다
     return 'pulled';

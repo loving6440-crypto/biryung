@@ -74,7 +74,7 @@ test('V.01: 산출물은 소스에서 다시 만든 것 — 화면 묶음 · 도
   assert.ok(codex.includes('무구보관소에서 무구를 일반 강화(10~12)할 때 쓰는 재료(2·3·4개 필요).'));
   assert.ok(light.includes('.party-call-bell'), '일행 호출 종도 화이트 모드');
   const html = read('index.html');
-  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01-3'));
+  assert.ok(!/\?v=D\.06/.test(html) && html.includes('?v=V.01-4'));
 });
 
 test('V.01: 매점 판매가는 개척 터 레벨로 — 같은 터 같은 종류는 같은 값, 터가 어려울수록 비싸다', () => {
@@ -202,4 +202,16 @@ test('V.01: 동아리 할일을 채우면 붉은 알림 · 단추에 숫자', ()
 
 test('V.01: 첫 화면 스크립트는 문법 오류가 없다', () => {
   for (const f of ['app.js', 'auth.js', 'quest.js', 'server.js', 'community.js', 'party.js', 'beast-event.js']) assert.doesNotThrow(() => new Function(read(f)), f);
+});
+
+test('V.01: 기록 지킴 — 빈 기록은 올리지도 받지도 않고, 서버도 진행 기록을 빈 기록으로 덮지 않는다', () => {
+  const patch = read('supabase/v01_patch.sql'), sql = read('supabase/schema.sql');
+  const last = (name) => sql.slice(sql.lastIndexOf(`create or replace function public.${name}(`));
+  assert.ok(last('bry_save_put').includes("'error', 'blank_save'") && last('bry_save_put').includes('insert into save_backups'));
+  assert.ok(last('bry_admin_save').includes("case when jsonb_typeof(s.data -> 'profile') = 'object' then (s.data -> 'profile') - 'photo' else null end"), 'cannot delete from scalar');
+  assert.ok(patch.includes('function public.bry_admin_save_restore(') && read('supabase/reset_all.sql').includes('biryeong_private.save_backups'));
+  const a = read('auth.js');
+  assert.ok(a.includes('if (!hasProfile(data)) return false;') && a.includes("args.p_base = meta.at || '1970-01-01T00:00:00Z'"));
+  assert.equal((a.match(/!hasProfile\(full\.data\) && localHasProfile\(id\)/g) || []).length, 2, '받을 때도 지킨다');
+  assert.ok(read('server.js').includes("call('bry_admin_save_restore'"));
 });

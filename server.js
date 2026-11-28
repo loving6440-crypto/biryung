@@ -230,7 +230,24 @@
       saveBox.hidden = false; saveBox.replaceChildren(h('p', 'panel-label', `@${u.username} 의 기록 — ${when(s.updated_at)} (열람이 감사 기록에 남는다)`));
       const rows = [['이름', p.name], ['나이 · 성별', [p.age, p.gender].filter(Boolean).join(' · ')], ['한줄소개', p.intro || p.bio], ['체력 · 의지력 · 영력', [g.hp != null ? `${Math.floor(g.hp)}/${g.hpMax}` : '', g.mp != null ? `${Math.floor(g.mp)}/${g.mpMax}` : '', g.spirit != null ? Math.floor(g.spirit) : ''].filter((x) => x !== '').join(' · ')], ['소지금', g.money != null ? `${Math.floor(g.money)}냥` : ''],
         ['육조 스탯', g.stats ? Object.entries(g.stats).map(([k, v]) => `${k} ${v}`).join(' · ') : ''], ['소지품', g.inventory ? `${Object.keys(g.inventory).filter((k) => g.inventory[k] > 0).length}종` : ''], ['칭호 · 업적', `${Object.keys(s.titles || {}).length}개 · ${Object.keys(s.achievements || {}).length}개`]];
-      const dl = h('dl', 'server-dl'); rows.forEach(([k, v]) => { if (v) dl.append(h('dt', '', k), h('dd', '', String(v))); }); saveBox.append(dl, btn('ghost-btn', '닫기', () => { saveBox.hidden = true; }));
+      const dl = h('dl', 'server-dl'); rows.forEach(([k, v]) => { if (v) dl.append(h('dt', '', k), h('dd', '', String(v))); });
+      if (!s.profile) saveBox.append(para('⚠ 이 기록에는 프로필이 없다(빈 기록). 아래 [남겨 둔 기록]에서 되돌리거나, 진행 기록이 남아 있는 기기로 접속하면 그 기록이 다시 올라간다.'));
+      saveBox.append(dl);
+      // V.01 남겨 둔 기록(덮어쓰기 전, 한 시간에 한 벌 · 최근 12벌)으로 되돌리기
+      const bk = s.backups || []; const bl = h('div', 'codex-list scroll-box'); bl.dataset.saveBackups = String(bk.length);
+      saveBox.append(h('p', 'panel-label', `남겨 둔 기록 ${bk.length}벌 — 되돌리면 지금 기록도 한 벌 남긴다. 그 학생 화면은 1분 안에 받아 간다.`), bl);
+      if (!bk.length) bl.append(para('아직 남겨 둔 기록이 없다. (V.01 기록 지킴을 적용한 뒤부터 쌓인다)'));
+      bk.forEach((b) => {
+        const r = h('div', 'codex-row is-got'), t = h('div', 'codex-text');
+        t.append(h('strong', '', `${when(b.saved_at)} 기록`), h('p', '', [b.name ? `이름 ${b.name}` : '', b.money != null ? `${Number(b.money).toLocaleString()}냥` : '', b.spirit != null ? `영력 ${b.spirit}` : ''].filter(Boolean).join(' · ')));
+        const side = h('div', 'codex-side admin-side');
+        side.append(btn('ghost-btn codex-use', '이 기록으로 되돌리기', guard(async () => {
+          if (!window.confirm(`@${u.username} 의 기록을 ${when(b.saved_at)} 의 것으로 되돌릴까요?`)) return;
+          await call('bry_admin_save_restore', { p_username: u.username, p_backup: b.id }); toast('서버 관리', '기록을 되돌렸다. 그 학생 화면이 1분 안에 받아 간다.'); showSave(u);
+        })));
+        r.append(h('span', 'codex-mark', '◇'), t, side); bl.append(r);
+      });
+      saveBox.append(btn('ghost-btn', '닫기', () => { saveBox.hidden = true; }));
       saveBox.scrollIntoView({ block: 'nearest' });
     });
     // vC.07.5 상태 고치기: 육조 스탯 · 체력 · 의지력 · 영력 · 쇠약 · 몸의 이상 · 영능력
